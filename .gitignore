@@ -1,0 +1,155 @@
+# --------------------------------------------------------------------
+# 1. Python & Pip
+# --------------------------------------------------------------------
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / Packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# --------------------------------------------------------------------
+# 2. FEniCSx & Scientific Computing Specifics
+# --------------------------------------------------------------------
+# FEniCSx/DOLFINx JIT (Just-In-Time) compilation cache
+jit_cache/
+*.c
+*.o
+*.so
+jitfailure-ffc*
+
+# ADIOS2 Checkpoints (Common in FEniCSx 0.10.0)
+# ADIOS2 often creates directories ending in .bp
+*.bp/
+
+# PETSc / Solver Logs
+petsc_log.py
+*.log
+slurm-*.out
+*.err
+
+# --------------------------------------------------------------------
+# 3. Mesh & Geometry (Gmsh, XDMF, HDF5)
+# --------------------------------------------------------------------
+# Gmsh files
+*.geo
+*.msh
+*.opt
+
+# XDMF / HDF5 (Mesh and Data)
+*.xdmf
+*.h5
+*.h5.*
+
+# --------------------------------------------------------------------
+# 4. Visualization (Paraview / VTK)
+# --------------------------------------------------------------------
+*.vtk
+*.vtu
+*.pvtu
+*.pvd
+*.vtm
+*.pvtm
+*.pvsm
+
+# --------------------------------------------------------------------
+# 5. Project Outputs (Aggressive Matching)
+# --------------------------------------------------------------------
+# Matches outputs, output, Outputs, Results, results_01, etc.
+*[Oo]utput*/
+*[Rr]esult*/
+*[Mm]esh/
+*[Ii]mage*/
+*[Dd]ata/
+
+# --------------------------------------------------------------------
+# 6. Data Tables & Figures
+# --------------------------------------------------------------------
+# Tables
+*.dat
+*.sta
+*.csv
+*.tsv
+*.xlsx
+*.xls
+*.txt
+
+# Images
+*.gif
+*.png
+*.PNG
+*.jpg
+*.JPG
+*.jpeg
+*.JPEG
+*.svg
+*.pdf
+*.eps
+
+!**/resources/
+!**/resources/**/*.png
+!**/resources/**/*.PNG
+!**/resources/**/*.JPG
+!**/resources/**/*.jpg
+!**/resources/**/*.JPEG
+!**/resources/**/*.jpeg
+!**/resources/**/*.svg
+!**/resources/**/*.pdf
+!**/resources/**/*.csv
+
+# --------------------------------------------------------------------
+# 7. IDE & System
+# --------------------------------------------------------------------
+# macOS
+.DS_Store
+
+# VS Code / PyCharm
+.vscode/
+.idea/
+*.swp
+
+
+# ruff and pytest
+.ruff_cache/
+.pytest_cache/
+.coverage
+
+# documentation build
+*api_toc.md
+docs/src/api/
+
+# --------------------------------------------------------------------
+# Hill playground
+# --------------------------------------------------------------------
+.devcontainer/secrets.env

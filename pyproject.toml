@@ -1,0 +1,97 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel", "setuptools_scm>=8.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hill_playground"
+dynamic = ["version"]
+description = "Playground for the Hill-chain smooth muscle cell model, staged for transfer into fenicsoft."
+readme = "README.md"
+authors = [
+  { name = "Thomas Lavigne", email = "thomas.lavigne@polytechnique.edu" },
+]
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Intended Audience :: Science/Research",
+]
+# fenicsoft is installed beforehand by .devcontainer/install_fenicsoft.sh (not on PyPI).
+dependencies = [
+    "fenicsoft",
+    ]
+
+#Install with:
+#`pip install -e .[dev,docs]`
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2.1",
+    "pytest-cov>=7.0.0",
+    "ruff>=0.15.0",
+    "pre-commit>=4.5.1"
+]
+docs = [
+    "sphinx>=8.1.3",
+    "sphinx-autoapi>=3.6.1",
+    "myst-parser>=4.0.1",
+    "sphinx-autodoc-typehints>=3.0.1",
+    "sphinx-design>=0.6.1",
+    "sphinx-rtd-theme>=3.1.0",
+    "sphinx-copybutton>=0.5.2",
+]
+
+[tool.setuptools_scm]
+version_scheme = "calver-by-date"
+local_scheme = "node-and-date"
+fallback_version = "2026.10.15"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra"
+testpaths = ["tests"]
+filterwarnings = [
+    "ignore::DeprecationWarning:ufl_legacy.*",
+    "ignore::DeprecationWarning:pkg_resources.*",
+]
+
+# --- CONFIGURATION RUFF (identical to fenicsoft) ---
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+src = ["src"]
+exclude = [
+    "docs/",
+]
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint]
+# E/W: pycodestyle, F: Pyflakes, I: isort, N: pep8-naming, D: ensure your Google docstrings are linted properly
+select = ["E", "W", "F", "I", "N", "D"]
+ignore = ["W191", "E101", "E111", "N817", "D203", "D206", "D213", "D206", "D300",]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "tab"
+docstring-code-format = true
+
+[tool.coverage.run]
+source = ["src"]
+branch = true
+omit = [
+    "tests/*",
+    "**/__init__.py",
+]
+
+[tool.coverage.report]
+show_missing = true
+precision = 2
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if __name__ == .__main__.:",
+]

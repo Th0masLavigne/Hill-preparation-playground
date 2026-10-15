@@ -1,0 +1,99 @@
+{
+	"name": "Hill playground (fenicsoft)",
+	// Same base image as fenicsoft's devcontainer. Built from ../fenicsoft/docker/dolfin if missing (see initialize.sh).
+	"image": "dolfin:v2019.2.0.dev0",
+	"remoteUser": "fenics_user",
+	"containerUser": "fenics_user",
+
+	// Set to false because the Dockerfile already handles the UID/GID (1000:1000). if not same id, change it to match
+	// Changing this dynamically can break the DIJITSO and MPL caches.
+	"updateRemoteUserUID": false,
+
+	// Runs on the HOST: checks the image exists (builds it otherwise) and creates the bind-mount sources.
+	"initializeCommand": ["bash", "${localWorkspaceFolder}/.devcontainer/initialize.sh"],
+
+	"mounts": [
+		{
+			// Your local fenicsoft clone: source of `FENICSOFT_SOURCE=local|editable` (see fenicsoft.env).
+			"source": "${localWorkspaceFolder}/../fenicsoft",
+			"target": "/home/fenics_user/fenicsoft_src",
+			"type": "bind"
+		},
+		{
+			"source": "${localWorkspaceFolder}/../../local/build_docs_hill",
+			"target": "/home/fenics_user/docs_output",
+			"type": "bind"
+		}
+	],
+
+	// Only used by `FENICSOFT_SOURCE=remote` (alternative: .devcontainer/secrets.env).
+	"remoteEnv": {
+		"FENICSOFT_TOKEN": "${localEnv:FENICSOFT_TOKEN}"
+	},
+
+	"customizations": {
+		"vscode": {
+			"settings": {
+				"python.defaultInterpreterPath": "/usr/bin/python3",
+				"autoDocstring.docstringFormat": "google",
+				"python.analysis.exclude": ["docs"],
+				"python.analysis.inlayHints.functionReturnTypes": true,
+				"python.analysis.inlayHints.variableTypes": true,
+				"python.analysis.inlayHints.pytestParameters": true,
+				"python.analysis.inlayHints.callArgumentNames": "all",
+				"editor.inlayHints.enabled": "offUnlessPressed",
+				"python.analysis.typeCheckingMode": "strict",
+				"python.analysis.importFormat": "absolute",
+				"python.analysis.extraPaths": [
+					"/usr/lib/python3/dist-packages",
+					"/home/fenics_user/dolfin_mech",
+					"${containerWorkspaceFolder}/src"
+				],
+				"python.autoComplete.extraPaths": [
+					"/usr/lib/python3/dist-packages",
+					"/home/fenics_user/dolfin_mech",
+					"${containerWorkspaceFolder}/src"
+				],
+				"python.analysis.diagnosticSeverityOverrides": {
+					"reportUnknownParameterType": "none",
+					"reportUnknownVariableType": "none",
+					"reportUnknownMemberType": "none",
+					"reportUnknownArgumentType": "none",
+					"reportAttributeAccessIssue": "none",
+					"reportOperatorIssue": "none",
+					"reportMissingTypeStubs": "none"
+				},
+				"python.testing.pytestEnabled": true,
+				"python.testing.pytestArgs": ["tests"],
+				"[python]": {
+					"editor.defaultFormatter": "charliermarsh.ruff",
+					"editor.formatOnSave": true,
+					"editor.codeActionsOnSave": {
+						"source.fixAll.ruff": "explicit",
+						"source.organizeImports.ruff": "explicit"
+					},
+					"editor.insertSpaces": false,
+					"editor.tabSize": 4
+				},
+				"ruff.importStrategy": "fromEnvironment",
+				"terminal.integrated.profiles.linux": {
+					"bash": { "path": "bash" }
+				},
+				"terminal.integrated.defaultProfile.linux": "bash"
+			},
+			"extensions": [
+				"ms-python.python",
+				"ms-toolsai.jupyter",
+				"ms-python.vscode-pylance",
+				"ms-python.debugpy",
+				"ms-python.python-targets",
+				"oderwat.indent-rainbow",
+				"charliermarsh.ruff",
+				"njpwerner.autodocstring"
+			]
+		}
+	},
+
+	// Installs fenicsoft at the ref chosen in .devcontainer/fenicsoft.env, then this package.
+	"postCreateCommand": "make install"
+}
