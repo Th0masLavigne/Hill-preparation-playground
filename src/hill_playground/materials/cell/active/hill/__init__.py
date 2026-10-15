@@ -4,4 +4,7 @@ Shared UFL functions of the chain and the active stress law (equations.tex, "The
 Target: ``fenicsoft.materials.cell.active.hill``.
 """
 
-__all__: list[str] = []
+from . import functions
+from .law import Constitutive, Parameters
+
+__all__ = ["Constitutive", "functions", "Parameters"]

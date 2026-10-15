@@ -4,4 +4,6 @@ Residual :math:`R_a` of the Hill chain (equations.tex, "The cell Hill chain").
 Target: ``fenicsoft.operators.cell.hill``.
 """
 
-__all__: list[str] = []
+from .contractile_evolution import ContractileEvolution
+
+__all__ = ["ContractileEvolution"]

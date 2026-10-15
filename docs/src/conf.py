@@ -6,6 +6,9 @@ import sys
 current_dir = Path(__file__).parent.resolve()
 project_root = current_dir.parent.parent
 sys.path.insert(0, str(project_root))
+# Demo scripts import their sibling helpers by bare name (run from their own folder): viewcode needs them.
+for demo_dir in sorted((project_root / "demos").glob("*/")):
+	sys.path.insert(0, str(demo_dir))
 # -----------------------------------------------------------------------------
 # Project information
 # -----------------------------------------------------------------------------
@@ -91,6 +94,7 @@ autoapi_ignore = [
 	"*conf.py*", "*setup.py*", "*/docs/*", "*/.pytest_cache/*",
 	"*/__pycache__/*", "*/.ruff_cache/*",
 	"tests/test_env.py",
+	"*conftest.py",
 ]
 autoapi_root = "api"
 autoapi_add_toctree_entry = False

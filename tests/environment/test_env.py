@@ -35,16 +35,28 @@ def test_fenicsoft_origin() -> None:
 	print("\n" + STAMP.read_text())
 
 
-def test_layout_mirrors_fenicsoft() -> None:
-	"""Every playground sub-package parent exists in fenicsoft (1:1 transfer).
+NEW_BRANCHES = ("materials.cell.active.hill", "operators.cell.hill", "scaling")
+"""Packages that do not exist yet in fenicsoft (transfer plan); everything else must already exist."""
 
-	For ``hill_playground.a.b.c``, ``fenicsoft.a.b`` must be importable.
+
+def test_layout_mirrors_fenicsoft() -> None:
+	"""Every playground package exists in fenicsoft, or lies in a declared new branch.
+
+	``hill_playground.<path>`` must map to an importable ``fenicsoft.<path>``, unless ``<path>``
+	starts with one of :data:`NEW_BRANCHES` (whose parent must then exist in fenicsoft).
 	"""
 	import pkgutil
 
 	import hill_playground
 
+	for branch in NEW_BRANCHES:
+		parent = branch.rpartition(".")[0]
+		importlib.import_module(".".join(filter(None, ["fenicsoft", parent])))
+
 	for info in pkgutil.walk_packages(hill_playground.__path__, "hill_playground."):
-		parts = info.name.split(".")[1:-1]
-		if parts:
-			importlib.import_module(".".join(["fenicsoft", *parts]))
+		if not info.ispkg:
+			continue
+		path = info.name.split(".", 1)[1]
+		if any(path == b or path.startswith(b + ".") for b in NEW_BRANCHES):
+			continue
+		importlib.import_module(f"fenicsoft.{path}")

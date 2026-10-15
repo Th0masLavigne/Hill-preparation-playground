@@ -18,8 +18,10 @@ holds what is new.
 │   ├── initialize.sh       # host-side: base image + bind-mount folders
 │   └── secrets.env.example # token for the remote mode
 ├── src/hill_playground/    # -> fenicsoft/
-│   ├── materials/cell/active/hill/
-│   └── operators/cell/hill/
+│   ├── materials/cell/active/hill/   # Hill law (R_u) + shared UFL functions   [new]
+│   ├── operators/cell/hill/          # ContractileEvolution (R_a)              [new]
+│   ├── operators/cell/proliferation/ # clipped SaturatedProliferation          [patch]
+│   └── scaling/                      # CharacteristicScales (promoted)         [new]
 ├── tests/{unit,integration,environment}/
 ├── demos/
 └── docs/src/
@@ -40,7 +42,7 @@ Expected layout on the host (same as today):
 
    | `FENICSOFT_SOURCE` | Installs | `FENICSOFT_REF` |
    | --- | --- | --- |
-   | `local` (default) | a throw-away copy of `../fenicsoft` at the ref; your checkout is untouched | local branch, `origin/<branch>`, tag or sha |
+   | `local` (default) | a throw-away copy of `../fenicsoft` at the ref; your checkout is untouched | local branch, `origin/<branch>`, tag or sha (default `64-reproduce-experiment-from-mostert-et-al-2`: `scale_factor` and `OrientationChange` are not on `main` yet) |
    | `editable` | `pip install -e ../fenicsoft` as currently checked out (edit both repos live) | ignored |
    | `remote` | from the GitLab, needs `FENICSOFT_TOKEN` (`secrets.env` or host env) | branch, tag or sha |
 
@@ -74,3 +76,9 @@ for the `local` mode, or use `FENICSOFT_SOURCE=remote`.
 | `make linter` / `make format` | ruff check / format |
 | `make docs` | Sphinx → `~/Documents/local/build_docs_hill` |
 | `make clean` | remove caches and outputs |
+
+## Demos
+
+| Demo | Content |
+| --- | --- |
+| `demos/hill_box/` | equations.tex on a gel box held on two faces, drained elsewhere (simplified stage B) |
