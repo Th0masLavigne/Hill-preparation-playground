@@ -10,35 +10,44 @@ equations.tex, Eqs. Psi-h, S-h, P-h. Only the SEE stress enters the momentum bal
 The CE and the PEE act on :math:`\varepsilon_a = \ln\lambda_a` through :math:`R_a`
 (:class:`hill_playground.operators.cell.hill.ContractileEvolution`).
 
-The activation :math:`\alpha(t)` (``p_act``, ``set_k_step``, ``update_time``) is inherited from
-:class:`fenicsoft.materials.cell.active.aniso.law.Constitutive`: ``p_act`` is the single
-``dolfin.Constant`` shared with ``OrientationChange`` and ``ContractileEvolution``, and is
-refreshed by ``HyperElasticity`` because this law is summed into the gel material.
+Self-contained law: it derives from the fenicsoft base classes only (``MaterialParameters``,
+``ConstitutiveLaw``) and owns its activation :math:`\alpha(t)` by composition
+(:class:`~hill_playground.materials.cell.active.activation.ActivationSchedule`): ``p_act`` is the
+single ``dolfin.Constant`` shared with ``OrientationChange`` and ``ContractileEvolution``, refreshed
+through ``set_k_step``/``update_time`` by ``HyperElasticity`` (this law is summed into the gel law).
 """
 
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Any
+from typing import Any, Sequence
 
 import dolfin
-from fenicsoft.materials.cell.active.aniso import law as aniso_law
+import dolfin_mech as dmech
+from fenicsoft.materials.materials import ConstitutiveLaw, MaterialParameters
 
+from ..activation import ActivationSchedule, ActivePowerConfig
 from . import functions as hill
 
 
 @dataclass(slots=True, frozen=True, kw_only=True)
-class Parameters(aniso_law.Parameters):
-	r"""Hill-chain parameters, on top of ``aniso.law.Parameters``.
-
-	Inherited and used: ``phi_c`` (:math:`\Phi_c`), ``f0``, ``activation_configs``, ``f_max``,
-	``simulation_steps``, ``use_force_length``, ``lmbda_opt``, ``W``, ``inv4_floor``,
-	``default_force_length``.
+class Parameters(MaterialParameters):
+	r"""Hill-chain parameters (SI).
 
 	Attributes:
+	    phi_c: :math:`\Phi_c`, reference cell fraction (``Constant`` or ``Function``).
+	    f0: Unit reference fibre direction :math:`\mathbf f_0` (UFL vector).
+	    activation_configs: :math:`\alpha(t)`, one :class:`ActivePowerConfig` per step.
+	    simulation_steps: ``problem.steps``.
+	    f_max: Maximal isometric tension :math:`f_{max}` (Pa).
 	    eps_a: :math:`\varepsilon_a` (current iterate of the DG0 subsol).
 	    eps_a_old: :math:`\varepsilon_a^n` (previous converged value, ``func_old``).
 	    k_e: SEE initial stiffness :math:`k_e` (Pa).
 	    k_p: PEE initial stiffness :math:`k_p` (Pa).
+	    use_force_length: Gaussian :math:`f_{FL}(\lambda_a)`, else ``default_force_length``.
+	    lmbda_opt: :math:`\lambda_{opt}`.
+	    W: Width :math:`W` of :math:`f_{FL}`.
+	    inv4_floor: Lower bound of :math:`I_4` (Newton safeguard).
+	    default_force_length: :math:`f_{FL}` when ``use_force_length`` is False.
 	    hill_a: Hill curvature :math:`A = a / T_0` (-).
 	    hill_b: Hill rate constant :math:`b` (1/s); :math:`v_{max} = b / A`.
 	    f_ecc: Eccentric saturation :math:`f_{ecc}` (-).
@@ -47,10 +56,20 @@ class Parameters(aniso_law.Parameters):
 	    k_2e: Stiffening exponent of the ``"exponential"`` SEE (-), > 0 for that variant.
 	"""
 
+	phi_c: Any
+	f0: Any
+	activation_configs: Sequence[ActivePowerConfig]
+	simulation_steps: Sequence[dmech.core.Step]
+	f_max: float | dolfin.Constant
 	eps_a: Any
 	eps_a_old: Any
 	k_e: float | dolfin.Constant
 	k_p: float | dolfin.Constant
+	use_force_length: bool = True
+	lmbda_opt: float | dolfin.Constant = 1.05
+	W: float | dolfin.Constant = 0.3
+	inv4_floor: float = 1e-6
+	default_force_length: float = 1.0
 	hill_a: float | dolfin.Constant = 0.25
 	hill_b: float | dolfin.Constant = 0.05
 	f_ecc: float | dolfin.Constant = 1.8
@@ -70,14 +89,51 @@ class Parameters(aniso_law.Parameters):
 			raise ValueError("The exponential SEE needs k_2e > 0.")
 
 
-class Constitutive(aniso_law.Constitutive):
+class Constitutive(ConstitutiveLaw[Parameters]):
 	r"""SEE stress of the Hill chain, weighted by :math:`\Phi_c` (sum it into the gel law with ``+``).
 
-	``pk1`` (:math:`\mathbf{F}\mathbf{S}_h`) and ``cauchy`` (:math:`\mathbf{P}_h\mathbf{F}^T/J`)
-	are inherited.
+	Args:
+	    kinematics: ``dolfin_mech`` kinematics.
+	    parameters: :class:`Parameters`.
+	    name: Optional name.
+
+	Attributes:
+	    p_act: :math:`\alpha` (``dolfin.Constant``), owned by the activation schedule.
 	"""
 
 	_parameters: Parameters
+
+	def __init__(self, kinematics: Any, parameters: Parameters, name: str | None = None) -> None:
+		"""Build the activation schedule."""
+		super().__init__(kinematics, parameters, name=name)
+		self._activation = ActivationSchedule(parameters.activation_configs, parameters.simulation_steps)
+		self.p_act = self._activation.p_act
+
+	def set_k_step(self, k_step: int) -> None:
+		"""Select the activation of step ``k_step``.
+
+		Args:
+		    k_step: Step index.
+		"""
+		self._activation.set_k_step(k_step)
+
+	def update_time(self, t_step: float) -> None:
+		r"""Update :math:`\alpha` at the step fraction :math:`t_{step}`.
+
+		Args:
+		    t_step: Normalised step time in :math:`[0, 1]`.
+		"""
+		self._activation.update_time(t_step)
+
+	@property
+	def current_activation(self) -> float:
+		r"""Current :math:`\alpha`."""
+		return self._activation.value
+
+	@property
+	def current_time(self) -> float:
+		"""Global time of the last ``update_time`` (solve units)."""
+		return self._activation.time
 
 	@cached_property
 	def inv4(self) -> Any:
@@ -126,3 +182,13 @@ class Constitutive(aniso_law.Constitutive):
 		"""
 		p = self._parameters
 		return p.phi_c * self.tension_see / self.inv4 * dolfin.outer(p.f0, p.f0)
+
+	@cached_property
+	def pk1(self) -> dolfin.Form:
+		r""":math:`\mathbf P_h = \mathbf F \mathbf S_h`."""
+		return self._kinematics.F * self.pk2
+
+	@cached_property
+	def cauchy(self) -> dolfin.Form:
+		r""":math:`\boldsymbol\sigma_h = \mathbf P_h \mathbf F^T / J`."""
+		return self.pk1 * self._kinematics.F.T / self._kinematics.J
