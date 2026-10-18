@@ -135,6 +135,7 @@ class ActivationSchedule:
 			step = self._steps[self._config.k_step]  # IndexError on a missing step, as in iso/aniso
 			self.p_act.assign(self._config.func(step.t_ini + t_step * (step.t_fin - step.t_ini)))
 		else:  # constant or ramp: a TimeVaryingConstant exists for this step
+			assert self._manager is not None  # built for every config without func
 			self._manager.set_value_at_t_step(t_step)
 			self.p_act.assign(float(self._manager.val))
 

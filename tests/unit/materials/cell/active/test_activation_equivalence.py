@@ -21,7 +21,7 @@ def _configs(cls: Any, specs: list[tuple[str, int, float, float]]) -> list[Any]:
 	def func(a: float, b: float) -> Callable[[float], float]:
 		return lambda t: a + b * t
 
-	builders = {
+	builders: dict[str, Callable[[int, float, float], Any]] = {
 		"constant": lambda k, a, b: cls.constant(k_step=k, value=a),
 		"ramp": lambda k, a, b: cls.ramp(k_step=k, ini=a, fin=b),
 		"function": lambda k, a, b: cls.function(k_step=k, func=func(a, b)),

@@ -41,6 +41,7 @@ import dolfin_mech
 import fenicsoft
 import numpy as np
 import pandas as pd
+from numpy.typing import ArrayLike, NDArray
 
 from hill_playground.operators import ResidualRows
 from hill_playground.scaling import CharacteristicScales
@@ -113,7 +114,7 @@ class TerzaghiInputs:
 		)
 
 
-def analytical_pressure(inputs: TerzaghiInputs, x: np.ndarray, t: float, n_terms: int = 400) -> np.ndarray:
+def analytical_pressure(inputs: TerzaghiInputs, x: ArrayLike, t: float, n_terms: int = 400) -> NDArray[np.float64]:
 	r""":math:`p(x, t)` (Pa), Terzaghi series.
 
 	Args:
@@ -131,7 +132,7 @@ def analytical_pressure(inputs: TerzaghiInputs, x: np.ndarray, t: float, n_terms
 	return (2.0 * inputs.load / m * np.sin(m * xi) * np.exp(-(m**2) * time_factor)).sum(axis=1)
 
 
-def analytical_settlement(inputs: TerzaghiInputs, t: np.ndarray, n_terms: int = 400) -> np.ndarray:
+def analytical_settlement(inputs: TerzaghiInputs, t: ArrayLike, n_terms: int = 400) -> NDArray[np.float64]:
 	r""":math:`u_x(0, t)` (m).
 
 	Args:
@@ -341,9 +342,9 @@ def solve(
 			problem=problem, parameters={"sol_tol": [inputs.sol_tol] * 2, "n_iter_max": 10}
 		),
 		parameters={"n_iter_for_accel": 0, "n_iter_for_decel": 100},
-		print_out=base,
-		print_sta=base,
-		write_qois=base + "-qois",
+		print_out=base,  # type: ignore
+		print_sta=base,  # type: ignore
+		write_qois=base + "-qois",  # type: ignore
 		write_sol=False,
 	)
 	if not integrator.integrate():
@@ -353,8 +354,8 @@ def solve(
 	table = pd.read_csv(base + "-qois.dat", sep=r"\s+", skiprows=1, names=names)
 	# Only the "parameters" mode integrates in t_hat = t / t0; "operator" keeps the SI clock.
 	clock = s if mode == "parameters" else CharacteristicScales.identity()
-	table["t"] = clock.redimensionalize_time(table["t"])
-	return table[table["t"] > 0.0].reset_index(drop=True)
+	table["t"] = table["t"].map(clock.redimensionalize_time)
+	return table.query("t > 0.0").reset_index(drop=True)
 
 
 @dataclass(frozen=True)
@@ -386,7 +387,7 @@ def errors(inputs: TerzaghiInputs, table: pd.DataFrame, t_factor_min: float = 0.
 	t_min = t_factor_min * inputs.length**2 / inputs.consolidation_coefficient
 	kept = table[table["t"] >= t_min]
 	err_p = max(
-		np.linalg.norm(row[p_cols].to_numpy(dtype=float) - analytical_pressure(inputs, x, row["t"]))
+		float(np.linalg.norm(row[p_cols].to_numpy(dtype=float) - analytical_pressure(inputs, x, row["t"])))
 		for _, row in kept.iterrows()
 	) / (inputs.load * math.sqrt(inputs.n_probes))
 	u_inf = inputs.load * inputs.length / inputs.oedometric_modulus
@@ -442,7 +443,7 @@ def plot(inputs: TerzaghiInputs, tables: dict[str, pd.DataFrame], path: Path) ->
 	ax_u.legend(fontsize=8)
 	fig.tight_layout()
 	path.parent.mkdir(parents=True, exist_ok=True)
-	fig.savefig(path, dpi=130)
+	fig.savefig(path, dpi=130)  # type: ignore
 	plt.close(fig)
 	return path
 

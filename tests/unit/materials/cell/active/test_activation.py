@@ -1,5 +1,6 @@
 """Unit tests of the activation schedule alpha(t) (constant, ramp, function of t)."""
 
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -11,12 +12,12 @@ from hill_playground.materials.cell.active.activation import ActivationSchedule,
 	"kwargs",
 	[
 		{},
-		{"val": 1.0, "func": lambda t: t},
+		{"val": 1.0, "func": abs},
 		{"val": 1.0, "val_ini": 0.0},
 		{"val_ini": 0.0},
 	],
 )
-def test_config_rejects_ambiguous_definitions(kwargs: dict) -> None:
+def test_config_rejects_ambiguous_definitions(kwargs: dict[str, Any]) -> None:
 	"""Exactly one of ``val``, (``val_ini``, ``val_fin``) or ``func``."""
 	with pytest.raises(ValueError):
 		ActivePowerConfig(k_step=0, **kwargs)

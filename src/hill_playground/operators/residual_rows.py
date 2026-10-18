@@ -25,6 +25,7 @@ also inside a summed residual (rank 1) and in the Jacobian derived from it (rank
 Target: ``fenicsoft.operators.residual_rows``.
 """
 
+import numbers
 from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Any, Mapping, Optional, Sequence
@@ -62,7 +63,7 @@ class ResidualRows:
 			if unknown:
 				raise ValueError(f"{name}: unknown rows {unknown}, expected names among {self.rows}.")
 		for row, degree in self.quadrature_degrees.items():
-			if not isinstance(degree, int) or isinstance(degree, bool) or degree < 0:
+			if isinstance(degree, bool) or not isinstance(degree, numbers.Integral) or degree < 0:
 				raise ValueError(f"Quadrature degree of row '{row}' must be an integer >= 0, got {degree!r}.")
 		for name in ("test_scales", "normalizations"):
 			for row, value in getattr(self, name).items():

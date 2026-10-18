@@ -12,13 +12,13 @@ from hill_playground.materials.volumetric import compaction
 KAPPA, JC = 1417.0, 0.3
 
 
-def _law(jac: float) -> tuple[compaction.CompactionVolumetricPenalty, Any]:
+def _law(jac: float, x_floor: float = 1e-8) -> tuple[compaction.CompactionVolumetricPenalty, Any]:
 	mesh = dolfin.UnitCubeMesh(1, 1, 1)
 	u = dolfin.Function(dolfin.VectorFunctionSpace(mesh, "CG", 1))
 	s = jac ** (1.0 / 3.0) - 1.0
 	u.interpolate(dolfin.Expression(("s*x[0]", "s*x[1]", "s*x[2]"), s=s, degree=1))
 	law = compaction.CompactionVolumetricPenalty(
-		Kinematics(U=u), compaction.Parameters(kappa=KAPPA, solid_jacobian=dolfin.Constant(JC))
+		Kinematics(U=u), compaction.Parameters(kappa=KAPPA, solid_jacobian=dolfin.Constant(JC), x_floor=x_floor)
 	)
 	return law, mesh
 
@@ -58,3 +58,24 @@ def test_stiffer_than_quadratic_in_compaction() -> None:
 	law, mesh = _law(jac)
 	quadratic = KAPPA * jac * (jac - 1.0) / jac ** (2.0 / 3.0)
 	assert abs(_mean(law.pk2[0, 0], mesh)) > abs(quadratic)
+
+
+def test_stress_is_derivative_of_energy() -> None:
+	"""S_ii C_ii / J = dW/dJ (finite difference), above and below the floor."""
+	for jac, x_floor in ((0.6, 1e-8), (0.32, 0.1)):
+		h = 1e-6
+		w_plus, m_plus = _law(jac + h, x_floor)
+		w_minus, m_minus = _law(jac - h, x_floor)
+		d_ener = (_mean(w_plus.ener, m_plus) - _mean(w_minus.ener, m_minus)) / (2.0 * h)
+		law, mesh = _law(jac, x_floor)
+		assert _mean(law.pk2[0, 0], mesh) * jac ** (2.0 / 3.0) / jac == pytest.approx(d_ener, rel=1e-5)
+
+
+def test_floor_keeps_stress_finite() -> None:
+	"""Below x_f the stress is frozen at its floor value (linear continuation of W)."""
+	x_floor = 0.1
+	inside, mesh_in = _law(JC + 0.5 * x_floor * (1.0 - JC), x_floor)
+	at, mesh_at = _law(JC + x_floor * (1.0 - JC), x_floor)
+	s_floor = KAPPA * (1.0 - JC) * (1.0 - 1.0 / x_floor)
+	assert _mean(at.cauchy[0, 0], mesh_at) == pytest.approx(s_floor, rel=1e-8)
+	assert _mean(inside.cauchy[0, 0], mesh_in) == pytest.approx(s_floor, rel=1e-8)

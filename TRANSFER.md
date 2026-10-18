@@ -4,28 +4,37 @@ Everything in `hill_playground/<path>` targets `fenicsoft/<path>` (same sub-pack
 One issue = one merge request, in the order below: each one only needs the issues above it.
 Reference branch: `64-reproduce-experiment-from-mostert-et-al-2` (it has `scale_factor` and `OrientationChange`).
 
+**`__init__.py` files** are never copied: merge their imports and `__all__` into the existing fenicsoft ones (they export more). fenicsoft has no `__init__.py` in `operators/cell/*/` sub-folders: export the new classes from `operators/cell/__init__.py` instead. New top-level sub-package (`scaling`): add it to `fenicsoft/__init__.py` and its `__all__`.
+
 Legend: **new**: the file does not exist in fenicsoft. **change**: patch an existing fenicsoft file.
 **copy**: a fenicsoft file copied here and modified; report the diff and do not create a second file.
 
 | # | Issue | Kind | Depends on |
 |---|---|---|---|
+| 0 | Materials: shared UFL guards `floored`, `macaulay` | new | – |
 | 1 | Integration: select XDMF fields, write logs on rank 0 only | copy | – |
 | 2 | Scaling: promote `CharacteristicScales` to `fenicsoft.scaling` | new | – |
 | 3 | IO: write XDMF geometry and time back in SI | new | – |
 | 4 | Active laws: shared activation schedule | new | – |
-| 5 | Hill chain law (self-contained) | new | 4 |
+| 5 | Hill chain law (self-contained) | new | 0, 4 |
 | 6 | Contractile element operator $R_a$ | new | 5 |
 | 7 | Saturated proliferation: clip the saturation | change | – |
-| 8 | Permeability laws $k(\phi_\ell)$ | new | – |
-| 9 | Volumetric energy with a compaction point | new | 8 (`porosity`, demo only) |
+| 8 | Permeability laws $k(\phi_\ell)$ | new | 0 |
+| 9 | Volumetric energy with a compaction point | new | 0; 8 (`porosity`, demo only) |
 | 10 | Orientation diagnostics | new | – |
 | 11 | Residual rows: quadrature degree, test scale and normalization per row | new | – |
 | 12 | Hill one-element integration test | new | 5, 6, 11 |
 | 13 | Terzaghi integration test, nondimensionalization methods | new | 2, 11 |
-| 14 | Hill box demo | new | 1–11 |
+| 14 | Hill box demo | new | 0–11 |
 | 15 | Follow-ups (iso/aniso activation, `ScaledKinematics`, tooling) | change | 4 |
 
 ---
+
+## 0. Materials: shared UFL guards
+
+**Changes.** New `src/fenicsoft/materials/ufl_functions.py`: `floored(x, x_f)` = max(x, x_f) and `macaulay(x)` = max(x, 0), the Newton safeguards of the Hill, permeability and compaction laws (written once; they were three copies). Export `ufl_functions` from `fenicsoft/materials/__init__.py`.
+
+**Tests.** `tests/unit/materials/test_ufl_functions.py`.
 
 ## 1. Integration: select XDMF fields, write logs on rank 0 only
 
@@ -49,7 +58,7 @@ Legend: **new**: the file does not exist in fenicsoft. **change**: patch an exis
   - the plateau exit on a real problem, including the "before `min_simu_seconds`" and "not yet stagnant" branches.
 - `integrator_case.py` is a no-flux diffusion with c₀ = 1 + cos πx, so c → 1 and the plateau is reached around t ≈ 0.6. Avoid a Dirichlet BC with a single subsol: it does not act on the solution and the case becomes trivial (c ≡ 0).
 - The MPI test works with both MPICH and Open MPI. `--oversubscribe` and `--allow-run-as-root` are only added when `mpirun --version` says Open MPI, because MPICH's hydra rejects them. The parent's `OMPI_*`, `PMIX_*` and `PMI_*` variables are dropped for the child job, since dolfin has already initialised MPI in the parent.
-- `test_decimated_time_integrator_unit.py` is the fenicsoft test with only its import changed. Do not copy it: keep fenicsoft's.
+- `test_decimated_time_integrator_unit.py` is the fenicsoft test with only its import and module docstring changed. Do not copy it: keep fenicsoft's.
 
 **Done when** the 59 integration unit tests pass with 100 % coverage of the module, and an `mpirun -n 2` run of a demo gives a `.out` with the same line count as the serial run.
 
@@ -59,14 +68,16 @@ Legend: **new**: the file does not exist in fenicsoft. **change**: patch an exis
 - New `src/fenicsoft/scaling/{__init__.py, characteristic_scales.py}`, from `hill_playground/scaling`. It is the demo-side `microtissue_pillar_spherical_scale/src/characteristic_scales.py`, plus:
   - `identity()`;
   - conversions documented for floats and UFL expressions;
-  - corrected docstring of `permeability_over_viscosity`: L₀²/(μ₀t₀) = (k/η)κ/μ₀, so K̂ = μ₀/κ.
-- The scaled pillar demo (`microtissue_pillar_spherical_scale`, wrong row factors: see issue 11) is deleted from fenicsoft meanwhile. The pillar case will be recoded in the playground on top of issues 2 and 11, once the Hill box is validated.
+  - corrected docstring of `permeability_over_viscosity`: L₀²/(μ₀t₀) = (k/η)κ/μ₀, so K̂ = μ₀/κ;
+  - raw-docstring math fixed (`1/\tau`, `k/\eta` were written with a double backslash).
+- The demo-side test `microtissue_pillar_spherical_scale/test/test_characteristic_scales.py:130` expects (k/η)(μ₀/κ) for `permeability_over_viscosity`; the code returns (k/η)(κ/μ₀) (correct). It fails whenever μ₀ ≠ κ: it goes with the demo below (the playground test is the corrected one).
+- The scaled pillar demo (`microtissue_pillar_spherical_scale`, wrong row factors: see issue 11) is to be deleted from fenicsoft (still on the reference branch). The pillar case will be recoded in the playground on top of issues 2 and 11, once the Hill box is validated.
 
 **Tests.** `tests/unit/scaling/test_characteristic_scales.py` (100 % coverage).
 
 ## 3. IO: write XDMF geometry and time back in SI
 
-**Changes.** New `src/fenicsoft/io/xdmf_units.py`. `redimensionalize_results(xdmf, length, time)` multiplies `Mesh/*/mesh/geometry` by L₀ and `<Time Value>` by t₀. It is idempotent through the HDF5 attribute `geometry_scale`. Call it on rank 0 after `integrate()` whenever the mesh was scaled.
+**Changes.** New `src/fenicsoft/io/xdmf_units.py`. `redimensionalize_results(xdmf, length, time)` multiplies `Mesh/*/mesh/geometry` by L₀ and `<Time Value>` by t₀. It is idempotent through the HDF5 attribute `geometry_scale`. Call it on rank 0 after `integrate()` whenever the mesh was scaled. Export `redimensionalize_results` from `fenicsoft.io`. New direct dependency of `src`: `h5py` (already in the image; add it to the `dependencies` of `pyproject.toml`).
 
 **Tests.** `tests/unit/io/test_xdmf_units.py`.
 
@@ -87,7 +98,7 @@ It is not a constitutive law. Active laws use it by composition, so no law depen
 ## 5. Hill chain law (self-contained)
 
 **Changes.** New `src/fenicsoft/materials/cell/active/hill/{__init__.py, functions.py, law.py}`:
-- `functions.py`: T_e (variants `mooney`, `tension_only`, `exponential`), Ψ_e, T_p, Ψ_p, f_FL, h(D_a);
+- `functions.py`: T_e (variants `mooney`, `tension_only`, `exponential`), Ψ_e, T_p, Ψ_p, f_FL, h(D_a); guards from `materials.ufl_functions` (issue 0);
 - `law.py`:
   - `Parameters(MaterialParameters)` and `Constitutive(ConstitutiveLaw)`, with S_h = Φ_c T_e/I₄ f₀⊗f₀;
   - activation through `ActivationSchedule`, exposed as `current_activation` and `current_time`;
@@ -97,7 +108,7 @@ It is not a constitutive law. Active laws use it by composition, so no law depen
 
 ## 6. Contractile element operator $R_a$
 
-**Changes.** New `src/fenicsoft/operators/cell/hill/{__init__.py, contractile_evolution.py}`: `ContractileEvolution`, with R_a = [f_max α f_FL h(D_a) + η₀D_a + T_p − T_e] δε and D_a = (ε_a − ε_aⁿ)/Δt, plus `scale_factor`.
+**Changes.** New `src/fenicsoft/operators/cell/hill/contractile_evolution.py` (no `__init__.py`, export from `operators/cell/__init__.py`): `ContractileEvolution`, with R_a = [f_max α f_FL h(D_a) + η₀D_a + T_p − T_e] δε and D_a = (ε_a − ε_aⁿ)/Δt, plus `scale_factor`.
 
 **Tests.** `tests/unit/operators/cell/hill/test_contractile_evolution.py`.
 
@@ -107,21 +118,23 @@ It is not a constitutive law. Active laws use it by composition, so no law depen
 - In fenicsoft `operators/cell/proliferation/saturated.py`, use sat = max(0, 1 − Φ_c/Φ_c,max). Today it turns into a sink above Φ_c,max.
 - Then delete `hill_playground/operators/cell/proliferation/saturated.py`.
 
-**Tests.** Move `tests/unit/operators/cell/proliferation/test_saturated_prol.py` next to the existing fenicsoft tests.
+**Tests.** fenicsoft already has `tests/unit/operators/cell/proliferation/test_saturated_prol.py`: merge, do not overwrite.
+- Add the playground cases (identical below Φ_c,max, zero source above), comparing with the analytical value r Φ_c (1 − Φ_c/Φ_c,max) instead of the old fenicsoft class (after the merge it is the same class).
+- `test_saturated_proliferation_construction` builds the operator with a `MagicMock` `phi_c`: `dolfin.gt` rejects it once the clip is in. Replace the mock by a `dolfin.Function` or remove that test (the assembly tests cover it).
 
 ## 8. Permeability laws $k(\phi_\ell)$
 
 **Changes.** New package `src/fenicsoft/materials/permeability/`:
 - `porosity.py`: J_c = Φ_s0 + Φ_c, Φ_ℓ = J − J_c, φ_ℓ = 1 − J_c/J, K_L = (k/η) J C⁻¹. Shared relations, not a law.
-- One self-contained module per law, each with `Parameters`, `ratio`, `hydraulic_conductivity` and `tensor`: `constant`, `kozeny_carman`, `holmes_mow`, `compaction_power` (n ≥ 1 enforced).
+- `base.py`: `PermeabilityParameters(MaterialParameters)` (k₀/η) and `PorousPermeabilityParameters` (+ Φ_s0 uniform, Φ_c, Φ_c0); `Permeability` (abstract `_ratio()` = k/k₀ read through the cached `ratio`, then `hydraulic_conductivity` and `tensor`) and `PorousPermeability` (+ `porosity` φ_ℓ, `porosity_0` φ_ℓ0, `fluid_ratio` Φ_ℓ/Φ_ℓ0).
+- One module per law, with its `Parameters` (own fields only) and `Permeability` (only `_ratio`): `constant`, `kozeny_carman`, `holmes_mow`, `compaction_power` (n ≥ 1 enforced).
 - Afterwards, the pillar demos can replace their `permeability.py` (gel/pillar field) by these laws times a domain field.
-- Add `materials.permeability` to fenicsoft's environment test if it has a layout check.
 
 **Tests.** `tests/unit/materials/permeability/test_permeability_laws.py`.
 
 ## 9. Volumetric energy with a compaction point
 
-**Changes.** New `src/fenicsoft/materials/volumetric/compaction.py`: `CompactionVolumetricPenalty` (Ehlers), W = κ(1−J_c)²[x − ln x − 1], with its own `Parameters(kappa, solid_jacobian, x_floor)`.
+**Changes.** New `src/fenicsoft/materials/volumetric/compaction.py`: `CompactionVolumetricPenalty` (Ehlers), W = κ(1−J_c)²[x − ln x − 1], with its own `Parameters(kappa, solid_jacobian, x_floor)`. Below x_floor, W is continued linearly in x, so S = 2∂W/∂C holds everywhere and S stays finite (checked by finite differences in the test).
 
 **Tests.** `tests/unit/materials/volumetric/test_compaction.py`.
 
@@ -160,6 +173,7 @@ equations.tex Table tab:sf omitted s_row, the scale of the row's test function: 
 ## 12. Hill one-element integration test
 
 **Changes.** `tests/integration/materials/cell/active/hill/{hill_0d_reference.py, hill_one_element.py, test_hill_one_element.py, conftest.py}`: a one-element FE run of gel + Hill, compared with an independent 0D backward-Euler reference (scipy). Four cases: isometric λ = 1 and λ = 1.04, traction-free faces, and traction-free faces through `ResidualRows` with other per-row degrees (`displacement`: 1, `eps_a`: 0) and row normalizations (μ, f_max).
+- Fixed 2026-10-18: the normalizations were passed in the `test_scales` slot of `ResidualRows.from_problem` (rows multiplied instead of divided; the solution is the same, so the test still passed). They are now passed by keyword; re-run the test.
 - The operators take their measure and `scale_factor` from `ResidualRows`. In the homogeneous one-element state every integrand is constant per cell, so the `rows` case must equal both the 0D reference and the default free run to round-off.
 - The figure `hill_one_element.png` and `errors.csv` are written to `outputs_hill_one_element/`. The figure shows λ_a, T_e, the free-face gel stretches and the error history, FE (markers) against 0D (lines); the `rows` case is dashed with `x` markers (it coincides with the free case). The error history (`error_history`) is the per-step max over ε_a, λ, λ_t, T_e/T and P_xx/T, the norms of `errors`.
 - The error table is printed in the pytest summary.
@@ -181,7 +195,7 @@ equations.tex Table tab:sf omitted s_row, the scale of the row's test function: 
 
 **Changes.**
 - `demos/hill_box/{hill_box_uniaxial.py, hill_chain_helpers.py, jacobian_scaling.py, README.md}` → fenicsoft `demos/smooth_muscle_cells/porous_hydrogel/hill_box/`.
-- `tests/integration/demos/test_hill_box_scaling.py` → next to the fenicsoft demo tests (it imports `hill_box_uniaxial` and `jacobian_scaling` from the demo folder).
+- `tests/integration/demos/test_hill_box_scaling.py` → `demos/.../hill_box/test/` with a `sys.path` conftest, as in `microtissue_pillar_spherical_scale/test/` (fenicsoft has no `tests/integration/demos/`). `testpaths = ["tests"]` does not collect it: run it explicitly (`pytest demos/.../hill_box/test`), or decide another location before the merge request.
 - Replace the `hill_playground.*` imports by `fenicsoft.*`.
 - `UserInputs` options: `nondimensionalization` (`none`, `operator`, `parameters`), `permeability_law`, `volumetric_law`, `xdmf_si_only`, `quadrature_degrees`.
 - Outputs:
@@ -211,5 +225,5 @@ equations.tex Table tab:sf omitted s_row, the scale of the row's test function: 
   - remove the transferred paths from `NEW_BRANCHES` in `tests/environment/test_env.py`;
   - delete the playground copies;
   - switch the playground imports to fenicsoft.
-- Devcontainer: mount `~/.cache/dijitso` (the compiled forms) as a persistent volume. The Hill forms take about 90 s of JIT compilation on a fresh container.
+- Devcontainer: the playground mounts the JIT cache `/home/fenics_user/.cache/dolfin` (`DIJITSO_CACHE_DIR` of the image) as the named volume `hill-dijitso-cache`; do the same in fenicsoft. The Hill forms take about 90 s of JIT compilation on a fresh container.
 - Tooling: autoapi documents the tests too, so docstrings there must be valid reST. Write `|x|` inside `:math:`, never bare (`make docs` fails on "Undefined substitution").

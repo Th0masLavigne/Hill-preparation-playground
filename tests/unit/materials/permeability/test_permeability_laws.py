@@ -7,7 +7,7 @@ import dolfin
 import pytest
 from dolfin_mech.kinematics import Kinematics
 
-from hill_playground.materials.permeability import compaction_power, constant, holmes_mow, kozeny_carman, porosity
+from hill_playground.materials.permeability import base, compaction_power, constant, holmes_mow, kozeny_carman, porosity
 
 PHI_S0, PHI_C0, K0 = 0.25, 0.05, 2.0
 
@@ -109,3 +109,24 @@ def test_parameters_and_porosity_accessors() -> None:
 		assert _mean(law.porosity, mesh) == pytest.approx(1.0 - (PHI_S0 + PHI_C0) / jac, rel=1e-10)
 		expected = _mean(law.hydraulic_conductivity, mesh) * jac ** (1.0 / 3.0)  # (k/eta) J C^-1, F = J^(1/3) I
 		assert _mean(law.tensor[0, 0], mesh) == pytest.approx(expected, rel=1e-10)
+
+
+def test_base_is_abstract_and_shares_porosity() -> None:
+	"""The base class needs a ratio; porous laws share phi_l0 and Phi_l/Phi_l0."""
+	kin, mesh = _kin(0.8)
+	with pytest.raises(TypeError):
+		base.Permeability(kin, constant.Parameters(conductivity_0=K0))  # pyright: ignore[reportAbstractUsage]
+	for law in _laws(kin).values():
+		assert isinstance(law, base.PorousPermeability)
+		assert law.porosity_0 == pytest.approx(1.0 - PHI_S0 - PHI_C0)
+		assert _mean(law.fluid_ratio, mesh) == pytest.approx((0.8 - PHI_S0 - PHI_C0) / (1.0 - PHI_S0 - PHI_C0))
+
+
+def test_uniform_solid_fraction_as_constant() -> None:
+	"""Phi_s0 given as a dolfin.Constant (as in the demo) gives the same k."""
+	kin, mesh = _kin(0.8)
+	params = kozeny_carman.Parameters(
+		conductivity_0=K0, phi_s0=dolfin.Constant(PHI_S0), phi_c=dolfin.Constant(PHI_C0), phi_c0=PHI_C0
+	)
+	law = kozeny_carman.Permeability(kin, params)
+	assert _mean(law.ratio, mesh) == pytest.approx(_mean(_laws(kin)["kozeny_carman"].ratio, mesh), rel=1e-12)

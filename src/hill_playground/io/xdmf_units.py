@@ -14,6 +14,7 @@ the attribute ``geometry_scale`` and a second call does nothing.
 
 import re
 from pathlib import Path
+from typing import Any
 
 import h5py
 
@@ -39,9 +40,16 @@ def redimensionalize_results(xdmf_path: Path, length: float, time: float = 1.0) 
 		if _STAMP in h5.attrs:
 			return False
 		geometries: list[str] = []
-		h5.visititems(lambda name, obj: geometries.append(name) if name.endswith("mesh/geometry") else None)
+
+		def collect(name: str, _obj: Any) -> None:
+			if name.endswith("mesh/geometry"):
+				geometries.append(name)
+
+		h5.visititems(collect)
 		for name in geometries:
-			h5[name][...] = h5[name][...] * length
+			dataset = h5[name]
+			assert isinstance(dataset, h5py.Dataset)
+			dataset[...] = dataset[...] * length
 		h5.attrs[_STAMP] = length
 	if time != 1.0:
 		text = Path(xdmf_path).read_text()

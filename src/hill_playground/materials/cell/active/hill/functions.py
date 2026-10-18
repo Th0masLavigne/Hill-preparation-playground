@@ -17,33 +17,10 @@ from typing import Any
 
 import dolfin
 
+from ....ufl_functions import floored, macaulay
+
 SEE_VARIANTS = ("mooney", "tension_only", "exponential")
 """Available SEE laws: ``"mooney"`` (baseline, Eq. springs), ``"tension_only"``, ``"exponential"``."""
-
-
-def floored(value: Any, floor: float) -> Any:
-	r"""Strictly positive floor :math:`\max(x, x_{min})` (same guard as ``aniso.law.f_force_length``).
-
-	Args:
-	    value: UFL scalar :math:`x`.
-	    floor: :math:`x_{min} > 0`.
-
-	Returns:
-	    UFL scalar.
-	"""
-	return dolfin.conditional(dolfin.gt(value, floor), value, floor)
-
-
-def macaulay(value: Any) -> Any:
-	r"""Positive part :math:`\langle x \rangle_+ = \max(x, 0)`.
-
-	Args:
-	    value: UFL scalar :math:`x`.
-
-	Returns:
-	    UFL scalar.
-	"""
-	return dolfin.conditional(dolfin.gt(value, 0.0), value, 0.0)
 
 
 def fibre_invariant(kinematics: Any, f0: Any, floor: float = 1e-6) -> Any:
@@ -185,7 +162,8 @@ def force_velocity(rate: Any, hill_a: Any, hill_b: Any, f_ecc: Any) -> Any:
 		h = f_{ecc} - (f_{ecc}-1)\frac{b_e}{b_e + D_a} \quad (D_a > 0), \qquad
 		b_e = \frac{(f_{ecc}-1)\,b}{1+A}
 
-	:math:`h(0) = 1`, :math:`h'(0) = (1+A)/b` on both sides, :math:`h` strictly increasing.
+	:math:`h(0) = 1`, :math:`h'(0) = (1+A)/b` on both sides, :math:`h` strictly increasing,
+	:math:`h \ge 0` on :math:`D_a \ge -b/A`. Below :math:`-b/A` the hyperbola is extrapolated (:math:`h < 0`).
 	Each branch is evaluated on its own half-line, so the unused one never divides by zero.
 
 	Args:

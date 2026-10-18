@@ -1,7 +1,7 @@
 r"""Characteristic scales for nondimensionalizing the porous microtissue-pillar problem.
 
 Status:
-	Promoted copy (unchanged code) of the demo-side ``CharacteristicScales`` of fenicsoft
+	Promoted copy (plus ``identity()`` and corrected docstrings) of the demo-side ``CharacteristicScales`` of fenicsoft
 	(``demos/smooth_muscle_cells/porous_hydrogel/microtissue_pillar_spherical_scale/src``,
 	branch ``64-reproduce-experiment-from-mostert-et-al-2``), as that module's own status note
 	asks. Target: ``fenicsoft.scaling``.
@@ -157,7 +157,7 @@ class CharacteristicScales:
 		r"""float: Characteristic rate :math:`1 / t_0`, in inverse seconds.
 
 		Use this to nondimensionalize any first-order rate constant (a proliferation rate, a
-		remodeling relaxation rate :math:`1/\\tau`, a haptotaxis sensitivity's own time part).
+		remodeling relaxation rate :math:`1/\tau`, a haptotaxis sensitivity's own time part).
 		"""
 		return 1.0 / self.time
 
@@ -296,7 +296,7 @@ class CharacteristicScales:
 		r"""Rescale a hydraulic conductivity (permeability/viscosity) to dimensionless units.
 
 		Args:
-			value (float): A hydraulic conductivity :math:`k/\\eta`, in square metres per
+			value (float): A hydraulic conductivity :math:`k/\eta`, in square metres per
 				pascal-second.
 
 		Returns:

@@ -26,9 +26,10 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Sequence
+from typing import Iterable, cast
 
 import numpy as np
+from numpy.typing import NDArray
 from scipy import optimize
 
 
@@ -106,7 +107,9 @@ class HillChain0D:
 		return lmbda * (self.gel_pk2(lmbda, lmbda_t)[0] + s_h)
 
 
-def isometric_history(model: HillChain0D, lmbda: float, times: Sequence[float], alphas: Sequence[float]) -> np.ndarray:
+def isometric_history(
+	model: HillChain0D, lmbda: float, times: Iterable[float], alphas: Iterable[float]
+) -> NDArray[np.float64]:
 	r""":math:`\varepsilon_a(t_n)` at fixed :math:`\lambda` (:math:`\lambda_t = 1`), backward Euler.
 
 	Args:
@@ -127,7 +130,7 @@ def isometric_history(model: HillChain0D, lmbda: float, times: Sequence[float], 
 	return np.array(out)
 
 
-def free_history(model: HillChain0D, times: Sequence[float], alphas: Sequence[float]) -> np.ndarray:
+def free_history(model: HillChain0D, times: Iterable[float], alphas: Iterable[float]) -> NDArray[np.float64]:
 	r""":math:`(\lambda, \lambda_t, \varepsilon_a)(t_n)` with traction-free faces (:math:`P_{xx} = P_{yy} = 0`).
 
 	Args:
@@ -142,7 +145,9 @@ def free_history(model: HillChain0D, times: Sequence[float], alphas: Sequence[fl
 	for t, alpha in zip(times, alphas):
 		dt, eps_old = t - t_old, state[2]
 
-		def residual(x: np.ndarray, dt: float = dt, eps_old: float = eps_old, alpha: float = alpha) -> list[float]:
+		def residual(
+			x: NDArray[np.float64], dt: float = dt, eps_old: float = eps_old, alpha: float = alpha
+		) -> list[float]:
 			lmbda, lmbda_t, eps = x
 			s_xx, s_yy = model.gel_pk2(lmbda, lmbda_t)
 			inv4 = lmbda**2
@@ -168,4 +173,8 @@ def isometric_equilibrium(model: HillChain0D, lmbda: float, alpha: float) -> flo
 	Returns:
 	    :math:`\varepsilon_a^\infty`, root of :math:`f_{max}\alpha f_{FL} + T_p - T_e = 0`.
 	"""
-	return optimize.brentq(lambda e: model.ce_residual(e, e, 1.0, alpha, lmbda**2), -1.0, 0.5, xtol=1e-15)
+
+	def residual(eps: float) -> float:
+		return model.ce_residual(eps, eps, 1.0, alpha, lmbda**2)
+
+	return cast(float, optimize.brentq(residual, -1.0, 0.5, xtol=1e-15))

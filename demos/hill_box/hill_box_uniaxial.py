@@ -55,7 +55,7 @@ Inputs are SI. Scales :math:`L_0 = L_z` (drainage length), :math:`\mu_0 = \mu_{g
 * ``"none"``: SI mesh, unknowns and coefficients, every row factor 1;
 * ``"operator"`` (default): mesh :math:`\hat{\mathbf X} = \mathbf X/L_0` (hence
   :math:`\hat{\mathbf u} = \mathbf u/L_0`), :math:`\hat p = p/\mu_0`, SI coefficients and SI time,
-  each operator multiplied by ``scale_factor`` :math:`= v_k/\mathcal N_{row}` (table below);
+  each operator multiplied by ``scale_factor`` :math:`= s\,v_k/\mathcal N_{row}` (table below);
 * ``"parameters"``: same mesh and unknowns, every coefficient converted with
   ``CharacteristicScales.nondimensionalize_*`` (:math:`\hat\mu, \hat\kappa, \hat f_{max}, \hat K,
   \hat D, \hat r, \hat b, \hat\tau, \hat t \dots`), every row factor 1.
@@ -87,7 +87,7 @@ contractile element                ``eps_a``               :math:`L_0^3`        
 The resulting system is the one of ``"parameters"`` (same Jacobian, checked by
 ``tests/integration/demos/test_hill_box_scaling.py``). Before 2026-10-18 the factors omitted :math:`s`
 (equations.tex Table tab:sf): the ``displacement`` row was :math:`1/L_0` too large and the
-``liquid_pressure`` row :math:`1/\mu_0` too small (same solution, :math:`\kappa_2` 9e8 instead of 8e4).
+``liquid_pressure`` row :math:`1/\mu_0` too small (same solution, :math:`\kappa_2` 9.3e8 instead of 7.5e4).
 
 ``quadrature_degrees`` (same row names) sets a quadrature degree per row (``ResidualRows.measure``).
 

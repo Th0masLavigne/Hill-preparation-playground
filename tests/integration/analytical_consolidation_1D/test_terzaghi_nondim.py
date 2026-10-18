@@ -2,8 +2,8 @@ r"""Integration: Terzaghi consolidation, SI vs operator ``scale_factor`` vs dime
 
 Checks that both nondimensionalization methods (i) give the SI solution to round-off and
 (ii) match the analytical solution. Figures and error table are written next to this file in
-``outputs_terzaghi_nondim/`` (``terzaghi_nondim.png``, ``errors.csv``); run ``pytest -s`` to see
-the table in the terminal.
+``outputs_terzaghi_nondim/`` (``terzaghi_nondim.png``, ``errors.csv``); the table is printed in
+the pytest summary.
 """
 
 import sys

@@ -87,7 +87,7 @@ def test_non_root_rank_silences_at_construction(tmp_path: Path, monkeypatch: pyt
 	import hill_playground.integration.decimated_time_integrator as dti
 
 	calls: list[bool] = []
-	real = dti.DecimatedTimeIntegrator._silence_logs
+	real = dti.DecimatedTimeIntegrator._silence_logs  # pyright: ignore[reportPrivateUsage]
 
 	def spy(self: object) -> None:
 		calls.append(True)

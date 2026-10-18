@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Literal, Mapping
+from typing import Any, Literal, Mapping
 
 import dolfin
 import dolfin_mech
@@ -25,6 +25,7 @@ import fenicsoft
 import numpy as np
 import pandas as pd
 from hill_0d_reference import HillChain0D
+from numpy.typing import NDArray
 
 from hill_playground.materials.cell.active.activation import ActivePowerConfig
 from hill_playground.materials.cell.active.hill import law as hill_law
@@ -123,7 +124,9 @@ def run(settings: OneElementRun, out_dir: Path) -> pd.DataFrame:
 	)
 	material = gel + hill
 	# Rows = subsols of the test functions: displacement (R_u) and eps_a (R_a).
-	rows = ResidualRows.from_problem(problem, settings.quadrature_degrees, settings.normalizations)
+	rows = ResidualRows.from_problem(
+		problem, quadrature_degrees=settings.quadrature_degrees, normalizations=settings.normalizations
+	)
 	contractile = ContractileEvolution(
 		law=hill,
 		test=eps.dsubtest,
@@ -163,7 +166,11 @@ def run(settings: OneElementRun, out_dir: Path) -> pd.DataFrame:
 		"pk1_yy": pk1[1, 1],
 		"tension_see": hill.tension_see,
 	}
-	problem.add_qoi(name="alpha", expr=lambda _: hill.current_activation, point=[0.5, 0.5, 0.5], update_type="direct")
+
+	def activation(_: Any) -> float:
+		return hill.current_activation
+
+	problem.add_qoi(name="alpha", expr=activation, point=[0.5, 0.5, 0.5], update_type="direct")
 	for name, expr in averages.items():
 		problem.add_qoi(name=name, expr=expr * problem.dV, norm=volume, update_type="assembly")
 
@@ -187,10 +194,10 @@ def run(settings: OneElementRun, out_dir: Path) -> pd.DataFrame:
 		raise RuntimeError("One-element Hill run failed.")
 	integrator.close()
 	table = pd.read_csv(base + "-qois.dat", sep=r"\s+", skiprows=1, names=["t", *QOI_NAMES])
-	return table[table["t"] > 0.0].reset_index(drop=True)
+	return table.query("t > 0.0").reset_index(drop=True)
 
 
-def stress_check(model: HillChain0D, table: pd.DataFrame) -> np.ndarray:
+def stress_check(model: HillChain0D, table: pd.DataFrame) -> NDArray[np.float64]:
 	r"""0D :math:`P_{xx}` evaluated on the FE state, row by row (Pa).
 
 	Args:
@@ -252,7 +259,7 @@ def errors(model: HillChain0D, settings: OneElementRun, table: pd.DataFrame) -> 
 	}
 
 
-def error_history(model: HillChain0D, settings: OneElementRun, table: pd.DataFrame) -> np.ndarray:
+def error_history(model: HillChain0D, settings: OneElementRun, table: pd.DataFrame) -> NDArray[np.float64]:
 	r"""Per-step max over the checked fields of the FE vs 0D difference (same norms as :func:`errors`).
 
 	Args:

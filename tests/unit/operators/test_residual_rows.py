@@ -1,6 +1,7 @@
 """Unit tests of ``ResidualRows``: per-row quadrature degree and normalization."""
 
 from types import SimpleNamespace
+from typing import Any
 
 import dolfin
 import pytest
@@ -63,7 +64,7 @@ def test_from_problem_uses_subsol_names() -> None:
 		{"test_scales": {"eps_a": -1.0}},
 	],
 )
-def test_invalid_settings_raise(kwargs: dict) -> None:
+def test_invalid_settings_raise(kwargs: dict[str, Any]) -> None:
 	"""Unknown row, negative/non-integer degree, non-positive normalization."""
 	with pytest.raises(ValueError):
 		ResidualRows(ROWS, **kwargs)

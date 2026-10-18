@@ -86,7 +86,10 @@ def test_force_velocity_c1_at_zero() -> None:
 	"""h'(0-) = h'(0+) = (1 + A)/b (Eq. hill-ecc)."""
 	slope = (1 + A) / B
 	step = 1e-7
-	h = lambda d: _value(hill.force_velocity(dolfin.Constant(d), A, B, F_ECC))  # noqa: E731
+
+	def h(rate: float) -> float:
+		return _value(hill.force_velocity(dolfin.Constant(rate), A, B, F_ECC))
+
 	assert math.isclose((h(0.0) - h(-step)) / step, slope, rel_tol=1e-4)
 	assert math.isclose((h(step) - h(0.0)) / step, slope, rel_tol=1e-4)
 

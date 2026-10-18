@@ -32,6 +32,7 @@ import hill_box_uniaxial as demo
 import numpy as np
 import scipy.sparse as sp
 from fenicsoft import io
+from numpy.typing import NDArray
 
 
 def small_box(mode: str, prefix: Path, **overrides: Any) -> demo.UserInputs:
@@ -61,7 +62,7 @@ def small_box(mode: str, prefix: Path, **overrides: Any) -> demo.UserInputs:
 
 def assemble_jacobian(
 	user_inputs: demo.UserInputs, t_step: float = 0.25
-) -> Tuple[sp.csr_matrix, Dict[str, np.ndarray]]:
+) -> Tuple[sp.csr_matrix, Dict[str, NDArray[np.intp]]]:
 	r"""Jacobian at the initial state, first step, step fraction ``t_step`` (BCs applied).
 
 	Args:
@@ -95,7 +96,10 @@ def assemble_jacobian(
 	)
 	indptr, indices, values = dolfin.as_backend_type(matrix).mat().getValuesCSR()
 	jacobian = sp.csr_matrix((values, indices, indptr), shape=(matrix.size(0), matrix.size(1)))
-	dofs = {subsol.name: np.array(problem.sol_fs.sub(k).dofmap().dofs()) for k, subsol in enumerate(problem.subsols)}
+	dofs = {
+		subsol.name: np.asarray(problem.sol_fs.sub(k).dofmap().dofs(), dtype=np.intp)
+		for k, subsol in enumerate(problem.subsols)
+	}
 	return jacobian, dofs
 
 
@@ -112,7 +116,7 @@ def condition_number(jacobian: sp.csr_matrix) -> float:
 	return float(singular[0] / singular[-1])
 
 
-def block_diagonals(jacobian: sp.csr_matrix, dofs: Dict[str, np.ndarray]) -> Dict[str, float]:
+def block_diagonals(jacobian: sp.csr_matrix, dofs: Dict[str, NDArray[np.intp]]) -> Dict[str, float]:
 	r"""Median :math:`|J_{ii}|` per subsol, Dirichlet rows (no off-diagonal entry) excluded.
 
 	Args:
@@ -136,7 +140,7 @@ if __name__ == "__main__":
 	for mode in ("none", "operator", "parameters"):
 		with contextlib.redirect_stdout(std_io.StringIO()):  # mesh reader prints
 			matrix, blocks = assemble_jacobian(small_box(mode, Path(f"./outputs_jacobian_scaling_{mode}")))
-		table[mode] = {"n": matrix.shape[0], "cond2": condition_number(matrix), **block_diagonals(matrix, blocks)}
+		table[mode] = {"n": matrix.get_shape()[0], "cond2": condition_number(matrix), **block_diagonals(matrix, blocks)}
 	print("median |J_ii| per row (Dirichlet rows excluded) and 2-norm condition number")
 	print(f"{'row':20s}" + "".join(f"{mode:>12s}" for mode in table))
 	for key in next(iter(table.values())):

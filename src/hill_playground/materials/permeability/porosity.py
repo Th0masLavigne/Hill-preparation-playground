@@ -11,8 +11,6 @@ equations.tex, Eqs. Phi-def, mixture and darcy-lag:
 
 from typing import Any
 
-import dolfin
-
 
 def compaction_jacobian(phi_s0: Any, phi_c: Any) -> Any:
 	r""":math:`J_c = \Phi_{s,0} + \Phi_c` (volume of the solid phases per unit reference volume).
@@ -66,16 +64,3 @@ def pulled_back_conductivity(hydraulic_conductivity: Any, kinematics: Any) -> An
 	    UFL tensor.
 	"""
 	return hydraulic_conductivity * kinematics.J * kinematics.C_inv
-
-
-def floored(value: Any, floor: float) -> Any:
-	r""":math:`\max(x, x_{min})`, keeps powers and logs defined on non-converged Newton iterates.
-
-	Args:
-	    value: UFL scalar :math:`x`.
-	    floor: :math:`x_{min} \ge 0`.
-
-	Returns:
-	    UFL scalar.
-	"""
-	return dolfin.conditional(dolfin.gt(value, floor), value, floor)

@@ -23,6 +23,12 @@
 			"source": "${localWorkspaceFolder}/../../local/build_docs_hill",
 			"target": "/home/fenics_user/docs_output",
 			"type": "bind"
+		},
+		{
+			// JIT-compiled forms (DIJITSO_CACHE_DIR of the image), kept across rebuilds: ~90 s saved for the Hill forms.
+			"source": "hill-dijitso-cache",
+			"target": "/home/fenics_user/.cache/dolfin",
+			"type": "volume"
 		}
 	],
 
@@ -44,15 +50,24 @@
 				"editor.inlayHints.enabled": "offUnlessPressed",
 				"python.analysis.typeCheckingMode": "strict",
 				"python.analysis.importFormat": "absolute",
+				// demos/ and tests/ folders: sibling modules imported through sys.path
 				"python.analysis.extraPaths": [
 					"/usr/lib/python3/dist-packages",
 					"/home/fenics_user/dolfin_mech",
-					"${containerWorkspaceFolder}/src"
+					"${containerWorkspaceFolder}/src",
+					"${containerWorkspaceFolder}/demos/hill_box",
+					"${containerWorkspaceFolder}/tests/unit/integration",
+					"${containerWorkspaceFolder}/tests/integration/analytical_consolidation_1D",
+					"${containerWorkspaceFolder}/tests/integration/materials/cell/active/hill"
 				],
 				"python.autoComplete.extraPaths": [
 					"/usr/lib/python3/dist-packages",
 					"/home/fenics_user/dolfin_mech",
-					"${containerWorkspaceFolder}/src"
+					"${containerWorkspaceFolder}/src",
+					"${containerWorkspaceFolder}/demos/hill_box",
+					"${containerWorkspaceFolder}/tests/unit/integration",
+					"${containerWorkspaceFolder}/tests/integration/analytical_consolidation_1D",
+					"${containerWorkspaceFolder}/tests/integration/materials/cell/active/hill"
 				],
 				"python.analysis.diagnosticSeverityOverrides": {
 					"reportUnknownParameterType": "none",

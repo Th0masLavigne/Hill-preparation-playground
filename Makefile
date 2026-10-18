@@ -67,5 +67,5 @@ clean:
 	rm -rf .pytest_cache .ruff_cache .coverage .venv build/ dist/ htmlcov/
 	rm -rf $(PYTEST_CACHE)
 	find . -type d -name "__pycache__" -exec rm -rf {} +
-	find . -type d -name "outputs" -exec rm -rf {} +
+	find . -type d -name "outputs*" -prune -exec rm -rf {} +
 	@echo "Done."

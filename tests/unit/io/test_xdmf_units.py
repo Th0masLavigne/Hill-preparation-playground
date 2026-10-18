@@ -1,6 +1,7 @@
 """Unit tests of the post-run redimensionalization of XDMF geometry and time."""
 
 from pathlib import Path
+from typing import Any
 
 import dolfin
 import h5py
@@ -22,7 +23,12 @@ def _write(path: Path) -> None:
 def _geometry_max(path: Path) -> float:
 	values: list[float] = []
 	with h5py.File(path.with_suffix(".h5"), "r") as h5:
-		h5.visititems(lambda n, o: values.append(float(np.max(o[...]))) if n.endswith("mesh/geometry") else None)
+
+		def collect(name: str, obj: Any) -> None:
+			if name.endswith("mesh/geometry"):
+				values.append(float(np.max(obj[...])))
+
+		h5.visititems(collect)
 	return max(values)
 
 

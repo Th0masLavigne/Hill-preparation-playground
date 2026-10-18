@@ -74,6 +74,13 @@ def test_bad_variant_rejected(make_hill_setup: Any) -> None:
 		make_hill_setup(see_variant="exponential", k_2e=0.0)
 
 
+@pytest.mark.parametrize("override", [{"hill_b": 0.0}, {"hill_a": -1.0}, {"f_ecc": 1.0}])
+def test_bad_force_velocity_rejected(make_hill_setup: Any, override: dict[str, float]) -> None:
+	"""Singular h (b <= 0, 1 + A <= 0 or f_ecc <= 1) raises."""
+	with pytest.raises(ValueError):
+		make_hill_setup(**override)
+
+
 def test_law_is_independent_of_other_laws() -> None:
 	"""The Hill law derives from the fenicsoft base classes only (no other material in its MRO or imports)."""
 	import inspect

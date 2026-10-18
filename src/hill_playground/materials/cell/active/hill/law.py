@@ -78,15 +78,22 @@ class Parameters(MaterialParameters):
 	k_2e: float | dolfin.Constant = 0.0
 
 	def __post_init__(self) -> None:
-		"""Check the SEE variant.
+		r"""Check the SEE variant and the force--velocity constants.
 
 		Raises:
-		    ValueError: Unknown ``see_variant``, or ``k_2e <= 0`` with ``"exponential"``.
+		    ValueError: Unknown ``see_variant``, ``k_2e <= 0`` with ``"exponential"``, ``hill_b <= 0``,
+		        ``1 + hill_a <= 0`` or ``f_ecc <= 1`` (then :math:`b_e \le 0` and :math:`h` is singular).
 		"""
 		if self.see_variant not in hill.SEE_VARIANTS:
 			raise ValueError(f"Unknown SEE variant '{self.see_variant}', expected one of {hill.SEE_VARIANTS}.")
 		if self.see_variant == "exponential" and float(self.k_2e) <= 0.0:
 			raise ValueError("The exponential SEE needs k_2e > 0.")
+		if float(self.hill_b) <= 0.0:
+			raise ValueError("The force-velocity law needs hill_b > 0.")
+		if 1.0 + float(self.hill_a) <= 0.0:
+			raise ValueError("The force-velocity law needs 1 + hill_a > 0.")
+		if float(self.f_ecc) <= 1.0:
+			raise ValueError("The force-velocity law needs f_ecc > 1.")
 
 
 class Constitutive(ConstitutiveLaw[Parameters]):

@@ -17,14 +17,23 @@ holds what is new.
 │   ├── install_fenicsoft.sh
 │   ├── initialize.sh       # host-side: base image + bind-mount folders
 │   └── secrets.env.example # token for the remote mode
-├── src/hill_playground/    # -> fenicsoft/
-│   ├── materials/cell/active/hill/   # Hill law (R_u) + shared UFL functions   [new]
-│   ├── operators/cell/hill/          # ContractileEvolution (R_a)              [new]
-│   ├── operators/cell/proliferation/ # clipped SaturatedProliferation          [patch]
-│   └── scaling/                      # CharacteristicScales (promoted)         [new]
+├── src/hill_playground/    # -> fenicsoft/ (one issue per item: TRANSFER.md)
+│   ├── integration/                  # DecimatedTimeIntegrator, field selection + rank-0 logs [copy]
+│   ├── io/                           # XDMF geometry/time back to SI                         [new]
+│   ├── materials/cell/active/        # activation.py: shared activation schedule             [new]
+│   ├── materials/cell/active/hill/   # Hill law (R_u) + shared UFL functions                 [new]
+│   ├── materials/ufl_functions.py    # floored, macaulay (Newton guards)                     [new]
+│   ├── materials/permeability/       # k(phi_l) laws on a common base class                  [new]
+│   ├── materials/volumetric/         # volumetric energy with a compaction point             [new]
+│   ├── materials/orientation/        # orientation diagnostics                               [new]
+│   ├── operators/residual_rows.py    # quadrature degree, test scale, normalization per row   [new]
+│   ├── operators/cell/hill/          # ContractileEvolution (R_a)                            [new]
+│   ├── operators/cell/proliferation/ # clipped SaturatedProliferation                        [patch]
+│   └── scaling/                      # CharacteristicScales (promoted)                       [new]
 ├── tests/{unit,integration,environment}/
-├── demos/
-└── docs/src/
+├── demos/hill_box/
+├── docs/src/
+└── TRANSFER.md             # transfer plan to fenicsoft, one merge request per issue
 ```
 
 ## Setup (VS Code + Dev Containers)

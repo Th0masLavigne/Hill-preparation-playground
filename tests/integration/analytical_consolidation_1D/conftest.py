@@ -8,9 +8,7 @@ import pandas as pd
 ERRORS_CSV = Path(__file__).resolve().parent / "outputs_terzaghi_nondim" / "errors.csv"
 
 
-def pytest_sessionstart(session: Any) -> None:
-	"""Forget the table of a previous session."""
-	ERRORS_CSV.unlink(missing_ok=True)
+ERRORS_CSV.unlink(missing_ok=True)  # forget the table of a previous session (this conftest loads once per session)
 
 
 def pytest_terminal_summary(terminalreporter: Any) -> None:
