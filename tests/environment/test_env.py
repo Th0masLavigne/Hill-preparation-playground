@@ -35,7 +35,7 @@ def test_fenicsoft_origin() -> None:
 	print("\n" + STAMP.read_text())
 
 
-NEW_BRANCHES = ("materials.cell.active.hill", "operators.cell.hill", "scaling")
+NEW_BRANCHES = ("materials.cell.active.hill", "materials.permeability", "operators.cell.hill", "scaling")
 """Packages that do not exist yet in fenicsoft (transfer plan); everything else must already exist."""
 
 
