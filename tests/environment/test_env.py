@@ -60,3 +60,20 @@ def test_layout_mirrors_fenicsoft() -> None:
 		if any(path == b or path.startswith(b + ".") for b in NEW_BRANCHES):
 			continue
 		importlib.import_module(f"fenicsoft.{path}")
+
+
+def test_quadrature_degree_per_integral() -> None:
+	r"""FFC honours ``dx(degree=q)`` per integral, also inside a summed form (demo ``quadrature_degrees``).
+
+	:math:`\int_0^1 x^8` with degree 2 is inexact (0.0748 instead of 1/9); summed with an exact degree-8
+	integral it must stay inexact, i.e. it is not promoted to the form's maximal degree.
+	"""
+	import dolfin
+
+	mesh = dolfin.UnitIntervalMesh(1)
+	x = dolfin.SpatialCoordinate(mesh)[0]
+	low = x**8 * dolfin.dx(domain=mesh, degree=2)
+	high = x * dolfin.dx(domain=mesh, degree=8)
+	alone = dolfin.assemble(low)
+	assert abs(alone - 1.0 / 9.0) > 1e-2
+	assert abs(dolfin.assemble(low + high) - 0.5 - alone) < 1e-12
