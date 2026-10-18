@@ -132,7 +132,9 @@ It is not a constitutive law. Active laws use it by composition, so no law depen
 
 ## 11. Hill one-element integration test
 
-**Changes.** `tests/integration/materials/cell/active/hill/` (3 files): a one-element FE run of gel + Hill, compared with an independent 0D backward-Euler reference (scipy). Three cases: isometric λ = 1 and λ = 1.04, and traction-free faces.
+**Changes.** `tests/integration/materials/cell/active/hill/` (4 files, including `conftest.py`): a one-element FE run of gel + Hill, compared with an independent 0D backward-Euler reference (scipy). Three cases: isometric λ = 1 and λ = 1.04, and traction-free faces.
+- The figure `hill_one_element.png` and `errors.csv` are written to `outputs_hill_one_element/`. The figure shows λ_a, T_e, the free-face gel stretches and the error history, FE (markers) against 0D (lines).
+- The error table is printed in the pytest summary.
 
 **Done when** ε_a, P_xx and (λ, λ_t) match the 0D reference to 1e-12–1e-10.
 
@@ -150,6 +152,19 @@ It is not a constitutive law. Active laws use it by composition, so no law depen
 **Changes.**
 - `demos/hill_box/{hill_box_uniaxial.py, hill_chain_helpers.py, README.md}` → fenicsoft `demos/smooth_muscle_cells/porous_hydrogel/hill_box/`.
 - Replace the `hill_playground.*` imports by `fenicsoft.*`.
+- `UserInputs` options: `nondimensionalization` (`none`, `operator`, `parameters`), `permeability_law`, `volumetric_law`, `xdmf_si_only`, `quadrature_degrees`.
+- Outputs:
+  - `displacement_si` and `pressure_si` are scaled copies of the unknowns on their own CG spaces (vector scaling). A global `dolfin.project` on CG2 cost about 5 s per output, 15 % of the run.
+  - The other FOIs use `update_type="local_solver"`, a cell-wise projection on the DG spaces, instead of `"project"`.
+  - All output updates went from 17.1 s to 0.3 s on the size/2 box.
+- Quadrature per residual row: `quadrature_degrees = {"u", "p", "c", "s", "angles", "a"}` → `row_measure()` returns `dV(degree=q)` (integral metadata).
+  - A row is identified by the test function of the term: δu, δp, δc, δφ̃_s, δθ/δφ, δε. The cell flux Q_c appears in both `p` and `c`.
+  - Default: empty, i.e. `quadrature_degree` everywhere.
+  - Measured on the size/2 box with `{"u": 3}` and the other rows at 2: assembly 1.83 → 1.26 s per iteration, QOIs within 3e-4.
+  - This pattern could move to the pillar demos (one measure per row, next to the row `scale_factor`).
+- Cost profile (size/2, warm JIT cache): MUMPS solve ≈ 78 %, assembly ≈ 21 %, outputs < 1 %. Turning off `cell_transport` and `remodelling` cuts the solve to 5.2 s per iteration (−37 %). size/4: about 210 s per solve and about 5 GB.
+
+**Tests.** `tests/environment/test_env.py::test_quadrature_degree_per_integral` checks that FFC honours `dx(degree=q)` per integral, also inside a summed form. FFC prints "Quadrature degree must be equal within each sub domain", but measurement shows the per-integral degree is used. Move this test to fenicsoft's environment tests.
 
 **Done when** the three `nondimensionalization` modes give identical QOIs (measured: 3e-15), and an `mpirun` run gives a readable `.out`.
 
@@ -164,4 +179,5 @@ It is not a constitutive law. Active laws use it by composition, so no law depen
   - remove the transferred paths from `NEW_BRANCHES` in `tests/environment/test_env.py`;
   - delete the playground copies;
   - switch the playground imports to fenicsoft.
+- Devcontainer: mount `~/.cache/dijitso` (the compiled forms) as a persistent volume. The Hill forms take about 90 s of JIT compilation on a fresh container.
 - Tooling: autoapi documents the tests too, so docstrings there must be valid reST. Write `|x|` inside `:math:`, never bare (`make docs` fails on "Undefined substitution").
