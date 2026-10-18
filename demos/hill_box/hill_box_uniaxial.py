@@ -60,22 +60,38 @@ Inputs are SI. Scales :math:`L_0 = L_z` (drainage length), :math:`\mu_0 = \mu_{g
   ``CharacteristicScales.nondimensionalize_*`` (:math:`\hat\mu, \hat\kappa, \hat f_{max}, \hat K,
   \hat D, \hat r, \hat b, \hat\tau, \hat t \dots`), every row factor 1.
 
-=====================================  ====  ==========================
-Term (``"operator"``)                  Row   ``scale_factor``
-=====================================  ====  ==========================
-gel stresses (incl. Hill SEE)          u     :math:`1/(\mu_0 L_0)`
-:math:`-Jp\mathbf F^{-T}`              u     :math:`1/L_0`
-:math:`(J-J^n)/\Delta t`               p     :math:`t_0/\mu_0`
-Darcy                                  p     :math:`t_0/L_0^2`
-cell flux tested by :math:`\delta p`   p     :math:`t_0/(\mu_0 L_0^2)`
-rate, proliferation; orientation       c     :math:`t_0`
-cell flux tested by :math:`\delta c`   c     :math:`t_0/L_0^2`
-contractile element                    a     :math:`1/\mu_0`
-substrate projection                   s     1
-=====================================  ====  ==========================
+Rows are named after the subsol of their test function (``ResidualRows``): for ``"operator"``,
+``scale_factor`` :math:`= s\,v/\mathcal N_{row}` with :math:`v` the term's value-preserving factor
+(``TermValues``: SI integral = :math:`v` times the form on the scaled mesh and unknowns, FE test function),
+:math:`s` the scale of the row's test function (:math:`\delta\mathbf u = L_0\delta\hat{\mathbf u}`,
+:math:`\delta p = \mu_0\delta\hat p`, Table tab:dict) and :math:`\mathcal N_{row}` the row normalization
+(Table tab:N: :math:`\mu_0 L_0^3` for ``displacement`` and ``eps_a``, :math:`\mu_0 L_0^3/t_0` for
+``liquid_pressure``, :math:`L_0^3/t_0` for ``cell_fraction``, ``theta``, ``phi``, :math:`L_0^3` for
+``substrate_smoothed``):
 
-Both scaled modes are the SI system times a constant per row (``"parameters"`` = ``"operator"``
-:math:`\times (L_0, \mu_0, \mu_0, t_0^{-1}\dots)`): Newton's iterates are identical
+=================================  ======================  ===================  =======================
+Term (``"operator"``)              Row (subsol)            :math:`s\,v`         ``scale_factor``
+=================================  ======================  ===================  =======================
+gel stresses, Hill SEE             ``displacement``        :math:`L_0^3`        :math:`1/\mu_0`
+:math:`-Jp\mathbf F^{-T}`          ``displacement``        :math:`\mu_0 L_0^3`  1
+:math:`(J-J^n)/\Delta t`           ``liquid_pressure``     :math:`\mu_0 L_0^3`  :math:`t_0`
+Darcy                              ``liquid_pressure``     :math:`\mu_0^2 L_0`  :math:`\mu_0 t_0/L_0^2`
+cell flux, :math:`\delta p`        ``liquid_pressure``     :math:`\mu_0 L_0`    :math:`t_0/L_0^2`
+:math:`\dot\Phi_c`, proliferation  ``cell_fraction``       :math:`L_0^3`        :math:`t_0`
+cell flux, :math:`\delta c`        ``cell_fraction``       :math:`L_0`          :math:`t_0/L_0^2`
+substrate projection               ``substrate_smoothed``  :math:`L_0^3`        1
+orientation                        ``theta``, ``phi``      :math:`L_0^3`        :math:`t_0`
+contractile element                ``eps_a``               :math:`L_0^3`        :math:`1/\mu_0`
+=================================  ======================  ===================  =======================
+
+The resulting system is the one of ``"parameters"`` (same Jacobian, checked by
+``tests/integration/demos/test_hill_box_scaling.py``). Before 2026-10-18 the factors omitted :math:`s`
+(equations.tex Table tab:sf): the ``displacement`` row was :math:`1/L_0` too large and the
+``liquid_pressure`` row :math:`1/\mu_0` too small (same solution, :math:`\kappa_2` 9e8 instead of 8e4).
+
+``quadrature_degrees`` (same row names) sets a quadrature degree per row (``ResidualRows.measure``).
+
+Both scaled modes are the SI system times a constant per row: Newton's iterates are identical to SI
 (``tests/integration/analytical_consolidation_1D/test_terzaghi_nondim.py``). ``"parameters"``
 integrates in :math:`\hat t` (QOI ``time_si`` gives :math:`t` in s). After the run the XDMF geometry and
 time stamps are brought back to SI (``hill_playground.io.xdmf_units``): no ``ScaledKinematics`` is
@@ -139,6 +155,7 @@ from hill_playground.materials.cell.active.activation import ActivePowerConfig
 from hill_playground.materials.cell.active.hill import law as hill_law
 from hill_playground.materials.orientation import display
 from hill_playground.materials.volumetric import compaction
+from hill_playground.operators import ResidualRows
 from hill_playground.operators.cell import ContractileEvolution, SaturatedProliferation
 from hill_playground.scaling import CharacteristicScales
 
@@ -166,7 +183,9 @@ class UserInputs:
 	    mesh_min_size: Gmsh minimum element size (m).
 	    mesh_max_size: Gmsh maximum element size (m).
 	    regenerate_mesh: Re-run Gmsh even if the mesh exists.
-	    quadrature_degree: Quadrature degree.
+	    quadrature_degree: Default quadrature degree (every term without its own).
+	    quadrature_degrees: Degree per residual row, overriding the default for that row's terms; rows
+	        are named after the subsol of their test function (:data:`UNKNOWNS`).
 	    foi_degree: Degree of the DG spaces of the FOIs.
 	    nondimensionalization: ``"none"``, ``"operator"`` or ``"parameters"`` (module docstring, section 4).
 	    cell_transport: Solve :math:`\Phi_c, \tilde\phi_s` (:math:`R_c, R_s`); else :math:`\Phi_c = \Phi_{c,0}`.
@@ -222,9 +241,12 @@ class UserInputs:
 
 	# --- Mesh ---
 	mesh_min_size: float = 50e-6 / 4
-	mesh_max_size: float = 50e-6 / 4
+	mesh_max_size: float = 50e-6 / 2
 	regenerate_mesh: bool = True
 	quadrature_degree: int = 4
+	quadrature_degrees: Dict[str, int] = field(
+		default_factory=dict
+	)  # {"liquid_pressure": 2, "cell_fraction": 2, "substrate_smoothed": 2, "theta": 2, "phi": 2, "eps_a": 2}
 	foi_degree: int = 0
 
 	# --- Switches ---
@@ -452,53 +474,124 @@ class Coefficients:
 		)
 
 
+UNKNOWNS: Tuple[str, ...] = (
+	"displacement",
+	"theta",
+	"phi",
+	"liquid_pressure",
+	"cell_fraction",
+	"substrate_smoothed",
+	"eps_a",
+)
+"""Every possible subsol (= residual row) of the demo, whatever the switches."""
+
+
 @dataclass(frozen=True)
-class RowFactors:
-	r"""``scale_factor`` per term (module docstring, section 4); all 1 unless ``"operator"``.
+class TermValues:
+	r"""Value-preserving factor :math:`v` of each term (module docstring, section 4); all 1 unless ``"operator"``.
+
+	SI integral = :math:`v` times the form written on the scaled mesh and unknowns, with the FE (dimensionless)
+	test function; the test-function scale :math:`s` is applied per row by ``ResidualRows``.
 
 	Attributes:
-	    u_stress: Gel and Hill stresses.
-	    u_fluid: :math:`-Jp\mathbf F^{-T}`.
-	    p_rate: :math:`(J-J^n)/\Delta t`.
-	    p_darcy: Darcy.
-	    p_cells: Cell flux tested by :math:`\delta p`.
-	    c_rate: Rates of :math:`\Phi_c`, proliferation, orientation.
-	    c_flux: Cell flux tested by :math:`\delta c`.
-	    a: Contractile element.
+	    gel: :math:`\int \mathbf P:\nabla\delta\mathbf u`: :math:`L_0^2`.
+	    fluid: :math:`-\int Jp\mathbf F^{-T}:\nabla\delta\mathbf u` with :math:`p = \mu_0\hat p`: :math:`\mu_0 L_0^2`.
+	    volume: :math:`\int f\,\delta x` with :math:`f` in SI (rates, sources, :math:`R_a`, :math:`R_s`): :math:`L_0^3`.
+	    darcy: :math:`\int \mathbf K_L\nabla p\cdot\nabla\delta p`: :math:`\mu_0 L_0`.
+	    cell_flux: :math:`\int \mathbf Q_c\cdot\nabla\delta x`: :math:`L_0`.
 	"""
 
-	u_stress: float = 1.0
-	u_fluid: float = 1.0
-	p_rate: float = 1.0
-	p_darcy: float = 1.0
-	p_cells: float = 1.0
-	c_rate: float = 1.0
-	c_flux: float = 1.0
-	a: float = 1.0
+	gel: float = 1.0
+	fluid: float = 1.0
+	volume: float = 1.0
+	darcy: float = 1.0
+	cell_flux: float = 1.0
 
 	@classmethod
-	def from_inputs(cls, user_inputs: UserInputs) -> "RowFactors":
-		"""Table tab:sf for ``"operator"``, ones otherwise.
+	def from_inputs(cls, user_inputs: UserInputs) -> "TermValues":
+		"""Factors for ``"operator"``, ones otherwise.
 
 		Args:
 		    user_inputs: Configuration.
 
 		Returns:
-		    The row factors.
+		    The term values.
 		"""
 		if user_inputs.nondimensionalization != "operator":
 			return cls()
 		s = user_inputs.scales
 		return cls(
-			u_stress=1.0 / (s.stress * s.length),
-			u_fluid=1.0 / s.length,
-			p_rate=s.time / s.stress,
-			p_darcy=s.time / s.length**2,
-			p_cells=s.time / (s.stress * s.length**2),
-			c_rate=s.time,
-			c_flux=s.time / s.length**2,
-			a=1.0 / s.stress,
+			gel=s.length**2,
+			fluid=s.stress * s.length**2,
+			volume=s.length**3,
+			darcy=s.stress * s.length,
+			cell_flux=s.length,
 		)
+
+
+def row_normalizations(user_inputs: UserInputs) -> Dict[str, float]:
+	r"""Row normalization :math:`\mathcal N_{row}` per subsol (module docstring, section 4); none unless ``"operator"``.
+
+	Args:
+	    user_inputs: Configuration.
+
+	Returns:
+	    :math:`\mathcal N_{row}` for every name of :data:`UNKNOWNS`, or an empty dict.
+	"""
+	if user_inputs.nondimensionalization != "operator":
+		return {}
+	s = user_inputs.scales
+	volume = s.length**3
+	rate = volume / s.time
+	return {
+		"displacement": s.stress * volume,
+		"theta": rate,
+		"phi": rate,
+		"liquid_pressure": s.stress * rate,
+		"cell_fraction": rate,
+		"substrate_smoothed": volume,
+		"eps_a": s.stress * volume,
+	}
+
+
+def row_test_scales(user_inputs: UserInputs) -> Dict[str, float]:
+	r"""Test-function scale :math:`s` per subsol (Table tab:dict); none unless ``"operator"``.
+
+	Args:
+	    user_inputs: Configuration.
+
+	Returns:
+	    :math:`s_{\mathbf u} = L_0`, :math:`s_p = \mu_0` (others 1), or an empty dict.
+	"""
+	if user_inputs.nondimensionalization != "operator":
+		return {}
+	s = user_inputs.scales
+	return {"displacement": s.length, "liquid_pressure": s.stress}
+
+
+def build_residual_rows(problem: dolfin_mech.problems.Problem, user_inputs: UserInputs) -> ResidualRows:
+	"""Quadrature degrees, test scales and normalizations of the rows present in ``problem`` (switches applied).
+
+	Args:
+	    problem: Problem with its subsols.
+	    user_inputs: Configuration.
+
+	Returns:
+	    The row settings.
+
+	Raises:
+	    ValueError: A ``quadrature_degrees`` key is not one of :data:`UNKNOWNS` (typo).
+	"""
+	unknown = sorted(set(user_inputs.quadrature_degrees) - set(UNKNOWNS))
+	if unknown:
+		raise ValueError(f"quadrature_degrees: unknown rows {unknown}, expected names among {UNKNOWNS}.")
+	present = {subsol.name for subsol in problem.subsols}
+	return ResidualRows.from_problem(
+		problem,
+		quadrature_degrees={k: v for k, v in user_inputs.quadrature_degrees.items() if k in present},
+		test_scales={k: v for k, v in row_test_scales(user_inputs).items() if k in present},
+		normalizations={k: v for k, v in row_normalizations(user_inputs).items() if k in present},
+	)
 
 
 def build_mesh(user_inputs: UserInputs) -> io.SimulationPaths:
@@ -727,27 +820,37 @@ def build_step_operators(
 	user_inputs: UserInputs,
 	hill_material: hill_law.Constitutive,
 	coefficients: Coefficients,
-	rows: RowFactors,
+	rows: ResidualRows,
+	values: TermValues,
 ) -> Tuple[List[Any], ContractileEvolution]:
-	r"""Operators shared by every step, with their ``scale_factor`` (module docstring, section 4).
+	r"""Operators shared by every step, with their measure and ``scale_factor`` (module docstring, section 4).
+
+	Each operator takes ``rows.measure(dV, row)`` and ``rows.scale_factor(row, v)``, ``row`` being the
+	subsol of its test function.
 
 	Args:
 	    problem: Problem from :func:`initialise_problem`.
 	    user_inputs: Configuration.
 	    hill_material: Hill law (owner of ``p_act``).
 	    coefficients: Coefficients in solve units.
-	    rows: Row factors.
+	    rows: Quadrature degree and normalization per row.
+	    values: Value-preserving factor per term.
 
 	Returns:
 	    ``(operators, contractile_evolution)``.
 	"""
-	dv = problem.dV
 	kin = problem.kinematics
 	p_hat, dp = problem.pl_subsol.subfunc, problem.pl_subsol.dsubtest
 	c = coefficients
 
+	def dv(row: str) -> dolfin.Measure:
+		return rows.measure(problem.dV, row)
+
 	contractile = ContractileEvolution(
-		law=hill_material, test=problem.eps_a_subsol.dsubtest, dx=dv, scale_factor=rows.a
+		law=hill_material,
+		test=problem.eps_a_subsol.dsubtest,
+		dx=dv("eps_a"),
+		scale_factor=rows.scale_factor("eps_a", values.volume),
 	)
 	ops: List[Any] = [
 		fenicsoft.operators.fluid_stress.biphasic.pk1.FluidStress(
@@ -755,14 +858,22 @@ def build_step_operators(
 			function=p_hat,
 			displacement=problem.displacement_subsol.subfunc,
 			test=problem.displacement_subsol.dsubtest,
-			measure=dv,
-			scale_factor=rows.u_fluid,
+			measure=dv("displacement"),
+			scale_factor=rows.scale_factor("displacement", values.fluid),
 		),
 		fenicsoft.operators.DarcyGradient(
-			function=p_hat, test=dp, conductivity=problem.k_l_tensor, dx=dv, scale_factor=rows.p_darcy
+			function=p_hat,
+			test=dp,
+			conductivity=problem.k_l_tensor,
+			dx=dv("liquid_pressure"),
+			scale_factor=rows.scale_factor("liquid_pressure", values.darcy),
 		),
 		fenicsoft.operators.ChangeRate(
-			function=kin.J, function_old=kin.J_old, test=dp, dx=dv, scale_factor=rows.p_rate
+			function=kin.J,
+			function_old=kin.J_old,
+			test=dp,
+			dx=dv("liquid_pressure"),
+			scale_factor=rows.scale_factor("liquid_pressure", values.volume),
 		),
 		contractile,
 	]
@@ -771,30 +882,51 @@ def build_step_operators(
 		phi_c, dc = problem.phic_subsol.subfunc, problem.phic_subsol.dsubtest
 		phi_s = problem.phis_subsol.subfunc
 
-		def hapt(test: Any, factor: float) -> Any:
+		def hapt(test: Any, row: str) -> Any:
 			return cell_ops.SaturatedHaptotaxisFluxSmooth(
-				phi_c, phi_s, c.rho_s, problem, c.hapt_coeff, user_inputs.phi_c_max, test, dv, factor
+				phi_c,
+				phi_s,
+				c.rho_s,
+				problem,
+				c.hapt_coeff,
+				user_inputs.phi_c_max,
+				test,
+				dv(row),
+				rows.scale_factor(row, values.cell_flux),
 			)
 
-		def diff(test: Any, factor: float) -> Any:
-			return cell_ops.IsotropicDiffusion(phi_c, problem, c.cellular_diffusion, test, dv, factor)
+		def diff(test: Any, row: str) -> Any:
+			return cell_ops.IsotropicDiffusion(
+				phi_c, problem, c.cellular_diffusion, test, dv(row), rows.scale_factor(row, values.cell_flux)
+			)
 
 		ops += [
-			hapt(dp, rows.p_cells),
-			diff(dp, rows.p_cells),
+			hapt(dp, "liquid_pressure"),
+			diff(dp, "liquid_pressure"),
 			fenicsoft.operators.ChangeRate(
-				function=phi_c, function_old=problem.phic_subsol.func_old, test=dc, dx=dv, scale_factor=rows.c_rate
+				function=phi_c,
+				function_old=problem.phic_subsol.func_old,
+				test=dc,
+				dx=dv("cell_fraction"),
+				scale_factor=rows.scale_factor("cell_fraction", values.volume),
 			),
-			SaturatedProliferation(phi_c, c.prol_coeff, user_inputs.phi_c_max, dc, dv, scale_factor=rows.c_rate),
-			hapt(dc, rows.c_flux),
-			diff(dc, rows.c_flux),
+			SaturatedProliferation(
+				phi_c,
+				c.prol_coeff,
+				user_inputs.phi_c_max,
+				dc,
+				dv("cell_fraction"),
+				scale_factor=rows.scale_factor("cell_fraction", values.volume),
+			),
+			hapt(dc, "cell_fraction"),
+			diff(dc, "cell_fraction"),
 			cell_ops.SubstrateProjection(
 				phi_s_func=phi_s,
 				test_phi_s=problem.phis_subsol.dsubtest,
 				kin_j=kin.J,
 				phi_s0=problem.phi_s0,
-				measure=dv,
-				scale_factor=1.0,
+				measure=dv("substrate_smoothed"),
+				scale_factor=rows.scale_factor("substrate_smoothed", values.volume),
 			),
 		]
 
@@ -812,9 +944,9 @@ def build_step_operators(
 				kinematics=kin,
 				tau=c.remodel_tau,
 				activation=hill_material.p_act,
-				dx=dv,
+				dx=dv(subsol.name),
 				f0_builder=builder,
-				scale_factor=rows.c_rate,
+				scale_factor=rows.scale_factor(subsol.name, values.volume),
 			)
 			for subsol, builder in builders
 		]
@@ -838,9 +970,10 @@ def set_weak_form_and_bcs(
 	Returns:
 	    The assembled problem.
 	"""
-	rows = RowFactors.from_inputs(user_inputs)
+	rows = build_residual_rows(problem, user_inputs)
+	values = TermValues.from_inputs(user_inputs)
 	gel_material, hill_material = build_materials(problem, user_inputs, coefficients)
-	shared_ops, contractile = build_step_operators(problem, user_inputs, hill_material, coefficients, rows)
+	shared_ops, contractile = build_step_operators(problem, user_inputs, hill_material, coefficients, rows, values)
 
 	for step_idx in range(len(problem.steps)):
 		problem.add_operator(
@@ -848,9 +981,9 @@ def set_weak_form_and_bcs(
 				disp=problem.displacement_subsol.subfunc,
 				disp_test=problem.displacement_subsol.dsubtest,
 				material=gel_material,
-				measure=problem.dV,
+				measure=rows.measure(problem.dV, "displacement"),
 				k_step=step_idx,
-				scale_factor=rows.u_stress,
+				scale_factor=rows.scale_factor("displacement", values.gel),
 			),
 			k_step=step_idx,
 		)
@@ -883,8 +1016,9 @@ def add_outputs(
 ) -> None:
 	r"""FOIs and QOIs, all SI, same names, order and spaces in every mode (module docstring, sections 4, 6).
 
-	:math:`\mathbf u = L_0\hat{\mathbf u}` and :math:`p = \mu_0\hat p` are projected on the spaces of
-	the unknowns (CG, point data); the other fields on the DG FOI spaces (cell data).
+	:math:`\mathbf u = L_0\hat{\mathbf u}` and :math:`p = \mu_0\hat p` are scaled copies of the unknowns,
+	on their CG spaces (point data, no projection); the other fields are cell-wise
+	(``local_solver``) projections on the DG FOI spaces (cell data).
 	``units.unknowns`` redimensionalizes mesh, :math:`\mathbf u`, :math:`p`; ``units.coefficients``
 	the stresses built from the moduli and the time.
 
@@ -905,15 +1039,21 @@ def add_outputs(
 	theta_deg, phi_deg = spherical_mod.canonical_theta_phi_degrees(problem.theta_func, problem.phi_func)
 
 	def foi(name: str, expr: Any, fs: Any) -> None:
-		problem.add_foi(name=name, expr=expr, fs=fs, update_type="project")
+		# DG FOI spaces: cell-by-cell projection (cached local factorizations), not a global solve.
+		problem.add_foi(name=name, expr=expr, fs=fs, update_type="local_solver")
+
+	def scaled_copy(name: str, source: dolfin.Function, factor: float) -> None:
+		# factor * source on the source's own space: exact, a vector scaling instead of a global L2 projection.
+		copy = problem.add_foi(name=name, expr=source, fs=source.function_space(), update_type="interpolate")
+
+		def update() -> None:
+			copy.func.vector()[:] = factor * source.vector().get_local()
+
+		copy.update = update
 
 	# 1. Unknowns in SI, on their own (CG) spaces.
-	foi(
-		"displacement_si",
-		su.redimensionalize_length(problem.displacement_subsol.subfunc),
-		problem.displacement_subsol.fs.collapse(),
-	)
-	foi("pressure_si", pressure, problem.pl_subsol.fs.collapse())
+	scaled_copy("displacement_si", problem.displacement_subsol.func, su.length)
+	scaled_copy("pressure_si", problem.pl_subsol.func, su.stress)
 
 	# 2. Scalars, cell data.
 	scalar_fois: Dict[str, Any] = {
