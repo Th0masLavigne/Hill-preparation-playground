@@ -74,9 +74,32 @@ def test_bad_variant_rejected(make_hill_setup: Any) -> None:
 		make_hill_setup(see_variant="exponential", k_2e=0.0)
 
 
-def test_parameters_are_aniso_parameters() -> None:
-	"""The Hill parameters extend the aniso ones (activation machinery reused)."""
-	from fenicsoft.materials.cell.active.aniso import law as aniso_law
+def test_law_is_independent_of_other_laws() -> None:
+	"""The Hill law derives from the fenicsoft base classes only (no other material in its MRO or imports)."""
+	import inspect
 
-	assert issubclass(hill_law.Parameters, aniso_law.Parameters)
-	assert issubclass(hill_law.Constitutive, aniso_law.Constitutive)
+	from fenicsoft.materials.materials import ConstitutiveLaw, MaterialParameters
+
+	assert hill_law.Parameters.__mro__[1] is MaterialParameters
+	assert hill_law.Constitutive.__mro__[1] is ConstitutiveLaw
+	source = inspect.getsource(hill_law)
+	assert "cell.active.aniso" not in source and "cell.active.iso" not in source
+
+
+def test_activation_follows_steps(make_hill_setup: Any) -> None:
+	"""p_act: ramp 0 -> 1 on step 0 (value at t_step), constant 0.5 on step 1."""
+	from unittest.mock import MagicMock
+
+	from hill_playground.materials.cell.active.activation import ActivePowerConfig
+
+	steps = [MagicMock(t_ini=0.0, t_fin=1.0), MagicMock(t_ini=1.0, t_fin=2.0)]
+	configs = [ActivePowerConfig.ramp(k_step=0, ini=0.0, fin=1.0), ActivePowerConfig.constant(k_step=1, value=0.5)]
+	law = make_hill_setup(activation_configs=configs, simulation_steps=steps).law
+	law.set_k_step(0)
+	law.update_time(0.25)
+	assert law.current_activation == pytest.approx(0.25)
+	assert float(law.p_act) == pytest.approx(0.25)
+	law.set_k_step(1)
+	law.update_time(0.7)
+	assert law.current_activation == pytest.approx(0.5)
+	assert law.current_time == pytest.approx(1.7)  # t_ini + t_step (t_fin - t_ini) of step 1
