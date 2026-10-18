@@ -1,7 +1,7 @@
 """Equivalence with fenicsoft: ``ActivationSchedule`` gives the same alpha as the iso and aniso laws.
 
 Random config sets (constant, ramp, function of t; missing, duplicated and out-of-range ``k_step``)
-and random ``set_k_step``/``update_time`` sequences. Guards the transfer (TRANSFER.md, issues 4 and 14).
+and random ``set_k_step``/``update_time`` sequences. Guards the transfer (TRANSFER.md, issues 4 and 15).
 """
 
 import random
