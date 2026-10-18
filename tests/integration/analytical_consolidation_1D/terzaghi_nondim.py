@@ -16,12 +16,16 @@ Modes (scales :math:`L_0 = L`, :math:`\mu_0 = \mu`, :math:`t_0 = L_0^2\eta/(k\ka
 
 * ``"none"``: mesh :math:`X`, unknowns :math:`(u, p)`, SI coefficients, row factors 1;
 * ``"operator"``: mesh :math:`\hat X`, unknowns :math:`(\hat u, \hat p)`, SI coefficients and time,
-  ``scale_factor`` of Table tab:sf;
+  ``scale_factor`` :math:`= s_k v/\mathcal N_k` with the test scales :math:`s_{\mathbf u} = L_0`,
+  :math:`s_p = \mu_0` (Table tab:sf, corrected 2026-10-18);
 * ``"parameters"``: mesh :math:`\hat X`, unknowns :math:`(\hat u, \hat p)`, coefficients
   :math:`(\hat\mu, \hat\kappa, \hat K, \hat p_0)` and time :math:`\hat t`, row factors 1.
 
-The ``"parameters"`` coefficients come from the ``CharacteristicScales.nondimensionalize_*`` methods,
-and every output is brought back with ``redimensionalize_*``. Row scaling leaves Newton's iterates
+Each operator takes ``ResidualRows.measure`` and ``ResidualRows.scale_factor`` of its row (the subsol
+of its test function: ``displacement`` or ``liquid_pressure``); ``quadrature_degrees`` gives a degree
+per row (variants ``"<mode>+rows"`` of the test). The ``"parameters"`` coefficients come from the
+``CharacteristicScales.nondimensionalize_*`` methods, and every output is brought back with
+``redimensionalize_*``. Row scaling leaves Newton's iterates
 unchanged, so the three modes must agree to round-off. Run as a script to get the figures.
 """
 
@@ -30,7 +34,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Optional
 
 import dolfin
 import dolfin_mech
@@ -38,6 +42,7 @@ import fenicsoft
 import numpy as np
 import pandas as pd
 
+from hill_playground.operators import ResidualRows
 from hill_playground.scaling import CharacteristicScales
 
 Mode = Literal["none", "operator", "parameters"]
@@ -145,7 +150,7 @@ def analytical_settlement(inputs: TerzaghiInputs, t: np.ndarray, n_terms: int = 
 
 @dataclass(frozen=True)
 class _Solve:
-	"""Coefficients and row factors of one mode (solve units)."""
+	"""Coefficients, value-preserving factors and row normalizations of one mode (solve units)."""
 
 	scales: CharacteristicScales
 	mu: float
@@ -153,10 +158,9 @@ class _Solve:
 	conductivity: float
 	load: float
 	duration: float
-	gel_row: float
-	fluid_row: float
-	rate_row: float
-	darcy_row: float
+	values: dict[str, float]
+	test_scales: dict[str, float]
+	normalizations: dict[str, float]
 
 	@classmethod
 	def build(cls, inputs: TerzaghiInputs, mode: Mode) -> "_Solve":
@@ -169,12 +173,14 @@ class _Solve:
 				conductivity=s.nondimensionalize_permeability_over_viscosity(inputs.hydraulic_conductivity),
 				load=s.nondimensionalize_stress(inputs.load),
 				duration=s.nondimensionalize_time(inputs.t_end),
-				gel_row=1.0,
-				fluid_row=1.0,
-				rate_row=1.0,
-				darcy_row=1.0,
+				values={},
+				test_scales={},
+				normalizations={},
 			)
-		# "none" (s = identity: every factor is 1) and "operator" (SI coefficients, Table tab:sf rows).
+		# "none" (s = identity: every factor is 1) and "operator" (SI coefficients, Table tab:sf rows):
+		# scale_factor = s_row v / N_row, v = SI integral / form on the scaled mesh and unknowns (FE test
+		# function), s_row = scale of the row's test function (du = L0 du_hat, dp = mu0 dp_hat).
+		volume = s.length**3
 		return cls(
 			scales=s,
 			mu=inputs.shear_modulus,
@@ -182,20 +188,31 @@ class _Solve:
 			conductivity=inputs.hydraulic_conductivity,
 			load=inputs.load,
 			duration=inputs.t_end,
-			gel_row=1.0 / (s.stress * s.length),
-			fluid_row=1.0 / s.length,
-			rate_row=s.time / s.stress,
-			darcy_row=s.time / s.length**2,
+			values={
+				"gel": s.length**2,  # int P : grad du dV
+				"load": s.length**2,  # int t . du dS
+				"fluid": s.stress * s.length**2,  # int J p F^-T : grad du dV, p = mu0 p_hat
+				"rate": volume,  # int (J - J^n)/dt dp dV
+				"darcy": s.stress * s.length,  # int K grad p . grad dp dV
+			},
+			test_scales={"displacement": s.length, "liquid_pressure": s.stress},
+			normalizations={"displacement": s.stress * volume, "liquid_pressure": s.stress * volume / s.time},
 		)
 
+	def value(self, term: str) -> float:
+		return self.values.get(term, 1.0)
 
-def solve(inputs: TerzaghiInputs, mode: Mode, out_dir: Path) -> pd.DataFrame:
+
+def solve(
+	inputs: TerzaghiInputs, mode: Mode, out_dir: Path, quadrature_degrees: Optional[dict[str, int]] = None
+) -> pd.DataFrame:
 	r"""Run one mode; return SI time series (``t``, ``u0``, ``p_0`` ... ``p_{n-1}``).
 
 	Args:
 	    inputs: Inputs.
 	    mode: ``"none"``, ``"operator"`` or ``"parameters"``.
 	    out_dir: Output folder.
+	    quadrature_degrees: Degree per row (``"displacement"``, ``"liquid_pressure"``), default 4.
 
 	Returns:
 	    One row per step: time (s), :math:`u_x(0)` (m), pressure at the probes (Pa).
@@ -238,26 +255,49 @@ def solve(inputs: TerzaghiInputs, mode: Mode, out_dir: Path) -> pd.DataFrame:
 	)
 	u, du = problem.displacement_subsol.subfunc, problem.displacement_subsol.dsubtest
 	p, dp = problem.pl_subsol.subfunc, problem.pl_subsol.dsubtest
+	# Rows = subsols of the test functions: displacement (du) and liquid_pressure (dp).
+	rows = ResidualRows.from_problem(
+		problem, quadrature_degrees=quadrature_degrees, test_scales=c.test_scales, normalizations=c.normalizations
+	)
+	dv_u, dv_p = rows.measure(problem.dV, "displacement"), rows.measure(problem.dV, "liquid_pressure")
 	operators = [
 		fenicsoft.operators.hyper_elasticity.pk1.HyperElasticity(
-			disp=u, disp_test=du, material=gel, measure=problem.dV, k_step=0, scale_factor=c.gel_row
+			disp=u,
+			disp_test=du,
+			material=gel,
+			measure=dv_u,
+			k_step=0,
+			scale_factor=rows.scale_factor("displacement", c.value("gel")),
 		),
 		fenicsoft.operators.fluid_stress.biphasic.pk1.FluidStress(
-			kinematics=kin, function=p, displacement=u, test=du, measure=problem.dV, scale_factor=c.fluid_row
+			kinematics=kin,
+			function=p,
+			displacement=u,
+			test=du,
+			measure=dv_u,
+			scale_factor=rows.scale_factor("displacement", c.value("fluid")),
 		),
 		fenicsoft.operators.ChangeRate(
-			function=kin.J, function_old=kin.J_old, test=dp, dx=problem.dV, scale_factor=c.rate_row
+			function=kin.J,
+			function_old=kin.J_old,
+			test=dp,
+			dx=dv_p,
+			scale_factor=rows.scale_factor("liquid_pressure", c.value("rate")),
 		),
 		fenicsoft.operators.DarcyGradient(
 			function=p,
 			test=dp,
 			conductivity=c.conductivity * kin.J * kin.C_inv,
-			dx=problem.dV,
-			scale_factor=c.darcy_row,
+			dx=dv_p,
+			scale_factor=rows.scale_factor("liquid_pressure", c.value("darcy")),
 		),
-		# Follower load, linear in P: same row factor as the gel stresses.
+		# Follower load, linear in P (no scale_factor argument): the factor goes into P_val.
 		dolfin_mech.operators.loading.SurfacePressure(
-			U_test=du, kinematics=kin, N=problem.mesh_normals, measure=problem.dS(_LOAD), P_val=c.load * c.gel_row
+			U_test=du,
+			kinematics=kin,
+			N=problem.mesh_normals,
+			measure=rows.measure(problem.dS(_LOAD), "displacement"),
+			P_val=c.load * rows.scale_factor("displacement", c.value("load")),
 		),
 	]
 	for operator in operators:
@@ -294,7 +334,7 @@ def solve(inputs: TerzaghiInputs, mode: Mode, out_dir: Path) -> pd.DataFrame:
 		)
 
 	out_dir.mkdir(parents=True, exist_ok=True)
-	base = str(out_dir / f"terzaghi_{mode}")
+	base = str(out_dir / f"terzaghi_{mode}{'_rows' if quadrature_degrees else ''}")
 	integrator = dolfin_mech.core.TimeIntegrator(
 		problem=problem,
 		solver=dolfin_mech.core.NonlinearSolver(
@@ -375,7 +415,7 @@ def plot(inputs: TerzaghiInputs, tables: dict[str, pd.DataFrame], path: Path) ->
 	fig, (ax_p, ax_u) = plt.subplots(1, 2, figsize=(12, 4.5))
 	reference = next(iter(tables.values()))
 	x_fine = np.linspace(0.0, inputs.length, 200)
-	markers = {"none": "o", "operator": "s", "parameters": "^"}
+	markers = {"none": "o", "operator": "s", "parameters": "^"}  # "<mode>+rows": "x"
 	for t_factor in (0.02, 0.1, 0.3, 0.6, 1.0):
 		row = reference.iloc[(reference["t"] - t_factor * t_c).abs().argmin()]
 		(line,) = ax_p.plot(x_fine * 1e6, analytical_pressure(inputs, x_fine, row["t"]), lw=1.2)
@@ -383,7 +423,7 @@ def plot(inputs: TerzaghiInputs, tables: dict[str, pd.DataFrame], path: Path) ->
 			r = table.iloc[(table["t"] - row["t"]).abs().argmin()]
 			values = r[[f"p_{i}" for i in range(inputs.n_probes)]].to_numpy(dtype=float)
 			label = f"T = {t_factor:g}" if mode == "none" else None
-			ax_p.plot(x * 1e6, values, markers[mode], ms=4, mfc="none", color=line.get_color(), label=label)
+			ax_p.plot(x * 1e6, values, markers.get(mode, "x"), ms=4, mfc="none", color=line.get_color(), label=label)
 	ax_p.set(xlabel="x (µm), drained at 0", ylabel="p (Pa)", title="Pressure: lines analytical, markers FE")
 	ax_p.legend(fontsize=8)
 	t_fine = np.linspace(0.0, reference["t"].max(), 300)
@@ -393,7 +433,7 @@ def plot(inputs: TerzaghiInputs, tables: dict[str, pd.DataFrame], path: Path) ->
 		ax_u.plot(
 			table["t"][::5],
 			table["u0"][::5] * 1e9,
-			markers[mode],
+			markers.get(mode, "x"),
 			ms=4,
 			mfc="none",
 			label=f"{mode}: err p {e.pressure:.1e}, u {e.settlement:.1e}",
