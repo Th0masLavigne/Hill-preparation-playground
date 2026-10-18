@@ -63,17 +63,22 @@ def test_layout_mirrors_fenicsoft() -> None:
 
 
 def test_quadrature_degree_per_integral() -> None:
-	r"""FFC honours ``dx(degree=q)`` per integral, also inside a summed form (demo ``quadrature_degrees``).
+	r"""FFC honours ``dx(degree=q)`` per integral in residuals and Jacobians (``ResidualRows``).
 
-	:math:`\int_0^1 x^8` with degree 2 is inexact (0.0748 instead of 1/9); summed with an exact degree-8
-	integral it must stay inexact, i.e. it is not promoted to the form's maximal degree.
+	A summed residual and its Jacobian, with one term at degree 8 and one at degree 2, equal the sums of
+	the separately assembled terms. Not true for a scalar functional (rank 0), see ``ResidualRows``.
 	"""
 	import dolfin
 
-	mesh = dolfin.UnitIntervalMesh(1)
+	mesh = dolfin.UnitCubeMesh(2, 2, 2)
 	x = dolfin.SpatialCoordinate(mesh)[0]
-	low = x**8 * dolfin.dx(domain=mesh, degree=2)
-	high = x * dolfin.dx(domain=mesh, degree=8)
-	alone = dolfin.assemble(low)
-	assert abs(alone - 1.0 / 9.0) > 1e-2
-	assert abs(dolfin.assemble(low + high) - 0.5 - alone) < 1e-12
+	space = dolfin.FunctionSpace(mesh, "CG", 2)
+	u, test = dolfin.Function(space), dolfin.TestFunction(space)
+	u.interpolate(dolfin.Expression("1.0 + x[0]*x[1]", degree=2))
+	high = x**4 * u**3 * test * dolfin.dx(domain=mesh, degree=8)
+	low = x**6 * u * test * dolfin.dx(domain=mesh, degree=2)
+	split = dolfin.assemble(high).get_local() + dolfin.assemble(low).get_local()
+	assert abs(split - dolfin.assemble(low).get_local() * 2.0).max() > 1e-6  # the two terms differ
+	assert abs(dolfin.assemble(high + low).get_local() - split).max() < 1e-14
+	jac = dolfin.assemble(dolfin.derivative(high, u)).array() + dolfin.assemble(dolfin.derivative(low, u)).array()
+	assert abs(dolfin.assemble(dolfin.derivative(high + low, u)).array() - jac).max() < 1e-14
