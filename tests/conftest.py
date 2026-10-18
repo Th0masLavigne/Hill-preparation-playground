@@ -7,8 +7,8 @@ from unittest.mock import MagicMock
 import dolfin
 import pytest
 from dolfin_mech.kinematics import Kinematics
-from fenicsoft.materials.cell.active.iso.law import ActivePowerConfig
 
+from hill_playground.materials.cell.active.activation import ActivePowerConfig
 from hill_playground.materials.cell.active.hill import law as hill_law
 
 K_E, K_P, F_MAX, PHI_C = 200e3, 5e3, 20e3, 0.05
