@@ -28,6 +28,9 @@ physically-correct consolidation-coefficient modulus (:math:`c_v\sim(k/\eta)\kap
 stress scale everywhere else). See :meth:`CharacteristicScales.from_consolidation_scale`, whose
 own ``consolidation_modulus`` argument is this :math:`\kappa_{\text{gel}}`.
 
+**Values.** The conversions only multiply or divide, so ``value`` may be a float or a UFL
+expression (e.g. ``redimensionalize_stress(p_hat)`` for an exported field).
+
 **Round-trip equivalence.** Every ``nondimensionalize_*``/``redimensionalize_*`` pair is an
 exact inverse of the other (each characteristic scale is a strictly positive float, so division
 then multiplication -- or the reverse -- recovers the original value up to floating-point
@@ -129,6 +132,15 @@ class CharacteristicScales:
 			raise ValueError(f"consolidation_modulus must be strictly positive, got {consolidation_modulus}.")
 		time = length**2 * viscosity / (permeability * consolidation_modulus)
 		return cls(length=length, stress=stress, time=time, density=density)
+
+	@classmethod
+	def identity(cls) -> "CharacteristicScales":
+		r"""Unit scales :math:`L_0 = \mu_0 = t_0 = \rho_0 = 1`: every conversion is the identity (SI solve).
+
+		Returns:
+			CharacteristicScales: ``CharacteristicScales(1, 1, 1, 1)``.
+		"""
+		return cls(length=1.0, stress=1.0, time=1.0, density=1.0)
 
 	@property
 	def velocity(self) -> float:
