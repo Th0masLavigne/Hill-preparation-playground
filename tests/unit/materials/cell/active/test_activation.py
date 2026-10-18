@@ -62,3 +62,12 @@ def test_schedule_tracks_global_time() -> None:
 	schedule.set_k_step(1)
 	schedule.update_time(0.25)
 	assert schedule.time == pytest.approx(3.0)
+
+
+def test_function_on_missing_step_raises_index_error() -> None:
+	"""A ``func`` config whose step does not exist fails at ``update_time``, as in fenicsoft iso/aniso."""
+	steps = [MagicMock(t_ini=0.0, t_fin=1.0)]
+	schedule = ActivationSchedule([ActivePowerConfig.function(k_step=3, func=lambda t: t)], steps)
+	schedule.set_k_step(3)
+	with pytest.raises(IndexError):
+		schedule.update_time(0.5)
