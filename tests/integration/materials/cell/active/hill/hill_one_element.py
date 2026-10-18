@@ -252,8 +252,32 @@ def errors(model: HillChain0D, settings: OneElementRun, table: pd.DataFrame) -> 
 	}
 
 
+def error_history(model: HillChain0D, settings: OneElementRun, table: pd.DataFrame) -> np.ndarray:
+	r"""Per-step max over the checked fields of the FE vs 0D difference (same norms as :func:`errors`).
+
+	Args:
+	    model: Parameters.
+	    settings: Run settings.
+	    table: Output of :func:`run`.
+
+	Returns:
+	    :math:`\max(|\Delta\varepsilon_a|, |\Delta\lambda|, |\Delta\lambda_t|, |\Delta T_e|/T, |\Delta P_{xx}|/T)`
+	    per step, :math:`T = \max|T_e|`.
+	"""
+	ref_table = reference(model, settings, table)
+	t_scale = np.abs(ref_table["tension_see"]).max()
+	columns = [np.abs(table[name] - ref_table[name]).to_numpy() for name in ("eps_a", "lambda", "lambda_t")] + [
+		np.abs(table["tension_see"] - ref_table["tension_see"]).to_numpy() / t_scale,
+		np.abs(table["pk1_xx"] - stress_check(model, table)).to_numpy() / t_scale,
+	]
+	return np.max(columns, axis=0)
+
+
 def plot(model: HillChain0D, runs: dict[str, tuple[OneElementRun, pd.DataFrame]], path: Path) -> Path:
 	r"""FE (markers) vs 0D (lines): :math:`\lambda_a`, :math:`T_e`, gel stretches, error history.
+
+	A case whose label contains ``"rows"`` is drawn dashed with ``x`` markers: it coincides with the
+	default case of the same kinematics and would otherwise hide it.
 
 	Args:
 	    model: Parameters.
@@ -268,40 +292,71 @@ def plot(model: HillChain0D, runs: dict[str, tuple[OneElementRun, pd.DataFrame]]
 	matplotlib.use("Agg")
 	import hill_0d_reference as ref
 	import matplotlib.pyplot as plt
+	from matplotlib.lines import Line2D
 
+	floor = 1e-18
 	fig, axes = plt.subplots(2, 2, figsize=(12, 8))
 	ax_la, ax_te, ax_st, ax_err = axes.ravel()
 	for label, (settings, table) in runs.items():
 		ref_table = reference(model, settings, table)
-		(line,) = ax_la.plot(ref_table["t"], np.exp(ref_table["eps_a"]), lw=1.2, label=f"{label} (0D)")
-		ax_la.plot(table["t"][::4], np.exp(table["eps_a"][::4]), "o", ms=4, mfc="none", color=line.get_color())
+		rows_case = "rows" in label
+		ls, marker = ("--", "x") if rows_case else ("-", "o")
+		fe = dict(ls="none", marker=marker, ms=4, mfc="none")
+		every = slice(2, None, 4) if rows_case else slice(0, None, 4)  # shifted: both marker sets visible
+		(line,) = ax_la.plot(ref_table["t"], np.exp(ref_table["eps_a"]), ls=ls, lw=1.2, label=label)
+		color = line.get_color()
+		ax_la.plot(table["t"][every], np.exp(table["eps_a"][every]), color=color, **fe)
 		if settings.kinematics == "isometric":
 			eq = np.exp(ref.isometric_equilibrium(model, settings.lmbda, 1.0))
-			ax_la.axhline(eq, ls=":", lw=0.8, color=line.get_color())
-		ax_te.plot(ref_table["t"], ref_table["tension_see"] / 1e3, lw=1.2, color=line.get_color(), label=label)
-		ax_te.plot(table["t"][::4], table["tension_see"][::4] / 1e3, "o", ms=4, mfc="none", color=line.get_color())
+			ax_la.axhline(eq, ls=":", lw=0.8, color=color)
+		ax_te.plot(ref_table["t"], ref_table["tension_see"] / 1e3, ls=ls, lw=1.2, color=color, label=label)
+		ax_te.plot(table["t"][every], table["tension_see"][every] / 1e3, color=color, **fe)
 		if settings.kinematics == "free":
-			for col, style in (("lambda", "-"), ("lambda_t", "--")):
-				ax_st.plot(ref_table["t"], ref_table[col], style, lw=1.2, color=line.get_color(), label=f"{col} (0D)")
-				ax_st.plot(table["t"][::4], table[col][::4], "o", ms=4, mfc="none", color=line.get_color())
-		diff = np.abs(table["eps_a"] - ref_table["eps_a"]).to_numpy()
-		e = errors(model, settings, table)
+			for col in ("lambda", "lambda_t"):
+				ax_st.plot(
+					ref_table["t"], ref_table[col], ls=ls, lw=1.2, color=color, label=label if col == "lambda" else None
+				)
+				ax_st.plot(table["t"][every], table[col][every], color=color, **fe)
+			if not rows_case:
+				t_end = ref_table["t"].iloc[-1]
+				for col, name in (("lambda", r"$\lambda$"), ("lambda_t", r"$\lambda_t$")):
+					ax_st.annotate(name, (t_end, ref_table[col].iloc[-1]), xytext=(0, 6), textcoords="offset points")
+		history = error_history(model, settings, table)
 		ax_err.semilogy(
-			table["t"], np.maximum(diff, 1e-18), lw=1.0, color=line.get_color(), label=f"{label}: max {e['eps_a']:.1e}"
+			table["t"],
+			np.maximum(history, floor),
+			ls=ls,
+			lw=1.0,
+			color=color,
+			label=f"{label}: max {history.max():.1e}",
 		)
 	ramp = next(iter(runs.values()))[0].ramp_duration
 	for ax in axes.ravel():
 		ax.axvline(ramp, color="0.7", lw=0.8)
 		ax.set_xlabel("t (s)")
 	ax_la.set(
-		ylabel=r"$\lambda_a = e^{\varepsilon_a}$",
-		title=r"CE stretch: lines 0D, markers FE (dotted: isometric equilibrium)",
+		ylabel=r"$\lambda_a = e^{\varepsilon_a}$", title=r"CE stretch $\lambda_a$ (dotted: isometric equilibrium)"
 	)
 	ax_te.set(ylabel=r"$T_e$ (kPa)", title="SEE tension")
 	ax_st.set(ylabel="stretch", title=r"Free faces: gel stretches $\lambda$ (along $f_0$), $\lambda_t$")
-	ax_err.set(ylabel=r"$|\varepsilon_a^{FE} - \varepsilon_a^{0D}|$", title="Error history (floor 1e-18)")
-	for ax in axes.ravel():
-		ax.legend(fontsize=8)
+	ax_err.set(
+		ylabel="max FE - 0D difference",
+		title=rf"Error: max $|\Delta\varepsilon_a|, |\Delta\lambda|, |\Delta T_e|/T, |\Delta P_{{xx}}|/T$ "
+		f"(floor {floor:.0e})",
+	)
+	ax_err.title.set_fontsize(10)
+	key = [
+		Line2D([], [], color="k", lw=1.2, label="0D reference (line)"),
+		Line2D([], [], color="k", ls="none", marker="o", mfc="none", label="FE (markers)"),
+		Line2D([], [], color="k", ls="--", marker="x", label="rows case (dashed, x)"),
+		Line2D([], [], color="0.7", lw=0.8, label="end of activation ramp"),
+	]
+	for ax, where in ((ax_la, "upper right"), (ax_te, "lower right"), (ax_st, "center right")):
+		handles, _ = ax.get_legend_handles_labels()
+		ax.legend(handles=handles + key, fontsize=8, loc=where)
+	bottom, top = ax_la.get_ylim()
+	ax_la.set_ylim(bottom, top + 0.7 * (top - bottom))  # room for the legend above the curves
+	ax_err.legend(fontsize=8)
 	fig.tight_layout()
 	path.parent.mkdir(parents=True, exist_ok=True)
 	fig.savefig(path, dpi=130)
