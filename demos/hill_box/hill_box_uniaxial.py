@@ -33,7 +33,8 @@ Hill chain.
 .. math::
 	R_u &= \int \big(\mathbf{P}_S + \mathbf{P}_h - J p \mathbf{F}^{-T}\big) : \nabla\delta\mathbf{u}\,\mathrm{d}V \\
 	R_p &= \int \frac{J - J^n}{\Delta t}\delta p + \mathbf{K}_L \nabla p \cdot \nabla\delta p
-	       - \mathbf{Q}_c \cdot \nabla\delta p \,\mathrm{d}V, \qquad \mathbf{K}_L = \frac{k}{\eta} J \mathbf{C}^{-1} \\
+	       - \mathbf{Q}_c \cdot \nabla\delta p \,\mathrm{d}V, \\
+	\mathbf{K}_L &= \frac{k(\phi_\ell)}{\eta} J \mathbf{C}^{-1} \\
 	R_c &= \int \frac{\Phi_c - \Phi_c^n}{\Delta t}\delta c - \mathbf{Q}_c \cdot \nabla\delta c
 	       - r\,\mathrm{sat}\,\Phi_c\,\delta c \,\mathrm{d}V \\
 	R_{\theta} &= \int \Big(\frac{\theta - \theta^n}{\Delta t}
@@ -42,20 +43,25 @@ Hill chain.
 	       \delta\varepsilon\,\mathrm{d}V \\
 	R_s &= \int \Big(\tilde\phi_s - \frac{\Phi_{s,0}}{J}\Big)\delta\phi_s\,\mathrm{d}V
 
-with :math:`\mathbf{P}_S` the Neo-Hookean + :math:`\frac{\kappa}{2}(J-1)^2` gel,
+with :math:`\mathbf{P}_S` the Neo-Hookean + volumetric gel (section 5),
 :math:`\mathbf{P}_h = \mathbf{F}\,\Phi_c T_e/I_4\,\mathbf{f}_0\otimes\mathbf{f}_0` (Hill chain) and
 :math:`\mathbf{Q}_c` the diffusive + haptotactic cell flux.
 
 4. Nondimensionalisation (equations.tex, Part II)
 ---------------------------------------------------
-Inputs are SI. With ``nondimensionalize=True`` (default) the mesh is rescaled by :math:`L_0`
-(:math:`\hat{\mathbf X} = \mathbf X/L_0`, hence :math:`\hat{\mathbf u} = \mathbf u/L_0`), the
-pressure unknown is :math:`\hat p = p/\mu_0`, and every operator is multiplied by
-``scale_factor`` :math:`= v_k/\mathcal N_{row}` (Table tab:sf) so that the assembled system is
-:math:`\tilde R_k = R_k/\mathcal N_k`:
+Inputs are SI. Scales :math:`L_0 = L_z` (drainage length), :math:`\mu_0 = \mu_{gel}`,
+:math:`t_0 = L_0^2\eta/(k\,\kappa_{gel})` (``CharacteristicScales``). ``nondimensionalization``:
+
+* ``"none"``: SI mesh, unknowns and coefficients, every row factor 1;
+* ``"operator"`` (default): mesh :math:`\hat{\mathbf X} = \mathbf X/L_0` (hence
+  :math:`\hat{\mathbf u} = \mathbf u/L_0`), :math:`\hat p = p/\mu_0`, SI coefficients and SI time,
+  each operator multiplied by ``scale_factor`` :math:`= v_k/\mathcal N_{row}` (table below);
+* ``"parameters"``: same mesh and unknowns, every coefficient converted with
+  ``CharacteristicScales.nondimensionalize_*`` (:math:`\hat\mu, \hat\kappa, \hat f_{max}, \hat K,
+  \hat D, \hat r, \hat b, \hat\tau, \hat t \dots`), every row factor 1.
 
 =====================================  ====  ==========================
-Term                                   Row   ``scale_factor``
+Term (``"operator"``)                  Row   ``scale_factor``
 =====================================  ====  ==========================
 gel stresses (incl. Hill SEE)          u     :math:`1/(\mu_0 L_0)`
 :math:`-Jp\mathbf F^{-T}`              u     :math:`1/L_0`
@@ -68,22 +74,52 @@ contractile element                    a     :math:`1/\mu_0`
 substrate projection                   s     1
 =====================================  ====  ==========================
 
-:math:`L_0 = L_z` (drainage length), :math:`\mu_0 = \mu_{gel}`,
-:math:`t_0 = L_0^2\eta/(k\,\kappa_{gel})`. Exported fields and QOIs are SI (:math:`\mathbf u`
-in m, :math:`p` in Pa; tensions are built from SI moduli and are already in Pa).
+Both scaled modes are the SI system times a constant per row (``"parameters"`` = ``"operator"``
+:math:`\times (L_0, \mu_0, \mu_0, t_0^{-1}\dots)`): Newton's iterates are identical
+(``tests/integration/analytical_consolidation_1D/test_terzaghi_nondim.py``). ``"parameters"``
+integrates in :math:`\hat t` (QOI ``time_si`` gives :math:`t` in s). After the run the XDMF geometry and
+time stamps are brought back to SI (``hill_playground.io.xdmf_units``): no ``ScaledKinematics`` is
+needed since the mesh itself is scaled, so every gradient and measure is in :math:`\hat{\mathbf X}`.
+With ``xdmf_si_only`` (default) the XDMF holds only SI fields: the dimensionless unknowns
+(:math:`\theta, \varphi, \Phi_c, \tilde\phi_s, \varepsilon_a`) and the FOIs, no :math:`\hat{\mathbf u}`,
+:math:`\hat p` nor ``*_old`` copies.
+Exported fields and QOIs are SI in every mode, with the same names, order and spaces
+(:math:`\mathbf u`, :math:`p` projected on the spaces of the unknowns: point data in ParaView).
 
-5. Loading
+5. Skeleton options (equations.tex, Remarks rem:kphi, rem:compaction)
+-----------------------------------------------------------------------
+:math:`J_c = \Phi_{s,0} + \Phi_c` (compaction point, :math:`\phi_\ell = 0`).
+
+* ``permeability_law``: ``"constant"`` :math:`k_0`; ``"kozeny_carman"``; ``"holmes_mow"``;
+  ``"compaction_power"`` :math:`k = k_0((J-J_c)/(1-J_{c,0}))^n`, :math:`n\ge1` (kinetic barrier:
+  :math:`J > J_c` for all :math:`t`), see ``hill_playground.materials.permeability``;
+* ``volumetric_law``: ``"quadratic"`` :math:`\frac{\kappa}{2}(J-1)^2`; ``"compaction"``
+  :math:`\kappa(1-J_c)^2[x - \ln x - 1]`, :math:`x = (J-J_c)/(1-J_c)` (energetic barrier,
+  :math:`J_\infty \in (J_c, 1)`), see ``hill_playground.materials.volumetric.compaction``.
+
+6. Orientation outputs (``hill_playground.materials.orientation.display``)
+---------------------------------------------------------------------------
+Reference :math:`\mathbf f_0(\theta,\varphi)` and current
+:math:`\mathbf f = \mathbf F\mathbf f_0/\|\mathbf F\mathbf f_0\|`:
+``theta_deg``/``phi_deg`` (canonical, upper hemisphere), ``theta_wrapped_deg`` (in-plane axis,
+period 180), ``tilt_xy_deg`` (0: fibre in the :math:`xy` plane), ``angle_x_deg`` (0: along the
+held axis), with ``_current`` variants; QOIs ``order_x``/``order_z``
+(:math:`\langle\frac32 f_i^2-\frac12\rangle`: 1 aligned, 0 isotropic, :math:`-\frac12` orthogonal;
+``order_z`` :math:`\to -\frac12` = planar orientation) and ``mean_tilt_xy_deg``.
+
+7. Loading
 ------------
 Activation :math:`\alpha`: ramp 0 -> 1, then hold. No external load.
 """
 
 from __future__ import annotations
 
+import dataclasses
 import logging
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Literal, Sequence, Tuple, Union
 
 import dolfin
 import dolfin_mech
@@ -91,13 +127,18 @@ import fenicsoft
 import fenicsoft.materials.orientation.spherical as spherical_mod
 import fenicsoft.operators.cell as cell_ops
 import hill_chain_helpers
-from fenicsoft import integration, io
-from fenicsoft.materials.cell.active.aniso.law import ActivePowerConfig
+from fenicsoft import io
 from fenicsoft.mesh_geometries.box import BoxGeometry, BoxMarker, BoxMeshGenerator
 from fenicsoft.mesh_geometries.mesh_geometries import GmshKeys, MeshOptions
 from fenicsoft.operators.cell.rotation.orientation_change import OrientationChange
 
+from hill_playground import integration
+from hill_playground.io import xdmf_units
+from hill_playground.materials import permeability as perm
+from hill_playground.materials.cell.active.activation import ActivePowerConfig
 from hill_playground.materials.cell.active.hill import law as hill_law
+from hill_playground.materials.orientation import display
+from hill_playground.materials.volumetric import compaction
 from hill_playground.operators.cell import ContractileEvolution, SaturatedProliferation
 from hill_playground.scaling import CharacteristicScales
 
@@ -106,6 +147,12 @@ rank = dolfin.MPI.rank(comm)
 
 _HELD_MARKERS: Tuple[BoxMarker, ...] = (BoxMarker.LEFT, BoxMarker.RIGHT)
 _DRAINED_MARKERS: Tuple[BoxMarker, ...] = (BoxMarker.FRONT, BoxMarker.BACK, BoxMarker.BOTTOM, BoxMarker.TOP)
+_E_X = dolfin.Constant((1.0, 0.0, 0.0))
+_E_Z = dolfin.Constant((0.0, 0.0, 1.0))
+
+Nondimensionalization = Literal["none", "operator", "parameters"]
+PermeabilityLaw = Literal["constant", "kozeny_carman", "holmes_mow", "compaction_power"]
+VolumetricLaw = Literal["quadratic", "compaction"]
 
 
 @dataclass(slots=True, frozen=True)
@@ -121,11 +168,12 @@ class UserInputs:
 	    regenerate_mesh: Re-run Gmsh even if the mesh exists.
 	    quadrature_degree: Quadrature degree.
 	    foi_degree: Degree of the DG spaces of the FOIs.
-	    nondimensionalize: Solve the dimensionless system (module docstring, section 4).
+	    nondimensionalization: ``"none"``, ``"operator"`` or ``"parameters"`` (module docstring, section 4).
 	    cell_transport: Solve :math:`\Phi_c, \tilde\phi_s` (:math:`R_c, R_s`); else :math:`\Phi_c = \Phi_{c,0}`.
 	    remodelling: Solve :math:`\theta, \varphi` (:math:`R_{\theta,\varphi}`); else frozen at the draw.
 	    gel_shear_modulus: :math:`\mu_{gel}`, also :math:`\mu_0` (Pa).
 	    gel_kappa: :math:`\kappa_{gel}` (Pa).
+	    volumetric_law: ``"quadratic"`` or ``"compaction"`` (module docstring, section 5).
 	    f_max: :math:`f_{max}` (Pa).
 	    lmbda_opt: :math:`\lambda_{opt}`.
 	    width_fl: :math:`W`.
@@ -140,14 +188,18 @@ class UserInputs:
 	    k_2e: Exponent of the ``"exponential"`` SEE.
 	    orientation_random_seed: Seed of the isotropic :math:`(\theta, \varphi)` draw.
 	    remodel_tau: Remodelling time :math:`\tau` (s).
-	    permeability: :math:`k` (m^2).
+	    permeability: :math:`k_0` (m^2).
 	    viscosity_pa_s: :math:`\eta` (Pa.s).
+	    permeability_law: :math:`k(\phi_\ell)` law (module docstring, section 5).
+	    holmes_mow_exponent: :math:`\kappa_{HM}`.
+	    holmes_mow_stiffening: :math:`M`.
+	    compaction_exponent: :math:`n \ge 1` of ``"compaction_power"``.
 	    rho_s: :math:`\rho_s` (kg/m^3), haptotaxis weight and :math:`\rho_0`.
 	    phi_s0: :math:`\Phi_{s,0}`.
 	    phi_c_init: :math:`\Phi_{c,0}`.
 	    phi_c_max: :math:`\Phi_{c,max}`.
 	    cellular_diffusion: :math:`D_\phi` (m^2/s).
-	    hapt_coeff: :math:`h_\phi`.
+	    hapt_coeff: :math:`h_\phi` (m^5/(kg.s)).
 	    prol_coeff: :math:`r` (1/s).
 	    displacement_degree: Degree :math:`k` of :math:`\mathbf u` (:math:`p, \Phi_c, \tilde\phi_s` use :math:`k-1`).
 	    steps: Ramp then hold (s).
@@ -155,7 +207,8 @@ class UserInputs:
 	    sol_tol: Newton tolerance, the same for every (dimensionless) unknown.
 	    solver_parameters: ``NonlinearSolver`` parameters (``sol_tol`` added at run time).
 	    integrator_parameters: ``TimeIntegrator`` adaptive-``dt`` parameters.
-	    xdmf_write_period: Output decimation (``DecimatedTimeIntegrator``).
+	    xdmf_write_period: Output decimation (``DecimatedTimeIntegrator``), ``TimeInterval`` in s.
+	    xdmf_si_only: Write only SI fields in the XDMF (no raw :math:`\hat{\mathbf u}, \hat p`, no ``*_old``).
 	    stagnation_plateau_relative_error: Plateau-exit threshold.
 	    project_prefix: Output folder.
 	    stem_name: Output file stem.
@@ -163,25 +216,26 @@ class UserInputs:
 	"""
 
 	# --- Geometry: the CORE gel patch of the pillar demos ---
-	length_x: float = 375e-6
-	width_y: float = 875e-6
+	length_x: float = 875e-6
+	width_y: float = 375e-6
 	thickness_z: float = 50e-6
 
 	# --- Mesh ---
 	mesh_min_size: float = 50e-6 / 4
-	mesh_max_size: float = 50e-6 / 2
+	mesh_max_size: float = 50e-6 / 4
 	regenerate_mesh: bool = True
 	quadrature_degree: int = 4
 	foi_degree: int = 0
 
 	# --- Switches ---
-	nondimensionalize: bool = True
+	nondimensionalization: Nondimensionalization = "operator"
 	cell_transport: bool = True
 	remodelling: bool = True
 
 	# --- Gel skeleton ---
 	gel_shear_modulus: float = 1700.0
 	gel_kappa: float = 1417.0
+	volumetric_law: VolumetricLaw = "quadratic"
 
 	# --- Hill chain (equations.tex, Table tab:groups) ---
 	f_max: float = 20e3
@@ -204,6 +258,10 @@ class UserInputs:
 	# --- Poromechanics ---
 	permeability: float = 1.8e-15
 	viscosity_pa_s: float = 1.0e-3
+	permeability_law: PermeabilityLaw = "constant"
+	holmes_mow_exponent: float = 2.0
+	holmes_mow_stiffening: float = 0.0
+	compaction_exponent: float = 2.0
 	rho_s: float = 1060.0
 
 	# --- Volume fractions ---
@@ -222,8 +280,8 @@ class UserInputs:
 	# --- Time ---
 	steps: Sequence[io.Step] = field(
 		default_factory=lambda: (
-			io.Step(duration=60.0, init_dt=2.0, min_dt=0.25),  # ramp, dt ~ tau_a
-			io.Step(duration=600.0, init_dt=2.0, min_dt=0.25, max_dt=60.0),  # hold
+			io.Step(duration=60.0, init_dt=10.0, min_dt=0.25),  # ramp, dt ~ tau_a
+			io.Step(duration=600.0, init_dt=60.0, min_dt=0.25, max_dt=60.0),  # hold
 		)
 	)
 	activation_configs: Sequence[ActivePowerConfig] = field(
@@ -249,6 +307,7 @@ class UserInputs:
 		integration.TimeInterval(30.0),
 	)
 	stagnation_plateau_relative_error: float = 5e-3
+	xdmf_si_only: bool = True
 
 	# --- Output ---
 	project_prefix: Path = Path("./outputs_hill_box_uniaxial")
@@ -259,16 +318,18 @@ class UserInputs:
 		r"""Check the saturation and the uniqueness of the CE equilibrium.
 
 		Raises:
-		    ValueError: :math:`\Phi_{s,0} + \Phi_{c,0} \ge 1`, or Eq. uniqueness violated.
+		    ValueError: :math:`\Phi_{s,0} + \Phi_{c,0} \ge 1`, Eq. uniqueness violated, or unknown mode.
 		"""
 		if self.phi_s0 + self.phi_c_init >= 1.0:
 			raise ValueError(f"phi_s0 + phi_c_init = {self.phi_s0 + self.phi_c_init} must be < 1.")
+		if self.nondimensionalization not in ("none", "operator", "parameters"):
+			raise ValueError(f"Unknown nondimensionalization '{self.nondimensionalization}'.")
 		if self.use_force_length:
 			hill_chain_helpers.check_hill_uniqueness(self.k_e, self.k_p, self.f_max, self.lmbda_opt, self.width_fl)
 
 	@property
 	def hydraulic_conductivity(self) -> float:
-		r""":math:`k/\eta` (m^2/(Pa.s))."""
+		r""":math:`k_0/\eta` (m^2/(Pa.s))."""
 		return self.permeability / self.viscosity_pa_s
 
 	@property
@@ -294,33 +355,150 @@ class UserInputs:
 
 
 @dataclass(frozen=True)
-class Scales:
-	r"""Scales actually applied: :math:`(L_0, \mu_0, t_0)`, or ones when not nondimensionalised.
+class SolveUnits:
+	r"""How SI quantities map to the solved system (module docstring, section 4).
 
 	Attributes:
-	    length: :math:`L_0` (m).
-	    stress: :math:`\mu_0` (Pa).
-	    time: :math:`t_0` (s).
+	    unknowns: Scales of mesh, :math:`\mathbf u`, :math:`p` (identity for ``"none"``).
+	    coefficients: Scales of the coefficients and of the time (identity unless ``"parameters"``).
 	"""
 
-	length: float
-	stress: float
-	time: float
+	unknowns: CharacteristicScales
+	coefficients: CharacteristicScales
 
 	@classmethod
-	def from_inputs(cls, user_inputs: UserInputs) -> "Scales":
-		"""Scales of ``user_inputs``, or (1, 1, 1) if ``nondimensionalize`` is False.
+	def from_inputs(cls, user_inputs: UserInputs) -> "SolveUnits":
+		"""Scales actually applied for ``user_inputs.nondimensionalization``.
 
 		Args:
 		    user_inputs: Configuration.
 
 		Returns:
-		    The applied scales.
+		    The solve units.
 		"""
-		if not user_inputs.nondimensionalize:
-			return cls(1.0, 1.0, 1.0)
+		mode, identity = user_inputs.nondimensionalization, CharacteristicScales.identity()
+		if mode == "none":
+			return cls(identity, identity)
+		return cls(user_inputs.scales, user_inputs.scales if mode == "parameters" else identity)
+
+
+@dataclass(frozen=True)
+class Coefficients:
+	r"""Coefficients entering the forms, in solve units (:meth:`CharacteristicScales.nondimensionalize_*`).
+
+	Stresses :math:`\mu, \kappa, f_{max}, k_e, k_p`; viscosity :math:`\eta_0`; rates :math:`b, r`;
+	times :math:`\tau` and the steps; :math:`k_0/\eta`, :math:`D_\phi`, :math:`h_\phi\rho_s`.
+	SI when ``coefficients`` is the identity.
+	"""
+
+	mu: float
+	kappa: float
+	f_max: float
+	k_e: float
+	k_p: float
+	eta_0: float
+	hill_b: float
+	remodel_tau: float
+	conductivity: float
+	cellular_diffusion: float
+	hapt_coeff: float
+	rho_s: float
+	prol_coeff: float
+	steps: Tuple[io.Step, ...]
+	xdmf_write_period: Any
+
+	@classmethod
+	def from_inputs(cls, user_inputs: UserInputs, scales: CharacteristicScales) -> "Coefficients":
+		r"""Convert the SI inputs with ``scales`` (identity: unchanged).
+
+		Args:
+		    user_inputs: Configuration.
+		    scales: ``SolveUnits.coefficients``.
+
+		Returns:
+		    The coefficients.
+		"""
+		s, ui = scales, user_inputs
+
+		def as_time(step: io.Step) -> io.Step:
+			times = {"duration", "init_dt", "min_dt", "max_dt", "min_simu_seconds"}
+			values = {k: getattr(step, k) for k in times if getattr(step, k, None) is not None}
+			return dataclasses.replace(step, **{k: s.nondimensionalize_time(v) for k, v in values.items()})
+
+		def as_period(period: Any) -> Any:
+			if isinstance(period, integration.TimeInterval):
+				return integration.TimeInterval(s.nondimensionalize_time(period.seconds))
+			if isinstance(period, (list, tuple)):
+				return type(period)(as_period(p) for p in period)
+			return period
+
+		return cls(
+			mu=s.nondimensionalize_stress(ui.gel_shear_modulus),
+			kappa=s.nondimensionalize_stress(ui.gel_kappa),
+			f_max=s.nondimensionalize_stress(ui.f_max),
+			k_e=s.nondimensionalize_stress(ui.k_e),
+			k_p=s.nondimensionalize_stress(ui.k_p),
+			eta_0=s.nondimensionalize_time(s.nondimensionalize_stress(ui.eta_0)),  # Pa.s / (mu0 t0)
+			hill_b=s.nondimensionalize_rate(ui.hill_b),
+			remodel_tau=s.nondimensionalize_time(ui.remodel_tau),
+			conductivity=s.nondimensionalize_permeability_over_viscosity(ui.hydraulic_conductivity),
+			cellular_diffusion=s.nondimensionalize_diffusivity(ui.cellular_diffusion),
+			# h_phi * rho_s is a diffusivity: h_hat = h rho0 t0 / L0^2, rho_hat = rho_s / rho0.
+			hapt_coeff=s.nondimensionalize_diffusivity(ui.hapt_coeff * s.density),
+			rho_s=s.nondimensionalize_density(ui.rho_s),
+			prol_coeff=s.nondimensionalize_rate(ui.prol_coeff),
+			steps=tuple(as_time(step) for step in ui.steps),
+			xdmf_write_period=as_period(ui.xdmf_write_period),
+		)
+
+
+@dataclass(frozen=True)
+class RowFactors:
+	r"""``scale_factor`` per term (module docstring, section 4); all 1 unless ``"operator"``.
+
+	Attributes:
+	    u_stress: Gel and Hill stresses.
+	    u_fluid: :math:`-Jp\mathbf F^{-T}`.
+	    p_rate: :math:`(J-J^n)/\Delta t`.
+	    p_darcy: Darcy.
+	    p_cells: Cell flux tested by :math:`\delta p`.
+	    c_rate: Rates of :math:`\Phi_c`, proliferation, orientation.
+	    c_flux: Cell flux tested by :math:`\delta c`.
+	    a: Contractile element.
+	"""
+
+	u_stress: float = 1.0
+	u_fluid: float = 1.0
+	p_rate: float = 1.0
+	p_darcy: float = 1.0
+	p_cells: float = 1.0
+	c_rate: float = 1.0
+	c_flux: float = 1.0
+	a: float = 1.0
+
+	@classmethod
+	def from_inputs(cls, user_inputs: UserInputs) -> "RowFactors":
+		"""Table tab:sf for ``"operator"``, ones otherwise.
+
+		Args:
+		    user_inputs: Configuration.
+
+		Returns:
+		    The row factors.
+		"""
+		if user_inputs.nondimensionalization != "operator":
+			return cls()
 		s = user_inputs.scales
-		return cls(s.length, s.stress, s.time)
+		return cls(
+			u_stress=1.0 / (s.stress * s.length),
+			u_fluid=1.0 / s.length,
+			p_rate=s.time / s.stress,
+			p_darcy=s.time / s.length**2,
+			p_cells=s.time / (s.stress * s.length**2),
+			c_rate=s.time,
+			c_flux=s.time / s.length**2,
+			a=1.0 / s.stress,
+		)
 
 
 def build_mesh(user_inputs: UserInputs) -> io.SimulationPaths:
@@ -361,13 +539,14 @@ def initialise_problem(
 	boundaries_mf: dolfin.MeshFunction,
 	points_mf: dolfin.MeshFunction,
 	user_inputs: UserInputs,
+	coefficients: Coefficients,
 ) -> dolfin_mech.problems.Problem:
 	r"""Register the unknowns (module docstring, section 2) and build the data fields.
 
 	Sets on ``problem``: the subsols, ``theta_func``/``phi_func`` (subsol or frozen draw),
 	``theta_initial``/``phi_initial``, ``phic_func`` (subsol or :math:`\Phi_{c,0}`), ``phi_s0``,
-	``kinematics``, ``k_l_tensor`` (:math:`\mathbf K_L = (k/\eta) J \mathbf C^{-1}`) and
-	``sol_tol`` (one entry per subsol, registration order).
+	``kinematics``, ``permeability`` (law of section 5), ``k_l_tensor``
+	(:math:`\mathbf K_L = (k/\eta) J \mathbf C^{-1}`) and ``sol_tol`` (one entry per subsol, registration order).
 
 	Args:
 	    mesh: Mesh (rescaled when nondimensionalised).
@@ -375,6 +554,7 @@ def initialise_problem(
 	    boundaries_mf: Facet tags.
 	    points_mf: Point tags.
 	    user_inputs: Configuration.
+	    coefficients: Coefficients in solve units (steps, :math:`k_0/\eta`).
 
 	Returns:
 	    Problem with its function spaces, kinematics and steps.
@@ -439,67 +619,115 @@ def initialise_problem(
 		U=problem.displacement_subsol.subfunc, U_old=problem.displacement_subsol.func_old, Q_expr=problem.Q_expr
 	)
 
-	for step_idx, step in enumerate(user_inputs.steps):
+	for step_idx, step in enumerate(coefficients.steps):
 		problem.add_step(Deltat=step.duration, dt_ini=step.init_dt, dt_min=step.min_dt, dt_max=step.max_dt)
 		if step.min_simu_seconds is not None:
 			problem.steps[step_idx].min_simu_seconds = step.min_simu_seconds
 
-	problem.k_l_tensor = hill_chain_helpers.pulled_back_conductivity(
-		dolfin.Constant(user_inputs.hydraulic_conductivity), problem.kinematics
-	)
+	problem.permeability = build_permeability(problem, user_inputs, coefficients)
+	problem.k_l_tensor = problem.permeability.tensor
 	return problem
 
 
+def build_permeability(
+	problem: dolfin_mech.problems.Problem, user_inputs: UserInputs, coefficients: Coefficients
+) -> Any:
+	r""":math:`k(\phi_\ell)/\eta` law of ``user_inputs.permeability_law`` (module docstring, section 5).
+
+	Args:
+	    problem: Problem with ``kinematics``, ``phi_s0``, ``phic_func``.
+	    user_inputs: Configuration.
+	    coefficients: :math:`k_0/\eta` in solve units.
+
+	Returns:
+	    Law exposing ``ratio``, ``hydraulic_conductivity`` and ``tensor``.
+	"""
+	kin, law = problem.kinematics, user_inputs.permeability_law
+	if law == "constant":
+		return perm.constant.Permeability(kin, perm.constant.Parameters(conductivity_0=coefficients.conductivity))
+	common: Dict[str, Any] = dict(
+		conductivity_0=coefficients.conductivity,
+		phi_s0=problem.phi_s0,
+		phi_c=problem.phic_func,
+		phi_c0=user_inputs.phi_c_init,
+	)
+	if law == "kozeny_carman":
+		return perm.kozeny_carman.Permeability(kin, perm.kozeny_carman.Parameters(**common))
+	if law == "holmes_mow":
+		params = perm.holmes_mow.Parameters(
+			**common, exponent=user_inputs.holmes_mow_exponent, stiffening=user_inputs.holmes_mow_stiffening
+		)
+		return perm.holmes_mow.Permeability(kin, params)
+	if law == "compaction_power":
+		params = perm.compaction_power.Parameters(**common, exponent=user_inputs.compaction_exponent)
+		return perm.compaction_power.Permeability(kin, params)
+	raise ValueError(f"Unknown permeability_law '{law}'.")
+
+
 def build_materials(
-	problem: dolfin_mech.problems.Problem, user_inputs: UserInputs
+	problem: dolfin_mech.problems.Problem, user_inputs: UserInputs, coefficients: Coefficients
 ) -> Tuple[Any, hill_law.Constitutive]:
-	r"""Gel law :math:`\mathbf{P}_S + \mathbf{P}_h` (Neo-Hooke + volumetric penalty + Hill chain).
+	r"""Gel law :math:`\mathbf{P}_S + \mathbf{P}_h` (Neo-Hooke + volumetric law of section 5 + Hill chain).
 
 	Args:
 	    problem: Problem from :func:`initialise_problem`.
 	    user_inputs: Configuration.
+	    coefficients: Moduli in solve units.
 
 	Returns:
 	    ``(gel_material, hill_material)``; the second owns ``p_act`` (:math:`\alpha`).
 	"""
-	passive = fenicsoft.materials.iso.neo_hooke.Constitutive(
-		kinematics=problem.kinematics,
-		parameters=fenicsoft.materials.iso.neo_hooke.Parameters.from_shear_modulus(mu=user_inputs.gel_shear_modulus),
+	kin = problem.kinematics
+	isochoric = fenicsoft.materials.iso.neo_hooke.Constitutive(
+		kinematics=kin,
+		parameters=fenicsoft.materials.iso.neo_hooke.Parameters.from_shear_modulus(mu=coefficients.mu),
 		name="gel_isochoric",
-	) + fenicsoft.materials.volumetric.QuadraticVolumetricPenalty(
-		kinematics=problem.kinematics,
-		parameters=fenicsoft.materials.volumetric.VolumetricPenaltyParameters(kappa=user_inputs.gel_kappa),
-		name="gel_volumetric",
 	)
+	if user_inputs.volumetric_law == "compaction":
+		volumetric: Any = compaction.CompactionVolumetricPenalty(
+			kin,
+			compaction.Parameters(
+				kappa=coefficients.kappa,
+				solid_jacobian=perm.porosity.compaction_jacobian(problem.phi_s0, problem.phic_func),
+			),
+			name="gel_volumetric",
+		)
+	else:
+		volumetric = fenicsoft.materials.volumetric.QuadraticVolumetricPenalty(
+			kinematics=kin,
+			parameters=fenicsoft.materials.volumetric.VolumetricPenaltyParameters(kappa=coefficients.kappa),
+			name="gel_volumetric",
+		)
 	hill_params = hill_law.Parameters(
 		phi_c=problem.phic_func,
 		f0=spherical_mod.f0_from_theta_phi(problem.theta_func, problem.phi_func),
 		activation_configs=user_inputs.activation_configs,
-		f_max=user_inputs.f_max,
+		f_max=coefficients.f_max,
 		simulation_steps=problem.steps,
 		use_force_length=user_inputs.use_force_length,
 		lmbda_opt=user_inputs.lmbda_opt,
 		W=user_inputs.width_fl,
 		eps_a=problem.eps_a_subsol.subfunc,
 		eps_a_old=problem.eps_a_subsol.func_old,
-		k_e=user_inputs.k_e,
-		k_p=user_inputs.k_p,
+		k_e=coefficients.k_e,
+		k_p=coefficients.k_p,
 		hill_a=user_inputs.hill_a,
-		hill_b=user_inputs.hill_b,
+		hill_b=coefficients.hill_b,
 		f_ecc=user_inputs.f_ecc,
-		eta_0=user_inputs.eta_0,
+		eta_0=coefficients.eta_0,
 		see_variant=user_inputs.see_variant,
 		k_2e=user_inputs.k_2e,
 	)
-	hill_material = hill_law.Constitutive(problem.kinematics, hill_params, name="cell_hill_chain")
-	return passive + hill_material, hill_material
+	hill_material = hill_law.Constitutive(kin, hill_params, name="cell_hill_chain")
+	return isochoric + volumetric + hill_material, hill_material
 
 
 def build_step_operators(
 	problem: dolfin_mech.problems.Problem,
 	user_inputs: UserInputs,
 	hill_material: hill_law.Constitutive,
-	scales: Scales,
+	coefficients: Coefficients,
+	rows: RowFactors,
 ) -> Tuple[List[Any], ContractileEvolution]:
 	r"""Operators shared by every step, with their ``scale_factor`` (module docstring, section 4).
 
@@ -507,18 +735,19 @@ def build_step_operators(
 	    problem: Problem from :func:`initialise_problem`.
 	    user_inputs: Configuration.
 	    hill_material: Hill law (owner of ``p_act``).
-	    scales: Applied scales.
+	    coefficients: Coefficients in solve units.
+	    rows: Row factors.
 
 	Returns:
 	    ``(operators, contractile_evolution)``.
 	"""
-	length, stress, t0 = scales.length, scales.stress, scales.time
 	dv = problem.dV
 	kin = problem.kinematics
 	p_hat, dp = problem.pl_subsol.subfunc, problem.pl_subsol.dsubtest
+	c = coefficients
 
 	contractile = ContractileEvolution(
-		law=hill_material, test=problem.eps_a_subsol.dsubtest, dx=dv, scale_factor=1.0 / stress
+		law=hill_material, test=problem.eps_a_subsol.dsubtest, dx=dv, scale_factor=rows.a
 	)
 	ops: List[Any] = [
 		fenicsoft.operators.fluid_stress.biphasic.pk1.FluidStress(
@@ -527,13 +756,13 @@ def build_step_operators(
 			displacement=problem.displacement_subsol.subfunc,
 			test=problem.displacement_subsol.dsubtest,
 			measure=dv,
-			scale_factor=1.0 / length,
+			scale_factor=rows.u_fluid,
 		),
 		fenicsoft.operators.DarcyGradient(
-			function=p_hat, test=dp, conductivity=problem.k_l_tensor, dx=dv, scale_factor=t0 / length**2
+			function=p_hat, test=dp, conductivity=problem.k_l_tensor, dx=dv, scale_factor=rows.p_darcy
 		),
 		fenicsoft.operators.ChangeRate(
-			function=kin.J, function_old=kin.J_old, test=dp, dx=dv, scale_factor=t0 / stress
+			function=kin.J, function_old=kin.J_old, test=dp, dx=dv, scale_factor=rows.p_rate
 		),
 		contractile,
 	]
@@ -544,29 +773,21 @@ def build_step_operators(
 
 		def hapt(test: Any, factor: float) -> Any:
 			return cell_ops.SaturatedHaptotaxisFluxSmooth(
-				phi_c,
-				phi_s,
-				user_inputs.rho_s,
-				problem,
-				user_inputs.hapt_coeff,
-				user_inputs.phi_c_max,
-				test,
-				dv,
-				factor,
+				phi_c, phi_s, c.rho_s, problem, c.hapt_coeff, user_inputs.phi_c_max, test, dv, factor
 			)
 
 		def diff(test: Any, factor: float) -> Any:
-			return cell_ops.IsotropicDiffusion(phi_c, problem, user_inputs.cellular_diffusion, test, dv, factor)
+			return cell_ops.IsotropicDiffusion(phi_c, problem, c.cellular_diffusion, test, dv, factor)
 
 		ops += [
-			hapt(dp, t0 / (stress * length**2)),
-			diff(dp, t0 / (stress * length**2)),
+			hapt(dp, rows.p_cells),
+			diff(dp, rows.p_cells),
 			fenicsoft.operators.ChangeRate(
-				function=phi_c, function_old=problem.phic_subsol.func_old, test=dc, dx=dv, scale_factor=t0
+				function=phi_c, function_old=problem.phic_subsol.func_old, test=dc, dx=dv, scale_factor=rows.c_rate
 			),
-			SaturatedProliferation(phi_c, user_inputs.prol_coeff, user_inputs.phi_c_max, dc, dv, scale_factor=t0),
-			hapt(dc, t0 / length**2),
-			diff(dc, t0 / length**2),
+			SaturatedProliferation(phi_c, c.prol_coeff, user_inputs.phi_c_max, dc, dv, scale_factor=rows.c_rate),
+			hapt(dc, rows.c_flux),
+			diff(dc, rows.c_flux),
 			cell_ops.SubstrateProjection(
 				phi_s_func=phi_s,
 				test_phi_s=problem.phis_subsol.dsubtest,
@@ -589,11 +810,11 @@ def build_step_operators(
 				angle_old=subsol.func_old,
 				test=subsol.dsubtest,
 				kinematics=kin,
-				tau=user_inputs.remodel_tau,
+				tau=c.remodel_tau,
 				activation=hill_material.p_act,
 				dx=dv,
 				f0_builder=builder,
-				scale_factor=t0,
+				scale_factor=rows.c_rate,
 			)
 			for subsol, builder in builders
 		]
@@ -601,7 +822,10 @@ def build_step_operators(
 
 
 def set_weak_form_and_bcs(
-	problem: dolfin_mech.problems.Problem, boundaries_mf: dolfin.MeshFunction, user_inputs: UserInputs
+	problem: dolfin_mech.problems.Problem,
+	boundaries_mf: dolfin.MeshFunction,
+	user_inputs: UserInputs,
+	coefficients: Coefficients,
 ) -> dolfin_mech.problems.Problem:
 	r"""Register the residuals, the BCs (module docstring, section 1), the FOIs and QOIs.
 
@@ -609,13 +833,14 @@ def set_weak_form_and_bcs(
 	    problem: Problem from :func:`initialise_problem`.
 	    boundaries_mf: Facet tags.
 	    user_inputs: Configuration.
+	    coefficients: Coefficients in solve units.
 
 	Returns:
 	    The assembled problem.
 	"""
-	scales = Scales.from_inputs(user_inputs)
-	gel_material, hill_material = build_materials(problem, user_inputs)
-	shared_ops, contractile = build_step_operators(problem, user_inputs, hill_material, scales)
+	rows = RowFactors.from_inputs(user_inputs)
+	gel_material, hill_material = build_materials(problem, user_inputs, coefficients)
+	shared_ops, contractile = build_step_operators(problem, user_inputs, hill_material, coefficients, rows)
 
 	for step_idx in range(len(problem.steps)):
 		problem.add_operator(
@@ -625,7 +850,7 @@ def set_weak_form_and_bcs(
 				material=gel_material,
 				measure=problem.dV,
 				k_step=step_idx,
-				scale_factor=1.0 / (scales.stress * scales.length),
+				scale_factor=rows.u_stress,
 			),
 			k_step=step_idx,
 		)
@@ -644,7 +869,7 @@ def set_weak_form_and_bcs(
 				V=problem.pl_subsol.fs, sub_domains=boundaries_mf, sub_domain_id=int(marker), val=0.0, k_step=step_idx
 			)
 
-	add_outputs(problem, user_inputs, gel_material, hill_material, contractile, scales)
+	add_outputs(problem, user_inputs, gel_material, hill_material, contractile, SolveUnits.from_inputs(user_inputs))
 	return problem
 
 
@@ -654,9 +879,14 @@ def add_outputs(
 	gel_material: Any,
 	hill_material: hill_law.Constitutive,
 	contractile: ContractileEvolution,
-	scales: Scales,
+	units: SolveUnits,
 ) -> None:
-	r"""FOIs and QOIs, all in SI (:math:`\mathbf u = L_0\hat{\mathbf u}`, :math:`p = \mu_0\hat p`).
+	r"""FOIs and QOIs, all SI, same names, order and spaces in every mode (module docstring, sections 4, 6).
+
+	:math:`\mathbf u = L_0\hat{\mathbf u}` and :math:`p = \mu_0\hat p` are projected on the spaces of
+	the unknowns (CG, point data); the other fields on the DG FOI spaces (cell data).
+	``units.unknowns`` redimensionalizes mesh, :math:`\mathbf u`, :math:`p`; ``units.coefficients``
+	the stresses built from the moduli and the time.
 
 	Args:
 	    problem: Problem.
@@ -664,72 +894,105 @@ def add_outputs(
 	    gel_material: Composite gel law.
 	    hill_material: Hill law.
 	    contractile: :math:`R_a` operator (provides :math:`T_0`).
-	    scales: Applied scales.
+	    units: Applied scales.
 	"""
 	kin = problem.kinematics
-	pressure = scales.stress * problem.pl_subsol.subfunc
+	su, sc = units.unknowns, units.coefficients
+	pressure = su.redimensionalize_stress(problem.pl_subsol.subfunc)
+	f0 = spherical_mod.f0_from_theta_phi(problem.theta_func, problem.phi_func)
+	f0_initial = spherical_mod.f0_from_theta_phi(problem.theta_initial, problem.phi_initial)
+	fibre = display.current_direction(kin, f0)
+	theta_deg, phi_deg = spherical_mod.canonical_theta_phi_degrees(problem.theta_func, problem.phi_func)
 
 	def foi(name: str, expr: Any, fs: Any) -> None:
 		problem.add_foi(name=name, expr=expr, fs=fs, update_type="project")
 
+	# 1. Unknowns in SI, on their own (CG) spaces.
+	foi(
+		"displacement_si",
+		su.redimensionalize_length(problem.displacement_subsol.subfunc),
+		problem.displacement_subsol.fs.collapse(),
+	)
+	foi("pressure_si", pressure, problem.pl_subsol.fs.collapse())
+
+	# 2. Scalars, cell data.
 	scalar_fois: Dict[str, Any] = {
 		"jacobian": kin.J,
-		"pressure": pressure,
 		"cell_fraction": problem.phic_func,
-		"fluid_fraction": 1.0 - (problem.phic_func + problem.phi_s0) / kin.J,
+		"fluid_fraction": perm.porosity.eulerian_porosity(kin.J, problem.phi_s0, problem.phic_func),
+		"permeability_ratio": problem.permeability.ratio,
 		"theta": problem.theta_func,
 		"phi": problem.phi_func,
+		"theta_deg": theta_deg,
+		"phi_deg": phi_deg,
+		"theta_wrapped_deg": spherical_mod.wrapped_theta_degrees(problem.theta_func),
+		"tilt_xy_deg": display.tilt_degrees(f0, _E_Z),
+		"tilt_xy_current_deg": display.tilt_degrees(fibre, _E_Z),
+		"angle_x_deg": display.axis_angle_degrees(f0, _E_X),
+		"angle_x_current_deg": display.axis_angle_degrees(fibre, _E_X),
 		"lambda_fibre": dolfin.sqrt(hill_material.inv4),
 		"lambda_a": hill_material.lmbda_a,
 		"lambda_e": dolfin.sqrt(hill_material.inv4e),
-		"tension_see": hill_material.tension_see,
-		"tension_pee": hill_material.tension_pee,
-		"tension_ce": hill_material.tension_ce,
-		"tension_isometric": contractile.isometric_tension,
+		"tension_see": sc.redimensionalize_stress(hill_material.tension_see),
+		"tension_pee": sc.redimensionalize_stress(hill_material.tension_pee),
+		"tension_ce": sc.redimensionalize_stress(hill_material.tension_ce),
+		"tension_isometric": sc.redimensionalize_stress(contractile.isometric_tension),
 	}
+	subsol_names = {subsol.name for subsol in problem.subsols}
 	for name, expr in scalar_fois.items():
-		foi(name, expr, problem.sfoi_fs)
-	foi("displacement_physical", scales.length * problem.displacement_subsol.subfunc, problem.vfoi_fs)
-	foi("fibre", spherical_mod.f0_from_theta_phi(problem.theta_func, problem.phi_func), problem.vfoi_fs)
-	foi("fibre_initial", spherical_mod.f0_from_theta_phi(problem.theta_initial, problem.phi_initial), problem.vfoi_fs)
-	foi("cell_cauchy", hill_material.cauchy, problem.mfoi_fs)
-	foi("total_cauchy", gel_material.cauchy - pressure * kin.I, problem.mfoi_fs)
+		if name not in subsol_names:  # theta, phi, cell_fraction: the subsol itself is written
+			foi(name, expr, problem.sfoi_fs)
 
-	# Point probes, in mesh (hat) coordinates.
-	probes = {k: [c / scales.length for c in v] for k, v in user_inputs.probes.items()}
+	# 3. Vectors and tensors, cell data.
+	foi("fibre", f0, problem.vfoi_fs)
+	foi("fibre_initial", f0_initial, problem.vfoi_fs)
+	foi("fibre_current", fibre, problem.vfoi_fs)
+	foi("cell_cauchy", sc.redimensionalize_stress(hill_material.cauchy), problem.mfoi_fs)
+	foi("total_cauchy", sc.redimensionalize_stress(gel_material.cauchy) - pressure * kin.I, problem.mfoi_fs)
+
+	# QOIs. Point probes in mesh coordinates.
+	probes = {k: [su.nondimensionalize_length(c) for c in v] for k, v in user_inputs.probes.items()}
 	problem.displacement_subsol.func.set_allow_extrapolation(True)
 	problem.pl_subsol.func.set_allow_extrapolation(True)
+
+	def _time_si(_: Any) -> float:
+		return sc.redimensionalize_time(hill_material.current_time)
+
+	def _activation(_: Any) -> float:
+		return hill_material.current_activation
+
+	problem.add_qoi(name="time_si", expr=_time_si, point=probes["center"], update_type="direct")
+	problem.add_qoi(name="cellular_activation", expr=_activation, point=probes["center"], update_type="direct")
 	problem.add_qoi(
 		name="top_center_disp_z",
-		expr=scales.length * problem.displacement_subsol.func[2],
+		expr=su.redimensionalize_length(problem.displacement_subsol.func[2]),
 		point=probes["top"],
 		update_type="direct",
 	)
 	problem.add_qoi(
 		name="front_center_disp_y",
-		expr=scales.length * problem.displacement_subsol.func[1],
+		expr=su.redimensionalize_length(problem.displacement_subsol.func[1]),
 		point=probes["front"],
 		update_type="direct",
 	)
 	problem.add_qoi(
 		name="center_pressure",
-		expr=scales.stress * problem.pl_subsol.func,
+		expr=su.redimensionalize_stress(problem.pl_subsol.func),
 		point=probes["center"],
 		update_type="direct",
 	)
 
-	def _activation(_: Any) -> float:
-		return hill_material.current_activation
-
-	problem.add_qoi(name="cellular_activation", expr=_activation, point=probes["center"], update_type="direct")
-
-	# Gel averages: dolfin_mech assembles expr and divides by norm (hat volume, so the ratio is scale-free).
+	# Volume averages: dolfin_mech assembles expr and divides by norm (mesh volume, scale-free ratio).
 	volume = dolfin.assemble(dolfin.Constant(1.0) * problem.dV)
 	averages: Dict[str, Any] = {
 		"mean_lambda_a": hill_material.lmbda_a,
-		"mean_tension_see": hill_material.tension_see,
-		"mean_tension_isometric": contractile.isometric_tension,
+		"mean_tension_see": sc.redimensionalize_stress(hill_material.tension_see),
+		"mean_tension_isometric": sc.redimensionalize_stress(contractile.isometric_tension),
 		"mean_jacobian": kin.J,
+		"mean_permeability_ratio": problem.permeability.ratio,
+		"order_x": display.order_parameter(fibre, _E_X),
+		"order_z": display.order_parameter(fibre, _E_Z),
+		"mean_tilt_xy_deg": display.tilt_degrees(fibre, _E_Z),
 	}
 	for name, expr in averages.items():
 		problem.add_qoi(name=name, expr=expr * problem.dV, norm=volume, update_type="assembly")
@@ -749,18 +1012,27 @@ def apply_initial_bcs(problem: dolfin_mech.problems.Problem) -> None:
 
 
 def solve_problem(
-	problem: dolfin_mech.problems.Problem, simulation_paths: io.SimulationPaths, user_inputs: UserInputs
+	problem: dolfin_mech.problems.Problem,
+	simulation_paths: io.SimulationPaths,
+	user_inputs: UserInputs,
+	coefficients: Coefficients,
 ) -> bool:
-	"""Newton + adaptive time stepping (``DecimatedTimeIntegrator``), writing XDMF and QOIs.
+	"""Newton + adaptive time stepping (playground ``DecimatedTimeIntegrator``: selected fields, rank-0 logs).
 
 	Args:
 	    problem: Assembled problem.
 	    simulation_paths: Output layout.
 	    user_inputs: Configuration.
+	    coefficients: Write period in solve units.
 
 	Returns:
 	    True if every step converged.
 	"""
+	written = None
+	if user_inputs.xdmf_si_only:
+		# Dimensionless unknowns as solved (theta, phi, Phi_c, phi_s, eps_a) + SI FOIs; no u_hat, p_hat, *_old.
+		raw = {"displacement", "liquid_pressure"}
+		written = [s.func for s in problem.subsols if s.name not in raw] + problem.get_fois_func_lst()
 	integrator = integration.DecimatedTimeIntegrator(
 		problem=problem,
 		solver=dolfin_mech.core.NonlinearSolver(
@@ -771,8 +1043,9 @@ def solve_problem(
 		print_sta=str(simulation_paths.outputs_base_name),  # type: ignore
 		write_qois=str(simulation_paths.results_base_name),  # type: ignore
 		write_sol=str(simulation_paths.results_base_name),  # type: ignore
-		write_period=user_inputs.xdmf_write_period,
+		write_period=coefficients.xdmf_write_period,
 		stagnation_plateau_relative_error=user_inputs.stagnation_plateau_relative_error,
+		functions_to_write=written,
 	)
 	begin_t = time.time()
 	success = integrator.integrate()
@@ -795,15 +1068,23 @@ def main(user_inputs: UserInputs = UserInputs()) -> bool:
 	mesh, domains_mf, boundaries_mf, points_mf = io.load_mesh_data(
 		simulation_paths.mesh_folder / user_inputs.stem_mesh_name
 	)
-	if user_inputs.nondimensionalize:
-		# In memory only: X_hat = X / L0.
-		mesh.coordinates()[:] /= user_inputs.scales.length
-		mesh.bounding_box_tree().build(mesh)
+	units = SolveUnits.from_inputs(user_inputs)
+	# In memory only: X_hat = X / L0 (identity for "none").
+	mesh.coordinates()[:] = units.unknowns.nondimensionalize_length(mesh.coordinates())
+	mesh.bounding_box_tree().build(mesh)
 
-	problem = initialise_problem(mesh, domains_mf, boundaries_mf, points_mf, user_inputs)
-	problem = set_weak_form_and_bcs(problem, boundaries_mf, user_inputs)
+	coefficients = Coefficients.from_inputs(user_inputs, units.coefficients)
+	problem = initialise_problem(mesh, domains_mf, boundaries_mf, points_mf, user_inputs, coefficients)
+	problem = set_weak_form_and_bcs(problem, boundaries_mf, user_inputs, coefficients)
 	apply_initial_bcs(problem)
-	return solve_problem(problem, simulation_paths, user_inputs)
+	success = solve_problem(problem, simulation_paths, user_inputs, coefficients)
+	# ParaView geometry and time stamps back to SI (the fields are already SI).
+	if rank == 0:
+		xdmf_units.redimensionalize_results(
+			Path(f"{simulation_paths.results_base_name}.xdmf"), units.unknowns.length, units.coefficients.time
+		)
+	comm.Barrier()
+	return success
 
 
 if __name__ == "__main__":
