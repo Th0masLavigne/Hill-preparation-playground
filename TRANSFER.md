@@ -19,10 +19,11 @@ Legend: **new**: the file does not exist in fenicsoft. **change**: patch an exis
 | 8 | Permeability laws $k(\phi_\ell)$ | new | – |
 | 9 | Volumetric energy with a compaction point | new | 8 (`porosity`, demo only) |
 | 10 | Orientation diagnostics | new | – |
-| 11 | Hill one-element integration test | new | 5, 6 |
-| 12 | Terzaghi integration test, nondimensionalization methods | new | 2 |
-| 13 | Hill box demo | new | 1–10 |
-| 14 | Follow-ups (iso/aniso activation, `ScaledKinematics`, tooling) | change | 4 |
+| 11 | Residual rows: quadrature degree, test scale and normalization per row | new | – |
+| 12 | Hill one-element integration test | new | 5, 6, 11 |
+| 13 | Terzaghi integration test, nondimensionalization methods | new | 2, 11 |
+| 14 | Hill box demo | new | 1–11 |
+| 15 | Follow-ups (iso/aniso activation, `ScaledKinematics`, tooling) | change | 4 |
 
 ---
 
@@ -59,7 +60,7 @@ Legend: **new**: the file does not exist in fenicsoft. **change**: patch an exis
   - `identity()`;
   - conversions documented for floats and UFL expressions;
   - corrected docstring of `permeability_over_viscosity`: L₀²/(μ₀t₀) = (k/η)κ/μ₀, so K̂ = μ₀/κ.
-- Make the pillar demos import `fenicsoft.scaling`, delete their `src/characteristic_scales.py`, and fix their test `test_from_consolidation_scale_scales_permeability_over_viscosity_by_stress_over_kappa` (it expects the inverted ratio).
+- The scaled pillar demo (`microtissue_pillar_spherical_scale`, wrong row factors: see issue 11) is deleted from fenicsoft meanwhile. The pillar case will be recoded in the playground on top of issues 2 and 11, once the Hill box is validated.
 
 **Tests.** `tests/unit/scaling/test_characteristic_scales.py` (100 % coverage).
 
@@ -130,24 +131,53 @@ It is not a constitutive law. Active laws use it by composition, so no law depen
 
 **Tests.** `tests/unit/materials/orientation/test_display.py`.
 
-## 11. Hill one-element integration test
+## 11. Residual rows: quadrature degree, test scale and normalization per row
 
-**Changes.** `tests/integration/materials/cell/active/hill/` (4 files, including `conftest.py`): a one-element FE run of gel + Hill, compared with an independent 0D backward-Euler reference (scipy). Three cases: isometric λ = 1 and λ = 1.04, and traction-free faces.
+**Problem.** Every operator of a monolithic residual needs a `scale_factor` = s_row·v/𝒩_row. Today these are hand-written per demo (`RowFactors` in the pillar demos, magic factors in the tests).
+
+equations.tex Table tab:sf omitted s_row, the scale of the row's test function: the FE test function is δx̂ while R_row of Table tab:N is written with δx = s δx̂ (s_u = L₀, s_p = μ₀, else 1). The solution is unchanged (row scaling), but with tab:sf as printed the u row was 1/L₀ too large and the p row 1/μ₀ too small: κ₂(J) = 9.3e8 instead of 7.5e4. Corrected factors (equations.tex fixed accordingly): gel 1/μ₀, fluid 1, J rate t₀, Darcy μ₀t₀/L₀², cell flux in R_p t₀/L₀²; the other rows are unchanged. Assembly could also be cheaper with a quadrature degree per row (measured: −31 % assembly on the Hill box).
+
+**Changes.** New `src/fenicsoft/operators/residual_rows.py`: `ResidualRows(rows, quadrature_degrees, test_scales, normalizations)`.
+- A row is named after the subsol of its test function (`displacement`, `liquid_pressure`, …). `ResidualRows.from_problem(problem, …)` takes the names from `problem.subsols`.
+- `measure(dV, row)` returns `dV(degree=q_row)` (integral metadata), or `dV` unchanged when the row has no degree.
+- `scale_factor(row, v)` returns s_row·v/𝒩_row, with s = 1 and 𝒩 = 1 when the row has none. v is the value-preserving factor written with the FE test function.
+- Unknown row names, negative or non-integer degrees and non-positive scales or normalizations raise. The mappings are frozen.
+- FFC check, on the devcontainer's legacy FFC:
+  - mixed degrees are exact in residuals (rank 1) and Jacobians (rank 2);
+  - they are **wrong in scalar functionals** (rank 0), where the low-degree integrand is counted twice. Never use per-row measures in an `"assembly"` QOI.
+  - The first environment test (`x⁸` at degree 2 plus `x` at degree 8) did not detect it: `x` is integrated exactly at any degree. The test now checks a residual and its Jacobian.
+
+**Tests.**
+- `tests/unit/operators/test_residual_rows.py`.
+- `tests/environment/test_env.py::test_quadrature_degree_per_integral` (rank 1 and rank 2) → fenicsoft environment tests.
+- Wiring tests, in issues 12–14:
+  - Hill one element: `ResidualRows` on R_u and R_a.
+  - Terzaghi: all 3 modes through `ResidualRows`, plus the `+rows` variants.
+  - Hill box demo.
+
+**Follow-up.** The pillar case is recoded in the playground with `ResidualRows` (multi-domain: `rows.measure(problem.dV(PILLAR), row)` keeps the subdomain; the pillar identity Φ_c = 0 sits in the `cell_fraction` row with v = L₀³/t₀, i.e. factor 1).
+
+## 12. Hill one-element integration test
+
+**Changes.** `tests/integration/materials/cell/active/hill/` (4 files, including `conftest.py`): a one-element FE run of gel + Hill, compared with an independent 0D backward-Euler reference (scipy). Four cases: isometric λ = 1 and λ = 1.04, traction-free faces, and traction-free faces through `ResidualRows` with other per-row degrees (`displacement`: 1, `eps_a`: 0) and row normalizations (μ, f_max).
+- The operators take their measure and `scale_factor` from `ResidualRows`. In the homogeneous one-element state every integrand is constant per cell, so the `rows` case must equal both the 0D reference and the default free run to round-off.
 - The figure `hill_one_element.png` and `errors.csv` are written to `outputs_hill_one_element/`. The figure shows λ_a, T_e, the free-face gel stretches and the error history, FE (markers) against 0D (lines).
 - The error table is printed in the pytest summary.
 
 **Done when** ε_a, P_xx and (λ, λ_t) match the 0D reference to 1e-12–1e-10.
 
-## 12. Terzaghi integration test, nondimensionalization methods
+## 13. Terzaghi integration test, nondimensionalization methods
 
 **Changes.**
 - `tests/integration/analytical_consolidation_1D/{terzaghi_nondim.py, test_terzaghi_nondim.py, conftest.py}` → fenicsoft `tests/integration/analytical_consolidation_1D/nondimensional/`.
-- Three modes: SI, operator `scale_factor`, and parameters converted with `nondimensionalize_*`. The figure and `errors.csv` go to `outputs_terzaghi_nondim/`; the error table is printed in the pytest summary.
+- Three modes: SI, operator `scale_factor`, and parameters converted with `nondimensionalize_*`.
+- The operators take their measure and `scale_factor` from `ResidualRows` (rows `displacement` and `liquid_pressure`), with term value factors v (gel and load L₀², fluid μ₀L₀², rate L₀³, Darcy μ₀L₀), test scales (L₀, μ₀, operator mode) and row normalizations (μ₀L₀³, μ₀L₀³/t₀).
+- `+rows` variants of the 3 modes: `{"displacement": 3, "liquid_pressure": 2}`. They stay within 1 % of the analytics, agree with each other to round-off, and differ from the default degree by 1e-12 < Δp/p₀ < 1e-3, which shows the degrees are applied. Runtime: about 3.8 min for the 6 runs. The figure and `errors.csv` go to `outputs_terzaghi_nondim/`; the error table is printed in the pytest summary.
 - Merge the Terzaghi series with fenicsoft's `terzaghi_analytics.py` if wanted.
 
-**Done when** the pressure and settlement errors are below 1 % for T ≥ 0.05 (measured: 8.6e-3 and 3.9e-3), and the three modes are identical to round-off.
+**Done when** the pressure and settlement errors are below 1 % for T ≥ 0.05 for all 6 cases (measured: 8.6e-3 and 3.9e-3), and the scaled modes are identical to SI with the same rows.
 
-## 13. Hill box demo
+## 14. Hill box demo
 
 **Changes.**
 - `demos/hill_box/{hill_box_uniaxial.py, hill_chain_helpers.py, README.md}` → fenicsoft `demos/smooth_muscle_cells/porous_hydrogel/hill_box/`.
@@ -157,24 +187,25 @@ It is not a constitutive law. Active laws use it by composition, so no law depen
   - `displacement_si` and `pressure_si` are scaled copies of the unknowns on their own CG spaces (vector scaling). A global `dolfin.project` on CG2 cost about 5 s per output, 15 % of the run.
   - The other FOIs use `update_type="local_solver"`, a cell-wise projection on the DG spaces, instead of `"project"`.
   - All output updates went from 17.1 s to 0.3 s on the size/2 box.
-- Quadrature per residual row: `quadrature_degrees = {"u", "p", "c", "s", "angles", "a"}` → `row_measure()` returns `dV(degree=q)` (integral metadata).
-  - A row is identified by the test function of the term: δu, δp, δc, δφ̃_s, δθ/δφ, δε. The cell flux Q_c appears in both `p` and `c`.
-  - Default: empty, i.e. `quadrature_degree` everywhere.
-  - Measured on the size/2 box with `{"u": 3}` and the other rows at 2: assembly 1.83 → 1.26 s per iteration, QOIs within 3e-4.
-  - This pattern could move to the pillar demos (one measure per row, next to the row `scale_factor`).
+- Rows through `ResidualRows` (issue 11): `build_residual_rows()` gives each operator `rows.measure(dV, row)` and `rows.scale_factor(row, v)`.
+  - `TermValues` holds the value factors (gel L₀², fluid μ₀L₀², volume L₀³, Darcy μ₀L₀, cell flux L₀).
+  - `row_test_scales()` holds s_row (L₀ for `displacement`, μ₀ for `liquid_pressure`) and `row_normalizations()` holds 𝒩_row (`"operator"` mode only).
+  - Row names are the subsols: `displacement`, `liquid_pressure`, `cell_fraction`, `substrate_smoothed`, `theta`, `phi`, `eps_a`. The cell flux Q_c is in both `liquid_pressure` and `cell_fraction`.
+  - The `quadrature_degrees` keys are checked against `UNKNOWNS` (a typo raises an error); rows of switched-off unknowns are ignored. Default: empty, i.e. `quadrature_degree` everywhere.
+  - Measured on the size/2 box: `{"displacement": 3}` and the other rows at 2 bring assembly from 1.83 to 1.26 s per iteration, with QOIs within 3e-4.
+  - Checked after the refactor: same QOIs as before (difference 0.0), the 3 modes identical (3e-15), and the same holds with per-row degrees (`operator` vs `none` with rows: 2.5e-15).
+- Conditioning: `demos/hill_box/jacobian_scaling.py` assembles J at the first step for the 3 modes (κ₂ by dense SVD, median |J_ii| per row). Test `tests/integration/demos/test_hill_box_scaling.py` (about 80 s): `operator` J = `parameters` J (≤ 1e-10), interior diagonal blocks O(1), κ₂: none 1.7e20, operator 4.3e4, parameters 4.3e4.
 - Cost profile (size/2, warm JIT cache): MUMPS solve ≈ 78 %, assembly ≈ 21 %, outputs < 1 %. Turning off `cell_transport` and `remodelling` cuts the solve to 5.2 s per iteration (−37 %). size/4: about 210 s per solve and about 5 GB.
 
-**Tests.** `tests/environment/test_env.py::test_quadrature_degree_per_integral` checks that FFC honours `dx(degree=q)` per integral, also inside a summed form. FFC prints "Quadrature degree must be equal within each sub domain", but measurement shows the per-integral degree is used. Move this test to fenicsoft's environment tests.
+**Done when** the three `nondimensionalization` modes give identical QOIs (measured: 3e-15) and identical Jacobians (`operator` vs `parameters`), and an `mpirun` run gives a readable `.out`.
 
-**Done when** the three `nondimensionalization` modes give identical QOIs (measured: 3e-15), and an `mpirun` run gives a readable `.out`.
-
-## 14. Follow-ups
+## 15. Follow-ups
 
 - `iso.law` and `aniso.law` import `ActivePowerConfig` (and the `p_act` machinery) from `cell/active/activation.py` (issue 4), and remove their copies.
   - `aniso` keeps `p_act` and `iso` keeps `p_cell` as aliases of `ActivationSchedule.p_act`, plus `current_activation` / `current_power`.
   - Their unit tests read private attributes and must be adapted: `_current_manager` and `_step_managers` in `test_law_cell_iso.py`, `_current_config` in `test_law_cell_aniso.py`.
   - The equivalence test then becomes redundant.
-- `ScaledKinematics` (pillar demo `src/`) stays dormant: the mesh is scaled, so `Kinematics` is exact. Delete it, or keep it for a "physical mesh" variant (all gradients and measures would then need scaling).
+- `ScaledKinematics` (pillar demo `src/`) goes with the deleted scaled pillar demo: the mesh is scaled, so `Kinematics` is exact.
 - After each merge:
   - remove the transferred paths from `NEW_BRANCHES` in `tests/environment/test_env.py`;
   - delete the playground copies;
