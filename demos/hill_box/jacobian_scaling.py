@@ -9,11 +9,21 @@ solver sees it, then reports:
 
 ``"operator"`` and ``"parameters"`` must give the same matrix (module docstring of
 :mod:`hill_box_uniaxial`, section 4). Run ``python jacobian_scaling.py`` for the table.
+
+Reading the diagonals (scaled mesh, :math:`\hat h = h/L_0`): a row whose leading term is a mass
+term (:math:`\int \hat N_i^2\,\mathrm d\hat V \sim \hat h^3`: ``cell_fraction``, ``theta``, ``phi``,
+``substrate_smoothed``) and a row led by a stiffness term (:math:`\int |\hat\nabla \hat N_i|^2 \sim
+\hat h`: ``displacement``, ``liquid_pressure``) differ by :math:`\hat h^2` (here :math:`\sim 10^{-3}`
+with the P1/P2 constants). This is the usual mass/stiffness ratio of the discretization, not a
+scaling error: it does not depend on the units, and a row factor removing it would depend on the mesh.
 """
 
 from __future__ import annotations
 
+import contextlib
 import dataclasses
+import io as std_io
+import logging
 from pathlib import Path
 from typing import Any, Dict, Tuple
 
@@ -120,8 +130,15 @@ def block_diagonals(jacobian: sp.csr_matrix, dofs: Dict[str, np.ndarray]) -> Dic
 
 if __name__ == "__main__":
 	io.configure_logging(0)
+	logging.disable(logging.INFO)  # mesh generation logs
+	dolfin.set_log_level(dolfin.LogLevel.WARNING)  # dolfin.info of io.load_mesh_data
+	table = {}
 	for mode in ("none", "operator", "parameters"):
-		matrix, blocks = assemble_jacobian(small_box(mode, Path(f"./outputs_jacobian_scaling_{mode}")))
-		medians = block_diagonals(matrix, blocks)
-		print(f"{mode:10s} n = {matrix.shape[0]}  cond2 = {condition_number(matrix):.2e}")
-		print("           " + "  ".join(f"{k}={v:.1e}" for k, v in medians.items()))
+		with contextlib.redirect_stdout(std_io.StringIO()):  # mesh reader prints
+			matrix, blocks = assemble_jacobian(small_box(mode, Path(f"./outputs_jacobian_scaling_{mode}")))
+		table[mode] = {"n": matrix.shape[0], "cond2": condition_number(matrix), **block_diagonals(matrix, blocks)}
+	print("median |J_ii| per row (Dirichlet rows excluded) and 2-norm condition number")
+	print(f"{'row':20s}" + "".join(f"{mode:>12s}" for mode in table))
+	for key in next(iter(table.values())):
+		cells = "".join(f"{row[key]:>12d}" if key == "n" else f"{row[key]:>12.2e}" for row in table.values())
+		print(f"{key:20s}{cells}")
