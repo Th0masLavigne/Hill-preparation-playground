@@ -52,6 +52,21 @@ ParaView: colour by `tilt_xy_current_deg` (threshold < 15° to see in-plane cell
 `fibre_current` scaled by `tension_see`. The geometry is in m in every mode, so *Warp By Vector*
 uses `displacement_si`.
 
+Rows (`hill_playground.operators.ResidualRows`): a row is named after the subsol of its test function
+(`displacement`, `liquid_pressure`, `cell_fraction`, `substrate_smoothed`, `theta`, `phi`, `eps_a`). Each
+operator takes `rows.measure(dV, row)` and `rows.scale_factor(row, v)`, with `v` its value-preserving
+factor (`TermValues`, written with the FE test function), the test scale from `row_test_scales`
+($s_{\mathbf u} = L_0$, $s_p = \mu_0$) and the row normalization from `row_normalizations` (both
+`"operator"` mode only): `scale_factor` $= s\,v/\mathcal N$. `python jacobian_scaling.py` prints
+$\kappa_2(\mathbf J)$ and the diagonal block sizes per mode (none 1.7e20, operator = parameters 4.3e4).
+
+Quadrature per row: `quadrature_degrees={"displacement": 3, "liquid_pressure": 2, "cell_fraction": 2,
+"substrate_smoothed": 2, "theta": 2, "phi": 2, "eps_a": 2}` overrides `quadrature_degree` (4) row by row
+(integral metadata `dV(degree=q)`). Measured on the size/2 box: assembly 1.83 → 1.26 s per Newton iteration
+(−31 %), QOIs within 3e-4 of the degree-4 run; the `displacement` row (P2 gel, Hill and fluid stresses) carries
+most of the assembly cost. Default: empty (degree 4 everywhere). Keys are checked (typo → error); rows of
+switched-off unknowns are ignored.
+
 Mesh refinement: the cost is the direct (MUMPS) solve. Measured here (2 cores): `mesh_max_size`
 $L_z/2$ → 8 s per Newton iteration, $L_z/4$ → 210 s and ~5 GB, Newton still converging in 4
 iterations at $\Delta t = 10$ s. If MUMPS runs out of memory, the solver reports
