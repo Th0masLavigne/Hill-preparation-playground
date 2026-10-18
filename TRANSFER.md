@@ -159,9 +159,9 @@ equations.tex Table tab:sf omitted s_row, the scale of the row's test function: 
 
 ## 12. Hill one-element integration test
 
-**Changes.** `tests/integration/materials/cell/active/hill/` (4 files, including `conftest.py`): a one-element FE run of gel + Hill, compared with an independent 0D backward-Euler reference (scipy). Four cases: isometric λ = 1 and λ = 1.04, traction-free faces, and traction-free faces through `ResidualRows` with other per-row degrees (`displacement`: 1, `eps_a`: 0) and row normalizations (μ, f_max).
+**Changes.** `tests/integration/materials/cell/active/hill/{hill_0d_reference.py, hill_one_element.py, test_hill_one_element.py, conftest.py}`: a one-element FE run of gel + Hill, compared with an independent 0D backward-Euler reference (scipy). Four cases: isometric λ = 1 and λ = 1.04, traction-free faces, and traction-free faces through `ResidualRows` with other per-row degrees (`displacement`: 1, `eps_a`: 0) and row normalizations (μ, f_max).
 - The operators take their measure and `scale_factor` from `ResidualRows`. In the homogeneous one-element state every integrand is constant per cell, so the `rows` case must equal both the 0D reference and the default free run to round-off.
-- The figure `hill_one_element.png` and `errors.csv` are written to `outputs_hill_one_element/`. The figure shows λ_a, T_e, the free-face gel stretches and the error history, FE (markers) against 0D (lines).
+- The figure `hill_one_element.png` and `errors.csv` are written to `outputs_hill_one_element/`. The figure shows λ_a, T_e, the free-face gel stretches and the error history, FE (markers) against 0D (lines); the `rows` case is dashed with `x` markers (it coincides with the free case). The error history (`error_history`) is the per-step max over ε_a, λ, λ_t, T_e/T and P_xx/T, the norms of `errors`.
 - The error table is printed in the pytest summary.
 
 **Done when** ε_a, P_xx and (λ, λ_t) match the 0D reference to 1e-12–1e-10.
@@ -180,7 +180,8 @@ equations.tex Table tab:sf omitted s_row, the scale of the row's test function: 
 ## 14. Hill box demo
 
 **Changes.**
-- `demos/hill_box/{hill_box_uniaxial.py, hill_chain_helpers.py, README.md}` → fenicsoft `demos/smooth_muscle_cells/porous_hydrogel/hill_box/`.
+- `demos/hill_box/{hill_box_uniaxial.py, hill_chain_helpers.py, jacobian_scaling.py, README.md}` → fenicsoft `demos/smooth_muscle_cells/porous_hydrogel/hill_box/`.
+- `tests/integration/demos/test_hill_box_scaling.py` → next to the fenicsoft demo tests (it imports `hill_box_uniaxial` and `jacobian_scaling` from the demo folder).
 - Replace the `hill_playground.*` imports by `fenicsoft.*`.
 - `UserInputs` options: `nondimensionalization` (`none`, `operator`, `parameters`), `permeability_law`, `volumetric_law`, `xdmf_si_only`, `quadrature_degrees`.
 - Outputs:
@@ -194,7 +195,7 @@ equations.tex Table tab:sf omitted s_row, the scale of the row's test function: 
   - The `quadrature_degrees` keys are checked against `UNKNOWNS` (a typo raises an error); rows of switched-off unknowns are ignored. Default: empty, i.e. `quadrature_degree` everywhere.
   - Measured on the size/2 box: `{"displacement": 3}` and the other rows at 2 bring assembly from 1.83 to 1.26 s per iteration, with QOIs within 3e-4.
   - Checked after the refactor: same QOIs as before (difference 0.0), the 3 modes identical (3e-15), and the same holds with per-row degrees (`operator` vs `none` with rows: 2.5e-15).
-- Conditioning: `demos/hill_box/jacobian_scaling.py` assembles J at the first step for the 3 modes (κ₂ by dense SVD, median |J_ii| per row). Test `tests/integration/demos/test_hill_box_scaling.py` (about 80 s): `operator` J = `parameters` J (≤ 1e-10), interior diagonal blocks O(1), κ₂: none 1.7e20, operator 4.3e4, parameters 4.3e4.
+- Conditioning: `demos/hill_box/jacobian_scaling.py` assembles J at the first step for the 3 modes (κ₂ by dense SVD, median |J_ii| per row, printed as a table). The mass rows (`cell_fraction`, `theta`, `phi`, `substrate_smoothed`, ~1e-3) and the stiffness rows (`displacement`, `liquid_pressure`, ~2) differ by ĥ²: discretization, not scaling. Test `tests/integration/demos/test_hill_box_scaling.py` (about 80 s): `operator` J = `parameters` J (≤ 1e-10), interior diagonal blocks O(1), κ₂: none 1.7e20, operator 4.3e4, parameters 4.3e4.
 - Cost profile (size/2, warm JIT cache): MUMPS solve ≈ 78 %, assembly ≈ 21 %, outputs < 1 %. Turning off `cell_transport` and `remodelling` cuts the solve to 5.2 s per iteration (−37 %). size/4: about 210 s per solve and about 5 GB.
 
 **Done when** the three `nondimensionalization` modes give identical QOIs (measured: 3e-15) and identical Jacobians (`operator` vs `parameters`), and an `mpirun` run gives a readable `.out`.
