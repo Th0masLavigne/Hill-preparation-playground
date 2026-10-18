@@ -6,6 +6,9 @@ Checks, on the assembled monolithic :math:`(R_u, R_a)` problem (``TimeIntegrator
 * :math:`P_{xx}` equals :math:`\lambda(S^{gel}_{xx} + \Phi_c T_e/I_4)` on the computed state;
 * at the end of the hold, :math:`\varepsilon_a` is the isometric equilibrium :math:`f_{max} f_{FL} + T_p = T_e`;
 * traction-free faces: :math:`P_{xx} = P_{yy} = 0` and the cell shortens the gel (:math:`\lambda < 1`).
+
+Figure and error table are written next to this file in ``outputs_hill_one_element/``
+(``hill_one_element.png``, ``errors.csv``); the table is printed in the pytest summary.
 """
 
 import sys
@@ -18,9 +21,21 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import hill_0d_reference as ref  # noqa: E402
-from hill_one_element import OneElementRun, run, stress_check  # noqa: E402
+from hill_one_element import OneElementRun, errors, plot, run, stress_check  # noqa: E402
+
+OUTPUT = Path(__file__).resolve().parent / "outputs_hill_one_element"
 
 ISOMETRIC_STRETCHES = (1.0, 1.04)
+ROWS = OneElementRun(
+	kinematics="free",
+	quadrature_degrees={"displacement": 1, "eps_a": 0},
+	normalizations={"displacement": OneElementRun().model.mu, "eps_a": OneElementRun().model.f_max},
+)
+"""Free faces through ``ResidualRows``: other degree per row and row normalizations.
+
+Homogeneous state, CG1 displacement: every integrand is constant per cell, so any degree is exact and
+the row normalizations do not change Newton's iterates: same solution as the default free run.
+"""
 
 
 @pytest.fixture(scope="module")
@@ -36,6 +51,12 @@ def isometric_runs(tmp_path_factory: pytest.TempPathFactory) -> dict[float, pd.D
 def free_run(tmp_path_factory: pytest.TempPathFactory) -> pd.DataFrame:
 	"""Run with traction-free faces."""
 	return run(OneElementRun(kinematics="free"), tmp_path_factory.mktemp("free"))
+
+
+@pytest.fixture(scope="module")
+def rows_run(tmp_path_factory: pytest.TempPathFactory) -> pd.DataFrame:
+	"""Free faces with per-row degrees and normalizations (:data:`ROWS`)."""
+	return run(ROWS, tmp_path_factory.mktemp("rows"))
 
 
 @pytest.mark.parametrize("lmbda", ISOMETRIC_STRETCHES)
@@ -85,3 +106,39 @@ def test_free_cells_shorten_gel(free_run: pd.DataFrame) -> None:
 	last = free_run.iloc[-1]
 	assert last["lambda"] < 0.9
 	assert last["lambda"] * last["lambda_t"] ** 2 < 1.0
+
+
+@pytest.fixture(scope="module")
+def report(isometric_runs: dict[float, pd.DataFrame], free_run: pd.DataFrame, rows_run: pd.DataFrame) -> pd.DataFrame:
+	"""Error table and figure of the four runs."""
+	runs = {
+		f"isometric lambda={lmbda:g}": (OneElementRun(kinematics="isometric", lmbda=lmbda), isometric_runs[lmbda])
+		for lmbda in ISOMETRIC_STRETCHES
+	}
+	runs["free faces"] = (OneElementRun(kinematics="free"), free_run)
+	runs["free faces, rows"] = (ROWS, rows_run)
+	model = OneElementRun().model
+	table = pd.DataFrame([{"case": label, **errors(model, settings, data)} for label, (settings, data) in runs.items()])
+	OUTPUT.mkdir(parents=True, exist_ok=True)
+	table.to_csv(OUTPUT / "errors.csv", index=False)
+	plot(model, runs, OUTPUT / "hill_one_element.png")
+	return table
+
+
+def test_report_errors_and_figure(report: pd.DataFrame) -> None:
+	"""Every case below round-off tolerances; figure and table written."""
+	assert (report[["eps_a", "stretch"]].to_numpy() < 1e-10).all()
+	assert (report[["tension_see", "pk1_xx"]].to_numpy() < 1e-10).all()
+	assert (OUTPUT / "hill_one_element.png").stat().st_size > 0
+
+
+def test_rows_free_state_matches_0d(rows_run: pd.DataFrame) -> None:
+	r"""With per-row degrees and normalizations: still the 0D state :math:`(\lambda, \lambda_t, \varepsilon_a)`."""
+	expected = ref.free_history(OneElementRun().model, rows_run["t"], rows_run["alpha"])
+	np.testing.assert_allclose(rows_run[["lambda", "lambda_t", "eps_a"]].to_numpy(), expected, rtol=0.0, atol=1e-10)
+
+
+def test_rows_do_not_change_the_solution(rows_run: pd.DataFrame, free_run: pd.DataFrame) -> None:
+	"""Row normalizations and exact per-row degrees: same history as the default free run."""
+	cols = ["lambda", "lambda_t", "eps_a", "tension_see"]
+	np.testing.assert_allclose(rows_run[cols].to_numpy(), free_run[cols].to_numpy(), rtol=1e-10, atol=1e-12)
