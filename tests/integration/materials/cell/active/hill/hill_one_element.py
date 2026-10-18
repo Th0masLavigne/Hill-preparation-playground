@@ -15,9 +15,9 @@ Two kinematic set-ups, both homogeneous:
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Mapping
 
 import dolfin
 import dolfin_mech
@@ -28,6 +28,7 @@ from hill_0d_reference import HillChain0D
 
 from hill_playground.materials.cell.active.activation import ActivePowerConfig
 from hill_playground.materials.cell.active.hill import law as hill_law
+from hill_playground.operators import ResidualRows
 from hill_playground.operators.cell import ContractileEvolution
 
 QOI_NAMES = ("alpha", "eps_a", "lambda", "lambda_t", "pk1_xx", "pk1_yy", "tension_see")
@@ -44,6 +45,8 @@ class OneElementRun:
 	    ramp_duration: :math:`\alpha: 0 \to 1` duration (s).
 	    hold_duration: :math:`\alpha = 1` duration (s).
 	    dt: Fixed time step (s).
+	    quadrature_degrees: Degree per row (``"displacement"``, ``"eps_a"``), default 2 (``ResidualRows``).
+	    normalizations: Row normalization :math:`\mathcal N_{row}` (``ResidualRows``); does not change the solution.
 	"""
 
 	model: HillChain0D = HillChain0D()
@@ -52,6 +55,8 @@ class OneElementRun:
 	ramp_duration: float = 20.0
 	hold_duration: float = 200.0
 	dt: float = 2.0
+	quadrature_degrees: Mapping[str, int] = field(default_factory=dict)
+	normalizations: Mapping[str, float] = field(default_factory=dict)
 
 
 def _face(axis: int, value: float) -> dolfin.SubDomain:
@@ -117,12 +122,24 @@ def run(settings: OneElementRun, out_dir: Path) -> pd.DataFrame:
 		),
 	)
 	material = gel + hill
-	contractile = ContractileEvolution(law=hill, test=eps.dsubtest, dx=problem.dV)
+	# Rows = subsols of the test functions: displacement (R_u) and eps_a (R_a).
+	rows = ResidualRows.from_problem(problem, settings.quadrature_degrees, settings.normalizations)
+	contractile = ContractileEvolution(
+		law=hill,
+		test=eps.dsubtest,
+		dx=rows.measure(problem.dV, "eps_a"),
+		scale_factor=rows.scale_factor("eps_a"),
+	)
 
 	for k_step in range(len(problem.steps)):
 		problem.add_operator(
 			fenicsoft.operators.hyper_elasticity.pk1.HyperElasticity(
-				disp=disp.subfunc, disp_test=disp.dsubtest, material=material, measure=problem.dV, k_step=k_step
+				disp=disp.subfunc,
+				disp_test=disp.dsubtest,
+				material=material,
+				measure=rows.measure(problem.dV, "displacement"),
+				k_step=k_step,
+				scale_factor=rows.scale_factor("displacement"),
 			),
 			k_step=k_step,
 		)
@@ -185,3 +202,108 @@ def stress_check(model: HillChain0D, table: pd.DataFrame) -> np.ndarray:
 	"""
 	rows = zip(table["lambda"], table["lambda_t"], table["eps_a"])
 	return np.array([model.total_pk1_xx(lmbda, lmbda_t, eps_a) for lmbda, lmbda_t, eps_a in rows])
+
+
+def reference(model: HillChain0D, settings: OneElementRun, table: pd.DataFrame) -> pd.DataFrame:
+	r"""0D reference on the FE times: :math:`\lambda, \lambda_t, \varepsilon_a, T_e`.
+
+	Args:
+	    model: Parameters.
+	    settings: Run settings (``kinematics``, ``lmbda``).
+	    table: Output of :func:`run` (``t``, ``alpha``).
+
+	Returns:
+	    Columns ``t``, ``lambda``, ``lambda_t``, ``eps_a``, ``tension_see``.
+	"""
+	import hill_0d_reference as ref
+
+	if settings.kinematics == "isometric":
+		eps = ref.isometric_history(model, settings.lmbda, table["t"], table["alpha"])
+		state = np.column_stack([np.full_like(eps, settings.lmbda), np.ones_like(eps), eps])
+	else:
+		state = ref.free_history(model, table["t"], table["alpha"])
+	out = pd.DataFrame(state, columns=["lambda", "lambda_t", "eps_a"])
+	out.insert(0, "t", table["t"].to_numpy())
+	out["tension_see"] = [model.tension_see(lm**2 * np.exp(-2.0 * e)) for lm, e in zip(out["lambda"], out["eps_a"])]
+	return out
+
+
+def errors(model: HillChain0D, settings: OneElementRun, table: pd.DataFrame) -> dict[str, float]:
+	r"""Max differences FE vs 0D over the history.
+
+	Args:
+	    model: Parameters.
+	    settings: Run settings.
+	    table: Output of :func:`run`.
+
+	Returns:
+	    ``eps_a`` (abs), ``stretch`` (abs, :math:`\lambda` and :math:`\lambda_t`), ``tension_see`` and
+	    ``pk1_xx`` (relative to :math:`\max|T_e|`).
+	"""
+	ref_table = reference(model, settings, table)
+	t_scale = np.abs(ref_table["tension_see"]).max()
+	return {
+		"eps_a": float(np.abs(table["eps_a"] - ref_table["eps_a"]).max()),
+		"stretch": float(
+			np.abs(table[["lambda", "lambda_t"]].to_numpy() - ref_table[["lambda", "lambda_t"]].to_numpy()).max()
+		),
+		"tension_see": float(np.abs(table["tension_see"] - ref_table["tension_see"]).max() / t_scale),
+		"pk1_xx": float(np.abs(table["pk1_xx"] - stress_check(model, table)).max() / t_scale),
+	}
+
+
+def plot(model: HillChain0D, runs: dict[str, tuple[OneElementRun, pd.DataFrame]], path: Path) -> Path:
+	r"""FE (markers) vs 0D (lines): :math:`\lambda_a`, :math:`T_e`, gel stretches, error history.
+
+	Args:
+	    model: Parameters.
+	    runs: ``label -> (settings, table)``.
+	    path: PNG file.
+
+	Returns:
+	    ``path``.
+	"""
+	import matplotlib
+
+	matplotlib.use("Agg")
+	import hill_0d_reference as ref
+	import matplotlib.pyplot as plt
+
+	fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+	ax_la, ax_te, ax_st, ax_err = axes.ravel()
+	for label, (settings, table) in runs.items():
+		ref_table = reference(model, settings, table)
+		(line,) = ax_la.plot(ref_table["t"], np.exp(ref_table["eps_a"]), lw=1.2, label=f"{label} (0D)")
+		ax_la.plot(table["t"][::4], np.exp(table["eps_a"][::4]), "o", ms=4, mfc="none", color=line.get_color())
+		if settings.kinematics == "isometric":
+			eq = np.exp(ref.isometric_equilibrium(model, settings.lmbda, 1.0))
+			ax_la.axhline(eq, ls=":", lw=0.8, color=line.get_color())
+		ax_te.plot(ref_table["t"], ref_table["tension_see"] / 1e3, lw=1.2, color=line.get_color(), label=label)
+		ax_te.plot(table["t"][::4], table["tension_see"][::4] / 1e3, "o", ms=4, mfc="none", color=line.get_color())
+		if settings.kinematics == "free":
+			for col, style in (("lambda", "-"), ("lambda_t", "--")):
+				ax_st.plot(ref_table["t"], ref_table[col], style, lw=1.2, color=line.get_color(), label=f"{col} (0D)")
+				ax_st.plot(table["t"][::4], table[col][::4], "o", ms=4, mfc="none", color=line.get_color())
+		diff = np.abs(table["eps_a"] - ref_table["eps_a"]).to_numpy()
+		e = errors(model, settings, table)
+		ax_err.semilogy(
+			table["t"], np.maximum(diff, 1e-18), lw=1.0, color=line.get_color(), label=f"{label}: max {e['eps_a']:.1e}"
+		)
+	ramp = next(iter(runs.values()))[0].ramp_duration
+	for ax in axes.ravel():
+		ax.axvline(ramp, color="0.7", lw=0.8)
+		ax.set_xlabel("t (s)")
+	ax_la.set(
+		ylabel=r"$\lambda_a = e^{\varepsilon_a}$",
+		title=r"CE stretch: lines 0D, markers FE (dotted: isometric equilibrium)",
+	)
+	ax_te.set(ylabel=r"$T_e$ (kPa)", title="SEE tension")
+	ax_st.set(ylabel="stretch", title=r"Free faces: gel stretches $\lambda$ (along $f_0$), $\lambda_t$")
+	ax_err.set(ylabel=r"$|\varepsilon_a^{FE} - \varepsilon_a^{0D}|$", title="Error history (floor 1e-18)")
+	for ax in axes.ravel():
+		ax.legend(fontsize=8)
+	fig.tight_layout()
+	path.parent.mkdir(parents=True, exist_ok=True)
+	fig.savefig(path, dpi=130)
+	plt.close(fig)
+	return path
