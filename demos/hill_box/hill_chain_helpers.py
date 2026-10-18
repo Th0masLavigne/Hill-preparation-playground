@@ -1,26 +1,11 @@
-r"""Demo-side helpers of the Hill-chain demos (code.tex, Sec. "Darcy conductivity").
+r"""Demo-side helpers of the Hill-chain demos.
 
-* :func:`pulled_back_conductivity`: :math:`\mathbf{K}_L = (k/\eta)\, J\, \mathbf{C}^{-1}` (Eq. darcy-lag).
+:math:`\mathbf{K}_L = (k/\eta)\, J\, \mathbf{C}^{-1}` moved to ``hill_playground.materials.permeability``.
+
 * :func:`check_hill_uniqueness`: sufficient condition (Eq. uniqueness) for a unique CE equilibrium.
 """
 
 import math
-from typing import Any
-
-
-def pulled_back_conductivity(k_l_scalar: Any, kinematics: Any) -> Any:
-	r"""Lagrangian conductivity :math:`\mathbf{K}_L = (k/\eta)\, J\, \mathbf{C}^{-1}` (Eq. darcy-lag).
-
-	Replaces the frozen :math:`(k/\eta)\,\mathbf{I}`; ``DarcyGradient`` accepts any UFL tensor.
-
-	Args:
-	    k_l_scalar: :math:`k/\eta` (m^2/(Pa.s)).
-	    kinematics: Object exposing ``J`` and ``C_inv``.
-
-	Returns:
-	    UFL tensor.
-	"""
-	return k_l_scalar * kinematics.J * kinematics.C_inv
 
 
 def check_hill_uniqueness(k_e: float, k_p: float, f_max: float, lmbda_opt: float, width: float) -> float:
