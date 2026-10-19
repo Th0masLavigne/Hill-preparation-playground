@@ -13,14 +13,17 @@ Internal variable: :math:`\varepsilon_a = \ln\lambda_a` (appendix "eps_a"), henc
 Every function works on SI tensions (Pa) and rates (1/s).
 """
 
-from typing import Any
+from typing import Any, Literal, get_args
 
 import dolfin
 
 from ....ufl_functions import floored, macaulay
 
-SEE_VARIANTS = ("mooney", "tension_only", "exponential")
-"""Available SEE laws: ``"mooney"`` (baseline, Eq. springs), ``"tension_only"``, ``"exponential"``."""
+SeeVariant = Literal["mooney", "tension_only", "exponential"]
+"""SEE law: ``"mooney"`` (baseline, Eq. springs), ``"tension_only"``, ``"exponential"``."""
+
+SEE_VARIANTS: tuple[str, ...] = get_args(SeeVariant)
+"""Values of :data:`SeeVariant`, for runtime checks (``Literal`` is static only)."""
 
 
 def fibre_invariant(kinematics: Any, f0: Any, floor: float = 1e-6) -> Any:

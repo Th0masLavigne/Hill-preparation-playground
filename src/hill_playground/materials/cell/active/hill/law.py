@@ -52,7 +52,7 @@ class Parameters(MaterialParameters):
 	    hill_b: Hill rate constant :math:`b` (1/s); :math:`v_{max} = b / A`.
 	    f_ecc: Eccentric saturation :math:`f_{ecc}` (-).
 	    eta_0: Optional CE damper :math:`\eta_0` (Pa.s); 0 removes the branch.
-	    see_variant: SEE law, one of :data:`functions.SEE_VARIANTS`.
+	    see_variant: SEE law, one of :data:`functions.SeeVariant`.
 	    k_2e: Stiffening exponent of the ``"exponential"`` SEE (-), > 0 for that variant.
 	"""
 
@@ -74,7 +74,7 @@ class Parameters(MaterialParameters):
 	hill_b: float | dolfin.Constant = 0.05
 	f_ecc: float | dolfin.Constant = 1.8
 	eta_0: float | dolfin.Constant = 0.0
-	see_variant: str = "mooney"
+	see_variant: hill.SeeVariant = "mooney"
 	k_2e: float | dolfin.Constant = 0.0
 
 	def __post_init__(self) -> None:

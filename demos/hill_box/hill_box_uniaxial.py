@@ -153,6 +153,7 @@ from hill_playground.io import xdmf_units
 from hill_playground.materials import permeability as perm
 from hill_playground.materials.cell.active.activation import ActivePowerConfig
 from hill_playground.materials.cell.active.hill import law as hill_law
+from hill_playground.materials.cell.active.hill.functions import SeeVariant
 from hill_playground.materials.orientation import display
 from hill_playground.materials.volumetric import compaction
 from hill_playground.operators import ResidualRows
@@ -174,6 +175,7 @@ _CHOICES: Dict[str, Any] = {
 	"nondimensionalization": Nondimensionalization,
 	"permeability_law": PermeabilityLaw,
 	"volumetric_law": VolumetricLaw,
+	"see_variant": SeeVariant,
 }
 """``UserInputs`` options restricted to a ``Literal``: checked at construction (``Literal`` is static only)."""
 
@@ -209,7 +211,7 @@ class UserInputs:
 	    hill_b: :math:`b` (1/s).
 	    f_ecc: :math:`f_{ecc}`.
 	    eta_0: :math:`\eta_0` (Pa.s).
-	    see_variant: SEE law (``hill.functions.SEE_VARIANTS``).
+	    see_variant: SEE law (``hill.functions.SeeVariant``).
 	    k_2e: Exponent of the ``"exponential"`` SEE.
 	    orientation_random_seed: Seed of the isotropic :math:`(\theta, \varphi)` draw.
 	    remodel_tau: Remodelling time :math:`\tau` (s).
@@ -246,8 +248,8 @@ class UserInputs:
 	thickness_z: float = 50e-6
 
 	# --- Mesh ---
-	mesh_min_size: float = 50e-6 / 4
-	mesh_max_size: float = 50e-6 / 2
+	mesh_min_size: float = thickness_z / 4
+	mesh_max_size: float = thickness_z / 3
 	regenerate_mesh: bool = True
 	quadrature_degree: int = 4
 	quadrature_degrees: Dict[str, int] = field(
@@ -276,7 +278,7 @@ class UserInputs:
 	hill_b: float = 0.05
 	f_ecc: float = 1.8
 	eta_0: float = 0.0
-	see_variant: str = "mooney"
+	see_variant: SeeVariant = "mooney"
 	k_2e: float = 0.0
 
 	# --- Orientation ---
@@ -308,8 +310,10 @@ class UserInputs:
 	# --- Time ---
 	steps: Sequence[io.Step] = field(
 		default_factory=lambda: (
-			io.Step(duration=60.0, init_dt=10.0, min_dt=0.25),  # ramp, dt ~ tau_a
-			io.Step(duration=600.0, init_dt=60.0, min_dt=0.25, max_dt=60.0),  # hold
+			# io.Step(duration=60.0, init_dt=10.0, min_dt=0.25),  # ramp, dt ~ tau_a
+			# io.Step(duration=600.0, init_dt=60.0, min_dt=0.25, max_dt=60.0),  # hold
+			io.Step(duration=600.0, init_dt=30.0, min_dt=5.0),  # step 0: 0% -> 100% ramp, 10 min
+			io.Step(duration=42000.0, init_dt=30.0, min_dt=1.0, max_dt=100.0, min_simu_seconds=3 * 3600),
 		)
 	)
 	activation_configs: Sequence[ActivePowerConfig] = field(
@@ -332,7 +336,8 @@ class UserInputs:
 	)
 	xdmf_write_period: Union[int, integration.TimeInterval, Sequence[Union[int, integration.TimeInterval]]] = (
 		1,
-		integration.TimeInterval(30.0),
+		# integration.TimeInterval(30.0),
+		integration.TimeInterval(840.0),
 	)
 	stagnation_plateau_relative_error: float = 5e-3
 	xdmf_si_only: bool = True
@@ -347,7 +352,7 @@ class UserInputs:
 
 		Raises:
 		    ValueError: :math:`\Phi_{s,0} + \Phi_{c,0} \ge 1`, Eq. uniqueness violated, or a value outside its
-		        ``Literal`` (``nondimensionalization``, ``permeability_law``, ``volumetric_law``).
+		        ``Literal`` (``nondimensionalization``, ``permeability_law``, ``volumetric_law``, ``see_variant``).
 		"""
 		for name, choices in _CHOICES.items():
 			value = getattr(self, name)
