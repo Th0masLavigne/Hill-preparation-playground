@@ -135,7 +135,7 @@ import logging
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Literal, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Literal, Sequence, Tuple, Union, get_args
 
 import dolfin
 import dolfin_mech
@@ -170,6 +170,12 @@ _E_Z = dolfin.Constant((0.0, 0.0, 1.0))
 Nondimensionalization = Literal["none", "operator", "parameters"]
 PermeabilityLaw = Literal["constant", "kozeny_carman", "holmes_mow", "compaction_power"]
 VolumetricLaw = Literal["quadratic", "compaction"]
+_CHOICES: Dict[str, Any] = {
+	"nondimensionalization": Nondimensionalization,
+	"permeability_law": PermeabilityLaw,
+	"volumetric_law": VolumetricLaw,
+}
+"""``UserInputs`` options restricted to a ``Literal``: checked at construction (``Literal`` is static only)."""
 
 
 @dataclass(slots=True, frozen=True)
@@ -257,7 +263,7 @@ class UserInputs:
 	# --- Gel skeleton ---
 	gel_shear_modulus: float = 1700.0
 	gel_kappa: float = 1417.0
-	volumetric_law: VolumetricLaw = "quadratic"
+	volumetric_law: VolumetricLaw = "compaction"
 
 	# --- Hill chain (equations.tex, Table tab:groups) ---
 	f_max: float = 20e3
@@ -280,7 +286,7 @@ class UserInputs:
 	# --- Poromechanics ---
 	permeability: float = 1.8e-15
 	viscosity_pa_s: float = 1.0e-3
-	permeability_law: PermeabilityLaw = "constant"
+	permeability_law: PermeabilityLaw = "holmes_mow"
 	holmes_mow_exponent: float = 2.0
 	holmes_mow_stiffening: float = 0.0
 	compaction_exponent: float = 2.0
@@ -340,12 +346,15 @@ class UserInputs:
 		r"""Check the saturation and the uniqueness of the CE equilibrium.
 
 		Raises:
-		    ValueError: :math:`\Phi_{s,0} + \Phi_{c,0} \ge 1`, Eq. uniqueness violated, or unknown mode.
+		    ValueError: :math:`\Phi_{s,0} + \Phi_{c,0} \ge 1`, Eq. uniqueness violated, or a value outside its
+		        ``Literal`` (``nondimensionalization``, ``permeability_law``, ``volumetric_law``).
 		"""
+		for name, choices in _CHOICES.items():
+			value = getattr(self, name)
+			if value not in get_args(choices):
+				raise ValueError(f"Unknown {name} '{value}', expected one of {get_args(choices)}.")
 		if self.phi_s0 + self.phi_c_init >= 1.0:
 			raise ValueError(f"phi_s0 + phi_c_init = {self.phi_s0 + self.phi_c_init} must be < 1.")
-		if self.nondimensionalization not in ("none", "operator", "parameters"):
-			raise ValueError(f"Unknown nondimensionalization '{self.nondimensionalization}'.")
 		if self.use_force_length:
 			hill_chain_helpers.check_hill_uniqueness(self.k_e, self.k_p, self.f_max, self.lmbda_opt, self.width_fl)
 
@@ -785,12 +794,14 @@ def build_materials(
 			),
 			name="gel_volumetric",
 		)
-	else:
+	elif user_inputs.volumetric_law == "quadratic":
 		volumetric = fenicsoft.materials.volumetric.QuadraticVolumetricPenalty(
 			kinematics=kin,
 			parameters=fenicsoft.materials.volumetric.VolumetricPenaltyParameters(kappa=coefficients.kappa),
 			name="gel_volumetric",
 		)
+	else:
+		raise ValueError(f"Unknown volumetric_law '{user_inputs.volumetric_law}'.")
 	hill_params = hill_law.Parameters(
 		phi_c=problem.phic_func,
 		f0=spherical_mod.f0_from_theta_phi(problem.theta_func, problem.phi_func),
