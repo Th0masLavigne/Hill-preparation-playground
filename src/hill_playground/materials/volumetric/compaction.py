@@ -1,6 +1,6 @@
 r"""Volumetric energy of the drained skeleton with a compaction point.
 
-equations.tex, Remark rem:compaction (Ehlers 1999):
+With :math:`J_c` the compaction point (solid volume per unit reference volume, Ehlers 1999):
 
 .. math::
 	W^{vol}_S = \kappa (1-J_c)^2 \big[x - \ln x - 1\big], \qquad

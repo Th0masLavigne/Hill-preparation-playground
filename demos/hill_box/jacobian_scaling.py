@@ -7,8 +7,10 @@ solver sees it, then reports:
 * the median :math:`|J_{ii}|` per row (subsol), Dirichlet rows excluded: the order of magnitude of
   each block, which the row scaling should bring to :math:`\mathcal O(1)` up to the mesh size.
 
-``"operator"`` and ``"parameters"`` must give the same matrix (module docstring of
-:mod:`hill_box_uniaxial`, section 4). Run ``python jacobian_scaling.py`` for the table.
+``"none"`` solves in SI; ``"operator"`` (each residual row multiplied by a constant ``scale_factor``) and
+``"parameters"`` (dimensionless coefficients) solve the same dimensionless system, hence must give the same
+matrix (see :mod:`hill_box_uniaxial`, "Nondimensionalisation"). Run ``python jacobian_scaling.py`` for the
+table.
 
 Reading the diagonals (scaled mesh, :math:`\hat h = h/L_0`): a row whose leading term is a mass
 term (:math:`\int \hat N_i^2\,\mathrm d\hat V \sim \hat h^3`: ``cell_fraction``, ``theta``, ``phi``,

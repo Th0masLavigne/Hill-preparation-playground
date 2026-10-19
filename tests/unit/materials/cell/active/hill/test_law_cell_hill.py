@@ -1,4 +1,4 @@
-"""Unit tests of the Hill-chain stress law (equations.tex, Eqs. S-h, P-h)."""
+"""Unit tests of the Hill-chain stress law: S_h = Phi_c T_e/I4 f0 x f0 and its push-forwards."""
 
 import math
 from typing import Any
@@ -42,7 +42,7 @@ def test_ce_stretch_and_tension(hill_setup: Any) -> None:
 
 
 def test_cauchy_along_current_fibre(hill_setup: Any) -> None:
-	"""sigma_h = phi_c T_e f x f (Eq. P-h): with F = diag(1.1, 1, 1), sigma_11 = (Phi_c/J) T_e."""
+	"""sigma_h = phi_c T_e f x f: with F = diag(1.1, 1, 1), sigma_11 = (Phi_c/J) T_e."""
 	hill_setup.u.interpolate(dolfin.Expression(("0.1*x[0]", "0.0", "0.0"), degree=1))
 	i4 = 1.1**2
 	expected = PHI_C / 1.1 * (K_E / 4.0) * (i4 - 1.0 / i4)
@@ -50,7 +50,7 @@ def test_cauchy_along_current_fibre(hill_setup: Any) -> None:
 
 
 def test_pk2_is_energy_derivative(hill_setup: Any) -> None:
-	"""S_h = 2 dW/dC at fixed eps_a (Eq. hill-overview), checked along a stretch path.
+	"""S_h = 2 dW/dC at fixed eps_a, checked along a stretch path.
 
 	With F = diag(s, 1, 1): dW/ds = P_11 = s S_11.
 	"""

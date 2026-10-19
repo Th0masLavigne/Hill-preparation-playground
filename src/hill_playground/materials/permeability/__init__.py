@@ -2,8 +2,9 @@ r"""Hydraulic conductivity laws :math:`k(\phi_\ell)/\eta` and their pull-back :m
 
 Target: ``fenicsoft.materials.permeability``.
 
-equations.tex, Eq. darcy-lag and Remark rem:kphi. Each law module has its own ``Parameters`` and
-``Permeability`` and only writes :math:`k/k_0` (``_ratio``, read as ``ratio``); :mod:`base` gives
+Darcy flux pulled back to the reference configuration, :math:`\mathbf K_L = (k/\eta) J\mathbf C^{-1}`,
+with an intrinsic permeability :math:`k` that may depend on the fluid fraction. Each law module has its
+own ``Parameters`` and ``Permeability`` and only writes :math:`k/k_0` (``_ratio``, read as ``ratio``); :mod:`base` gives
 :math:`k/\eta`, :math:`\mathbf K_L` and the porosity quantities, :mod:`porosity` holds the kinematic relations.
 
 ======================  =====================================================================================

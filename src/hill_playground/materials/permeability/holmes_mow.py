@@ -1,4 +1,4 @@
-r"""Holmes--Mow permeability for large deformations of hydrated tissues (equations.tex, Remark rem:kphi; Holmes 1990).
+r"""Holmes--Mow permeability for large deformations of hydrated tissues (Holmes 1990).
 
 .. math::
 	\frac{k}{k_0} = \Big(\frac{J - J_c}{1 - J_{c,0}}\Big)^{\kappa_{HM}} \exp\Big(\frac{M}{2}(J^2 - 1)\Big),

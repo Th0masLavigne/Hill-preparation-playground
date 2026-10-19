@@ -1,4 +1,4 @@
-r"""0D (homogeneous) reference of the Hill chain in the gel, written from equations.tex only.
+r"""0D (homogeneous) reference of the Hill chain in the gel, written from the model equations only.
 
 Independent of the UFL implementation (numpy + scipy), used by the one-element integration tests.
 
@@ -9,13 +9,13 @@ Homogeneous state, fibre :math:`\mathbf f_0 = \mathbf e_x`,
 	I_4 = \lambda^2, \quad J = \lambda\lambda_t^2, \quad I_1 = \lambda^2 + 2\lambda_t^2, \quad
 	I_{4e} = I_4 e^{-2\varepsilon_a}
 
-Gel (Eq. S-gel) and chain (Eq. S-h), PK2 diagonal:
+Gel (Neo-Hooke + quadratic volumetric) and chain (SEE stress), PK2 diagonal:
 
 .. math::
 	S^{gel}_{ii} = \mu J^{-2/3}\Big(1 - \frac{I_1}{3 C_{ii}}\Big) + \kappa J (J-1) \frac{1}{C_{ii}}, \qquad
 	S^h_{xx} = \Phi_c \frac{T_e(I_{4e})}{I_4}
 
-Contractile element, backward Euler on :math:`\varepsilon_a` (Eqs. Da-discrete, Ra):
+Contractile element, backward Euler on :math:`\varepsilon_a`:
 
 .. math::
 	r_a = f_{max}\alpha f_{FL}(e^{\varepsilon_a}) h(D_a) + \eta_0 D_a + T_p(\varepsilon_a) - T_e(I_{4e}) = 0,

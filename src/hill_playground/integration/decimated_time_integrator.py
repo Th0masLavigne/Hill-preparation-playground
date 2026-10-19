@@ -1,16 +1,13 @@
 """Throttled-XDMF-output variant of ``dolfin_mech.core.TimeIntegrator``, with an optional early exit.
 
-Status:
-    Copy of ``fenicsoft.integration.decimated_time_integrator`` (branch
-    ``64-reproduce-experiment-from-mostert-et-al-2``) with two changes, to report into fenicsoft
-    (search ``CHANGE (playground)`` in this file):
+Output options (blocks tagged ``CHANGE (playground)``):
 
     1. ``functions_to_write``: explicit list of the functions written in the results XDMF (e.g. SI
        fields only), instead of every subsol + every ``*_old`` copy + every FOI.
     2. Logs on rank 0 only (``root_only_logs=True``): ``dolfin_mech``/``myPythonLibrary`` printers
        open the ``.out``, ``.sta`` and ``.dat`` files on *every* MPI rank with independent buffers and
-       offsets, so under ``mpirun`` the ranks overwrite each other once the buffers flush (the file
-       becomes unreadable after a while). Non-root ranks now write to ``os.devnull``; every logged
+       offsets, so under ``mpirun`` the ranks would overwrite each other once the buffers flush.
+       Non-root ranks write to ``os.devnull``; every logged
        value is already MPI-reduced (norms, QOIs), so nothing is lost.
        The Newton lines are covered too: the base constructor sets ``solver.printer = self.printer``.
 
@@ -62,26 +59,16 @@ itself uses internally to know a step has finished) is always written, never dec
 Without this, a coarse period on a long hold could easily miss that step's own final state by
 chance (neither an integer period's substep count nor a ``TimeInterval``'s elapsed-time count need
 divide the step's own total exactly), which matters in practice: it is the one frame that shows
-the state the *next* step (or the next stage, via ``cut_to_core_*.py``) actually continues from,
-distinct from -- and in addition to -- the true end-of-run final state, which is always separately
-available regardless of ``write_period`` via each demo's own ``checkpoint_solution``-style
-checkpoint write (see the note below).
+the state the *next* step actually continues from.
 
 Note:
-    The exact *final* converged state of every registered subsol is always available
-    regardless of ``write_period``, via each demo's own ``checkpoint_solution``-style
-    end-of-run checkpoint write (the actual input ``cut_to_core_*.py`` scripts read) -- that is
-    a completely separate write path from the ``TimeIntegrator``'s own per-substep XDMF time
-    series this module throttles, so a coarse ``write_period`` never risks losing the one frame
-    that matters most for chaining stages together. The per-step "always write the step's own
-    last substep" guarantee above is a *different*, complementary safeguard: it keeps every
-    intermediate step's own end-of-step frame visible in the XDMF time series itself (for
-    plotting/inspection), not just in that one separate checkpoint file.
+    This module throttles only the per-substep XDMF time series. A checkpoint of the final state
+    written by the caller (separate write path) is not affected by ``write_period``.
 
 Early exit on a plateaued step (``min_simu_seconds``):
     A step can optionally exit *before* reaching its own ``t_fin``, once every monitored subsol's
-    own rate of change has plateaued below a tunable multiple of that subsol's own Newton solver
-    tolerance (``solver_parameters["sol_tol"]``) -- the intuition being that once nothing is
+    own substep-to-substep relative change has dropped below ``stagnation_plateau_relative_error``
+    -- the intuition being that once nothing is
     changing any further (within the solver's own noise floor), continuing to burn simulated time
     (and wall-clock time) to reach the step's originally-planned ``t_fin`` adds nothing. This is
     opt-in and per step: it activates only for a step whose own ``fenicsoft.io.Step.min_simu_seconds``
@@ -91,25 +78,21 @@ Early exit on a plateaued step (``min_simu_seconds``):
 
     A step with ``min_simu_seconds=None`` (the default -- see ``fenicsoft.io.Step``) takes the
     *exact* same path through this override as it would through the unmodified base-class loop:
-    the new plateau check is skipped entirely (never even evaluated), so nothing about this
-    feature changes behavior for any existing caller.
+    the plateau check is skipped entirely (never even evaluated).
 
     **The criterion itself is a direct relative-error threshold, not a rate:** see
     :func:`is_subsol_stagnant`'s own docstring for the full reasoning and its known trade-off --
     in short, a subsol is judged stagnant once its own substep-to-substep relative change
     (:func:`_relative_error`) drops below ``stagnation_plateau_relative_error``, with no
-    normalization by ``dt``. This is deliberately simpler than an earlier, rate-based design
-    that divided by ``dt`` and anchored the threshold to the step's own ``dt_ini``
-    specifically to keep the verdict independent of whatever the current adaptive ``dt``
-    happened to be; the direct comparison trades that independence away for a threshold whose
-    unit (a plain relative error) is immediately legible on its own.
+    normalization by ``dt``: the threshold is a plain relative error, at the price of a verdict
+    that depends on the current adaptive ``dt``.
 
     **Interaction with write throttling:** the step's own natural end (``t == t_fin``) is already
     always kept by :class:`_DecimatedXDMFFile`, unassisted, because ``t`` itself matches ``t_fin``.
     A plateau exit is different: ``t`` generally does *not* match ``t_fin`` (the step stopped
     early), so left alone the period rule could silently decimate away the one frame showing the
-    state everything downstream (the next step, ``cut_to_core_*.py``, ...) actually continues
-    from. To prevent that, :meth:`_DecimatedXDMFFile.write` now accepts an explicit ``force``
+    state everything downstream (the next step, a restart, ...) actually continues
+    from. To prevent that, :meth:`_DecimatedXDMFFile.write` accepts an explicit ``force``
     flag, and this override's own write call passes ``force=True`` whenever the current substep
     ends the step for *either* reason (natural completion or a plateau exit) -- redundant, but
     harmless, for the natural-completion case (already forced by the ``t == t_fin`` check on its
@@ -342,9 +325,7 @@ class _DecimatedXDMFFile:
 		        :meth:`DecimatedTimeIntegrator.integrate` to guarantee a plateau-triggered early
 		        exit's own last substep, and a hard-failure exit's own last successfully converged
 		        substep, are never decimated away (module docstring, "Early exit on a plateaued
-		        step" and "Guaranteed last frame on a hard failure"). Defaults to False,
-		        reproducing this method's own prior signature/behavior exactly for every
-		        pre-existing caller.
+		        step" and "Guaranteed last frame on a hard failure"). Defaults to False.
 
 		Note:
 		    A call whose own ``t`` exactly matches (within :data:`_STEP_END_ABS_TOL`) the last
@@ -543,13 +524,12 @@ class DecimatedTimeIntegrator(dolfin_mech.core.TimeIntegrator):
 		``None`` -- matching ``dolfin_mech.core.nonlinearsolver.NonlinearSolver.exit_test``'s own
 		convention for which subsols actually gate convergence. ``sol_tol`` is consulted only for
 		this monitored/unmonitored gate here -- it plays no role in the stagnation threshold itself
-		(see :func:`is_subsol_stagnant`), unlike an earlier design where it did too. Reads
+		(see :func:`is_subsol_stagnant`). Reads
 		``subsol.func``/``subsol.func_old`` (the converged values at the end of this substep and the
 		end of the previous one, respectively -- exactly what ``NonlinearSolver.compute_sol_norm``
 		itself reads for its own per-iteration norms), and takes the vector difference the same way
 		``NonlinearSolver.assemble_linear_system`` already does for ``dres_vec``
-		(``self.res_vec - self.res_old_vec``) -- an already-proven pattern in this exact
-		``dolfin_mech`` version, not a new one.
+		(``self.res_vec - self.res_old_vec``).
 
 		Wrapped in an ``MPI.COMM_WORLD.allreduce(..., op=MPI.MIN)`` for defensive parallel
 		consistency, matching this integrator's own established pattern for every other

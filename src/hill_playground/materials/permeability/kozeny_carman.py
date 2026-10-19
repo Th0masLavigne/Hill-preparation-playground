@@ -1,4 +1,4 @@
-r"""Kozeny--Carman permeability (equations.tex, Remark rem:kphi; Carman 1937).
+r"""Kozeny--Carman permeability (Carman 1937).
 
 .. math::
 	\frac{k}{k_0} = \frac{\phi_\ell^3/(1-\phi_\ell)^2}{\phi_{\ell,0}^3/(1-\phi_{\ell,0})^2},

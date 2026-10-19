@@ -1,4 +1,4 @@
-"""Unit tests of the clipped SaturatedProliferation (equations.tex, Eq. prolif)."""
+"""Unit tests of the clipped SaturatedProliferation: r <1 - Phi_c/Phi_c,max>_+ Phi_c."""
 
 import math
 

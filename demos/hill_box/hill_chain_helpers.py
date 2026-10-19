@@ -1,15 +1,18 @@
 r"""Demo-side helpers of the Hill-chain demos.
 
-:math:`\mathbf{K}_L = (k/\eta)\, J\, \mathbf{C}^{-1}` moved to ``hill_playground.materials.permeability``.
-
-* :func:`check_hill_uniqueness`: sufficient condition (Eq. uniqueness) for a unique CE equilibrium.
+* :func:`check_hill_uniqueness`: sufficient condition for a unique contractile-element (CE) equilibrium.
 """
 
 import math
 
 
 def check_hill_uniqueness(k_e: float, k_p: float, f_max: float, lmbda_opt: float, width: float) -> float:
-	r"""Check :math:`k_e + k_p > f_{max} \max_\lambda |f_{FL}'(\lambda)\,\lambda|` (Eq. uniqueness).
+	r"""Check :math:`k_e + k_p > f_{max} \max_\lambda |f_{FL}'(\lambda)\,\lambda|`.
+
+	With :math:`f_{FL}(\lambda) = \exp(-((\lambda - \lambda_{opt})/W)^2)`, the series (SEE, :math:`k_e`) and
+	parallel (PEE, :math:`k_p`) stiffnesses then dominate the softening of the force--length law: the CE
+	equilibrium :math:`\lambda_a` is unique (no descending-limb instability). The max is sampled on
+	:math:`\lambda \in [0.05, 3]`.
 
 	Args:
 	    k_e: SEE stiffness (Pa).

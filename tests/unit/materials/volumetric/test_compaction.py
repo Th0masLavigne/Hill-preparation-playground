@@ -1,4 +1,4 @@
-"""Unit tests of the compaction volumetric energy (equations.tex, Eqs. W-vol-compaction, S-vol-compaction)."""
+"""Unit tests of the compaction volumetric energy W = kappa (1-J_c)^2 [x - ln x - 1], x = (J-J_c)/(1-J_c)."""
 
 import math
 from typing import Any

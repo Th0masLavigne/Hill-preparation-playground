@@ -109,9 +109,8 @@ def test_from_consolidation_scale_makes_the_darcy_block_o1_when_stress_equals_ka
 def test_from_consolidation_scale_scales_permeability_over_viscosity_by_stress_over_kappa() -> None:
 	"""When stress != consolidation_modulus: scale = (k/eta) kappa/mu0, hence K_hat = mu0/kappa.
 
-	L0^2/(mu0 t0) with t0 = L0^2 eta/(k kappa) gives (k/eta) kappa/mu0 (equations.tex, Table
-	tab:groups: K_hat_gel = mu0/kappa_gel = 1.20). Fixed from the fenicsoft demo-side original,
-	which expected the inverted ratio mu0/kappa for the scale itself.
+	L0^2/(mu0 t0) with t0 = L0^2 eta/(k kappa) gives (k/eta) kappa/mu0 (e.g. mu0 = 1700 Pa,
+	kappa_gel = 1417 Pa: K_hat_gel = mu0/kappa_gel = 1.20).
 	"""
 	permeability, viscosity, kappa_gel, mu0 = 1.0e-14, 1.0e-3, 1417.0, 1700.0
 	scales = CharacteristicScales.from_consolidation_scale(

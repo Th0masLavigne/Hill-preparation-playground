@@ -2,9 +2,9 @@ r"""Per-row settings of a monolithic residual: quadrature degree, test-function 
 
 A row of the monolithic system gathers every term tested by the same test function, i.e. by
 the same subsol: a row is named after its subsol (``"displacement"``, ``"liquid_pressure"``, ...).
-With the scaled mesh and unknowns (equations.tex, Part II, Table tab:dict), the FE test function is
-the dimensionless :math:`\delta\hat x_k` while the residual :math:`R_k` of Table tab:N is written with
-:math:`\delta x_k = s_k\,\delta\hat x_k` (:math:`s_{\mathbf u} = L_0`, :math:`s_p = \mu_0`, else 1).
+With the scaled mesh and unknowns (:math:`\hat{\mathbf X} = \mathbf X/L_0`, :math:`\hat x_k = x_k/s_k`),
+the FE test function is the dimensionless :math:`\delta\hat x_k` while the SI residual :math:`R_k` is written
+with :math:`\delta x_k = s_k\,\delta\hat x_k` (:math:`s_{\mathbf u} = L_0`, :math:`s_p = \mu_0`, else 1).
 For a term of value-preserving factor :math:`v` (SI integral = :math:`v` times the form written on the
 scaled mesh and unknowns, with the FE test function):
 
@@ -13,7 +13,7 @@ scaled mesh and unknowns, with the FE test function):
 	\texttt{scale\_factor} = \frac{s_k\, v}{\mathcal N_k}, \qquad
 	\texttt{measure} = \mathrm{d}V(\text{degree} = q_k)
 
-(Table tab:sf). Missing settings default to :math:`s_k = 1`, :math:`\mathcal N_k = 1` and the problem's
+Missing settings default to :math:`s_k = 1`, :math:`\mathcal N_k = 1` and the problem's
 quadrature degree. ``dV(degree=q)`` is integral metadata: FFC applies it to these integrals only,
 also inside a summed residual (rank 1) and in the Jacobian derived from it (rank 2).
 

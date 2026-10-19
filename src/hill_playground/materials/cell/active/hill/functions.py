@@ -1,10 +1,11 @@
 r"""UFL building blocks of the cell Hill chain SEE -- (CE :math:`\parallel` PEE).
 
-equations.tex, Sec. "The cell Hill chain". Pure functions shared by the stress law
-(:math:`R_u`) and the CE evolution operator (:math:`R_a`), so that :math:`T_e`, :math:`T_p`,
-:math:`f_{FL}` and :math:`h` are written once.
+Series elastic element (SEE), contractile element (CE), parallel elastic element (PEE). Pure functions
+shared by the stress law (:math:`R_u`) and the CE evolution operator (:math:`R_a`), so that :math:`T_e`,
+:math:`T_p`, :math:`f_{FL}` and :math:`h` are written once.
 
-Internal variable: :math:`\varepsilon_a = \ln\lambda_a` (appendix "eps_a"), hence
+Internal variable: the CE log-stretch :math:`\varepsilon_a = \ln\lambda_a` (multiplicative split of the
+fibre stretch :math:`\lambda = \lambda_e\lambda_a`), hence
 
 .. math::
 	\lambda_a = e^{\varepsilon_a}, \qquad I_{4e} = I_4\, e^{-2\varepsilon_a}, \qquad
@@ -20,14 +21,14 @@ import dolfin
 from ....ufl_functions import floored, macaulay
 
 SeeVariant = Literal["mooney", "tension_only", "exponential"]
-"""SEE law: ``"mooney"`` (baseline, Eq. springs), ``"tension_only"``, ``"exponential"``."""
+"""SEE law: ``"mooney"`` (baseline), ``"tension_only"``, ``"exponential"`` (see :func:`see_tension`)."""
 
 SEE_VARIANTS: tuple[str, ...] = get_args(SeeVariant)
 """Values of :data:`SeeVariant`, for runtime checks (``Literal`` is static only)."""
 
 
 def fibre_invariant(kinematics: Any, f0: Any, floor: float = 1e-6) -> Any:
-	r""":math:`I_4 = \mathbf{f}_0 \cdot \mathbf{C}\,\mathbf{f}_0`, floored (Eq. I4).
+	r""":math:`I_4 = \mathbf{f}_0 \cdot \mathbf{C}\,\mathbf{f}_0`, floored (squared fibre stretch).
 
 	Args:
 	    kinematics: Object exposing ``C``.
@@ -41,7 +42,7 @@ def fibre_invariant(kinematics: Any, f0: Any, floor: float = 1e-6) -> Any:
 
 
 def elastic_invariant(inv4: Any, eps_a: Any) -> Any:
-	r""":math:`I_{4e} = I_4 / \lambda_a^2 = I_4\, e^{-2\varepsilon_a}` (Eq. Psi-h).
+	r""":math:`I_{4e} = I_4 / \lambda_a^2 = I_4\, e^{-2\varepsilon_a}` (squared SEE stretch).
 
 	Args:
 	    inv4: :math:`I_4`.
@@ -54,7 +55,7 @@ def elastic_invariant(inv4: Any, eps_a: Any) -> Any:
 
 
 def see_tension(inv4e: Any, k_e: Any, variant: str = "mooney", k_2e: Any = 0.0) -> Any:
-	r"""SEE tension :math:`T_e = 2 I_{4e}\, \partial\Psi_e / \partial I_{4e}` (Eq. springs and variants).
+	r"""SEE tension :math:`T_e = 2 I_{4e}\, \partial\Psi_e / \partial I_{4e}`.
 
 	.. math::
 		\text{mooney: } T_e = \tfrac{k_e}{4}(I_{4e} - I_{4e}^{-1}), \quad
@@ -141,7 +142,7 @@ def pee_energy(eps_a: Any, k_p: Any) -> Any:
 
 
 def force_length(eps_a: Any, lmbda_opt: Any, width: Any) -> Any:
-	r"""Gaussian force--length law on the CE stretch (Eq. ce-law).
+	r"""Gaussian force--length law on the CE stretch.
 
 	.. math::
 		f_{FL}(\lambda_a) = \exp\big(-((\lambda_a - \lambda_{opt})/W)^2\big), \qquad \lambda_a = e^{\varepsilon_a}
@@ -158,7 +159,7 @@ def force_length(eps_a: Any, lmbda_opt: Any, width: Any) -> Any:
 
 
 def force_velocity(rate: Any, hill_a: Any, hill_b: Any, f_ecc: Any) -> Any:
-	r"""Hill force--velocity :math:`h(D_a)` (Eqs. hill-hyperbola, hill-ecc).
+	r"""Hill force--velocity :math:`h(D_a)`: Hill hyperbola when shortening, saturating when lengthening.
 
 	.. math::
 		h = \frac{(1+A)\,b}{b - D_a} - A \quad (D_a \le 0), \qquad

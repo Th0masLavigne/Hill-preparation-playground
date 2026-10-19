@@ -1,10 +1,13 @@
-r"""Residual :math:`R_a` of the contractile element, implicit force form (equations.tex, Eq. Ra).
+r"""Residual :math:`R_a` of the contractile element, implicit force form.
 
 .. math::
 	R_a = \int_{\Omega_0^{gel}} \Big[ f_{max}\,\alpha\, f_{FL}(\lambda_a)\, h(D_a) + \eta_0 D_a
 	      + T_p(\lambda_a) - T_e\big(I_4 / \lambda_a^2\big) \Big]\, \delta\varepsilon \, \mathrm{d}V
 
-Unknown :math:`\varepsilon_a = \ln\lambda_a` (DG0); exponential-map rate (Eqs. Da-discrete, epsa):
+with :math:`T_0 = f_{max}\alpha f_{FL}` the isometric tension, :math:`h` the force--velocity law,
+:math:`T_p` the PEE and :math:`T_e` the SEE tensions (``hill_playground.materials.cell.active.hill``).
+Unknown :math:`\varepsilon_a = \ln\lambda_a` (DG0); exponential-map rate (backward Euler on
+:math:`\varepsilon_a`, so :math:`\lambda_a > 0` for any step):
 
 .. math::
 	D_a = \frac{\varepsilon_a - \varepsilon_a^n}{\Delta t}

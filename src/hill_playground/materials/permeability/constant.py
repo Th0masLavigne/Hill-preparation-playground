@@ -1,4 +1,4 @@
-r"""Constant intrinsic permeability (Hypothesis h:frozen).
+r"""Constant intrinsic permeability (independent of the deformation and of the cell fraction).
 
 .. math::
 	k = k_0, \qquad \mathbf K_L = \frac{k_0}{\eta} J\mathbf C^{-1}

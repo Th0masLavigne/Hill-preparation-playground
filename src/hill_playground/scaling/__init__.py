@@ -1,4 +1,4 @@
-r"""Characteristic scales for the dimensionless residuals (equations.tex, Part II).
+r"""Characteristic scales :math:`L_0, \mu_0, t_0, \rho_0` for the dimensionless residuals.
 
 Target: ``fenicsoft.scaling``.
 """

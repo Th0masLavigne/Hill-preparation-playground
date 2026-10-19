@@ -1,9 +1,20 @@
 r"""Terzaghi consolidation solved three ways: SI, operator ``scale_factor``, dimensionless parameters.
 
-Same physics as the gel of the Hill demos: Neo-Hooke :math:`\mu` + :math:`\frac{\kappa}{2}(J-1)^2`,
+Poro-elastic gel: Neo-Hooke :math:`\mu` + :math:`\frac{\kappa}{2}(J-1)^2`,
 biphasic fluid stress :math:`-Jp\mathbf F^{-T}`, Darcy with :math:`\mathbf K_L = (k/\eta) J \mathbf C^{-1}`.
 Column :math:`[0, L] \times [0, h]^2` (3D, one cell across), lateral rollers, :math:`u_x = 0` at
 :math:`x = L` (impermeable), load :math:`p_0` and :math:`p = 0` at :math:`x = 0`, :math:`p(t=0) = p_0`.
+
+.. code-block:: text
+
+            x = 0                                        x = L
+              |<------------------- L ------------------->|
+              +-------------------------------------------+
+     p0 ----> |                                           | u_x = 0
+     p = 0    |             gel column [0, h]^2           | impermeable
+   (drained)  |                                           |
+              +-------------------------------------------+
+               lateral faces: rollers (u . n = 0), impermeable
 
 Small-strain analytical solution (:math:`M = \kappa + \frac43\mu`, :math:`c_v = (k/\eta) M`,
 :math:`T = c_v t / L^2`, :math:`m_j = (2j-1)\pi/2`):
@@ -17,7 +28,7 @@ Modes (scales :math:`L_0 = L`, :math:`\mu_0 = \mu`, :math:`t_0 = L_0^2\eta/(k\ka
 * ``"none"``: mesh :math:`X`, unknowns :math:`(u, p)`, SI coefficients, row factors 1;
 * ``"operator"``: mesh :math:`\hat X`, unknowns :math:`(\hat u, \hat p)`, SI coefficients and time,
   ``scale_factor`` :math:`= s_k v/\mathcal N_k` with the test scales :math:`s_{\mathbf u} = L_0`,
-  :math:`s_p = \mu_0` (Table tab:sf, corrected 2026-10-18);
+  :math:`s_p = \mu_0`;
 * ``"parameters"``: mesh :math:`\hat X`, unknowns :math:`(\hat u, \hat p)`, coefficients
   :math:`(\hat\mu, \hat\kappa, \hat K, \hat p_0)` and time :math:`\hat t`, row factors 1.
 
@@ -178,7 +189,7 @@ class _Solve:
 				test_scales={},
 				normalizations={},
 			)
-		# "none" (s = identity: every factor is 1) and "operator" (SI coefficients, Table tab:sf rows):
+		# "none" (s = identity: every factor is 1) and "operator" (SI coefficients, scaled rows):
 		# scale_factor = s_row v / N_row, v = SI integral / form on the scaled mesh and unknowns (FE test
 		# function), s_row = scale of the row's test function (du = L0 du_hat, dp = mu0 dp_hat).
 		volume = s.length**3

@@ -4,7 +4,7 @@ r"""Compaction power law: permeability written on the Lagrangian fluid content :
 	\frac{k}{k_0} = \Big(\frac{\Phi_\ell}{\Phi_{\ell,0}}\Big)^n = \Big(\frac{J - J_c}{1 - J_{c,0}}\Big)^n,
 	\qquad J_c = \Phi_{s,0} + \Phi_c, \qquad n \ge 1
 
-Why this form (equations.tex, Remark rem:kphi). Written on :math:`(J, \Phi_c)` it vanishes exactly at
+Why this form. Written on :math:`(J, \Phi_c)` it vanishes exactly at
 the compaction point :math:`\phi_\ell = 0 \Leftrightarrow J = J_c`, with a controlled order :math:`n`.
 Near :math:`J_c`, the drainage rate behaves like :math:`\dot J \sim -(J - J_c)^n`, so :math:`J = J_c`
 is reached in finite time if and only if :math:`n < 1`: :math:`n \ge 1` keeps :math:`J > J_c` and

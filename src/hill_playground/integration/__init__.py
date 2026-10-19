@@ -1,7 +1,7 @@
-"""Time integration (target: ``fenicsoft.integration``).
+"""Time integration.
 
-:mod:`.decimated_time_integrator` is a copy of the fenicsoft module with two changes to report
-(``functions_to_write``, rank-0 logs): see its ``Status``.
+:mod:`.decimated_time_integrator`: adaptive time integrator with throttled XDMF output, early exit on a
+plateau, selected output fields and rank-0 logs.
 """
 
 from .decimated_time_integrator import DecimatedTimeIntegrator, TimeInterval, should_write_at_call

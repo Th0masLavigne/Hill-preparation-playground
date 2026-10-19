@@ -1,7 +1,7 @@
 # Hill-preparation-playground
 
-Workspace to go **from equations to simulation** for the Hill-chain smooth muscle cell model
-(`lms_equations_poro/equations.tex`, implementation plan in `code.tex`), before transfer into
+Workspace to go **from equations to simulation** for the Hill-chain smooth muscle cell model,
+before transfer into
 [`fenicsoft`](https://src.koda.cnrs.fr/lms1/jean-marc-allain/fenicsoft).
 
 The package `hill_playground` mirrors the `fenicsoft` tree one-to-one:
@@ -90,4 +90,4 @@ for the `local` mode, or use `FENICSOFT_SOURCE=remote`.
 
 | Demo | Content |
 | --- | --- |
-| `demos/hill_box/` | equations.tex on a gel box held on two faces, drained elsewhere (simplified stage B) |
+| `demos/hill_box/` | Active poro-elastic gel slab with Hill-chain cells, clamped on its two $x$-faces, drained and traction-free elsewhere |

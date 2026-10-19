@@ -1,15 +1,9 @@
-r"""Characteristic scales for nondimensionalizing the porous microtissue-pillar problem.
-
-Status:
-	Promoted copy (plus ``identity()`` and corrected docstrings) of the demo-side ``CharacteristicScales`` of fenicsoft
-	(``demos/smooth_muscle_cells/porous_hydrogel/microtissue_pillar_spherical_scale/src``,
-	branch ``64-reproduce-experiment-from-mostert-et-al-2``), as that module's own status note
-	asks. Target: ``fenicsoft.scaling``.
+r"""Characteristic scales for nondimensionalizing a monolithic poromechanics problem.
 
 This module provides the :class:`CharacteristicScales` dataclass: four base characteristic
 scales (length, stress, time, density) and the paired ``nondimensionalize_*``/
 ``redimensionalize_*`` conversions derived from them, used to rescale every residual block of
-the monolithic triphasic poromechanics problem so its Jacobian's diagonal spans a much smaller
+a monolithic poromechanics problem so its Jacobian's diagonal spans a much smaller
 range of orders of magnitude than the raw-SI system does.
 
 **Why four base scales, and why this particular time scale.** Length (:math:`L_0`), stress
@@ -51,7 +45,7 @@ class CharacteristicScales:
 
 	Attributes:
 		length (float): Characteristic length :math:`L_0`, in metres. Typically the sample's own
-			overall radius or a representative pillar spacing.
+			overall size, or its drainage length.
 		stress (float): Characteristic stress :math:`\mu_0`, in pascals. Typically the gel's own
 			shear modulus.
 		time (float): Characteristic time :math:`t_0`, in seconds. Not a free choice in practice
@@ -173,12 +167,9 @@ class CharacteristicScales:
 			\qquad
 			\hat K_{gel} = \frac{k_{gel}/\eta}{L_0^2/(\mu_0 t_0)} = \frac{\mu_0}{\kappa_{gel}}
 
-		(equations.tex, Table tab:groups: :math:`\hat K_{gel} = 1.20`). Both equal
-		:math:`k_{gel}/\eta` and 1 only when ``stress == consolidation_modulus``.
-
-		Note:
-		    Docstring corrected from the fenicsoft demo-side original, which stated
-		    :math:`(k/\eta)\,\mu_0/\kappa` (ratio inverted); the code is unchanged.
+		The first equals :math:`k_{gel}/\eta`, and :math:`\hat K_{gel}` equals 1, only when
+		``stress == consolidation_modulus`` (e.g. :math:`\mu_0 = 1700` Pa, :math:`\kappa_{gel} = 1417` Pa gives
+		:math:`\hat K_{gel} = 1.20`).
 		"""
 		return self.length**2 / (self.stress * self.time)
 

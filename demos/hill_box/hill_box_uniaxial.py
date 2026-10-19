@@ -1,11 +1,31 @@
-r"""Hill box: the model of equations.tex on a gel slab held on two faces (simplified stage B).
+r"""Hill box: an active poro-elastic gel slab clamped on two opposite faces.
 
-A first check of the implementation before the microtissue-pillar demos: the CORE gel of
-stage B, without pillars, held by its two x-faces.
+A hydrogel slab seeded with randomly oriented contractile cells (Hill chain) is clamped at both
+ends of its long axis :math:`x` and drained on its four other faces. Under the activation
+:math:`\alpha(t)` the cells contract: the gel shortens across :math:`x`, expels liquid, and the
+cells may migrate, proliferate and reorient.
 
 1. Geometry and boundary conditions
--------------------------------------
-Box :math:`\Omega_0 = [0, L_x] \times [0, L_y] \times [0, L_z]` (``BoxGeometry``), all gel.
+-----------------------------------
+Box :math:`\Omega_0 = [0, L_x] \times [0, L_y] \times [0, L_z]` (``BoxGeometry``), all gel
+(default :math:`875 \times 375 \times 50\ \mu\mathrm{m}`).
+
+.. code-block:: text
+
+                         TOP (z = L_z)
+                 +---------------------------+
+                /|      BACK (y = L_y)      /|
+               / |                         / |
+              +---------------------------+  |
+     LEFT     |  |                        |  |     RIGHT
+     x = 0    |  +------------------------|--+     x = L_x
+     u = 0    | /                         | /      u = 0
+              |/       FRONT (y = 0)      |/
+              +---------------------------+
+                       BOTTOM (z = 0)
+       z  y
+       | /        LEFT, RIGHT              : u = 0, impermeable
+       |/___ x    FRONT, BACK, TOP, BOTTOM : p = 0 (drained), traction-free
 
 * :math:`\mathbf{u} = \mathbf{0}` on ``LEFT`` (:math:`x=0`) and ``RIGHT`` (:math:`x=L_x`), impermeable there;
 * :math:`p = 0` (drained) and traction-free on ``FRONT``, ``BACK``, ``BOTTOM``, ``TOP``;
@@ -28,8 +48,8 @@ Switched off, :math:`\theta,\varphi` stay at their random draw and :math:`\Phi_c
 (uniform data): the remaining problem is :math:`(R_u, R_p, R_a)`, the poro-elastic gel with the
 Hill chain.
 
-3. Residuals (equations.tex, Sec. "Weak forms and residuals")
----------------------------------------------------------------
+3. Residuals
+------------
 .. math::
 	R_u &= \int \big(\mathbf{P}_S + \mathbf{P}_h - J p \mathbf{F}^{-T}\big) : \nabla\delta\mathbf{u}\,\mathrm{d}V \\
 	R_p &= \int \frac{J - J^n}{\Delta t}\delta p + \mathbf{K}_L \nabla p \cdot \nabla\delta p
@@ -44,11 +64,16 @@ Hill chain.
 	R_s &= \int \Big(\tilde\phi_s - \frac{\Phi_{s,0}}{J}\Big)\delta\phi_s\,\mathrm{d}V
 
 with :math:`\mathbf{P}_S` the Neo-Hookean + volumetric gel (section 5),
-:math:`\mathbf{P}_h = \mathbf{F}\,\Phi_c T_e/I_4\,\mathbf{f}_0\otimes\mathbf{f}_0` (Hill chain) and
-:math:`\mathbf{Q}_c` the diffusive + haptotactic cell flux.
+:math:`\mathbf{P}_h = \mathbf{F}\,\Phi_c T_e/I_4\,\mathbf{f}_0\otimes\mathbf{f}_0` (Hill chain),
+:math:`I_4 = \mathbf f_0\cdot\mathbf C\mathbf f_0`, :math:`\mathbf{Q}_c` the diffusive + haptotactic cell
+flux, :math:`\mathrm{sat} = \langle 1 - \Phi_c/\Phi_{c,max}\rangle_+` and :math:`Q` the orientation potential. In
+:math:`R_a`, the cell is an elastic element (SEE, tension :math:`T_e`) in series with a contractile
+element (CE, stretch :math:`\lambda_a = e^{\varepsilon_a}`, rate :math:`D_a = \dot\varepsilon_a`) itself in
+parallel with a passive element (PEE, tension :math:`T_p`); :math:`f_{FL}` is the Gaussian force--length law
+and :math:`h` the Hill force--velocity law (``hill_playground.materials.cell.active.hill``).
 
-4. Nondimensionalisation (equations.tex, Part II)
----------------------------------------------------
+4. Nondimensionalisation
+------------------------
 Inputs are SI. Scales :math:`L_0 = L_z` (drainage length), :math:`\mu_0 = \mu_{gel}`,
 :math:`t_0 = L_0^2\eta/(k\,\kappa_{gel})` (``CharacteristicScales``). ``nondimensionalization``:
 
@@ -64,8 +89,8 @@ Rows are named after the subsol of their test function (``ResidualRows``): for `
 ``scale_factor`` :math:`= s\,v/\mathcal N_{row}` with :math:`v` the term's value-preserving factor
 (``TermValues``: SI integral = :math:`v` times the form on the scaled mesh and unknowns, FE test function),
 :math:`s` the scale of the row's test function (:math:`\delta\mathbf u = L_0\delta\hat{\mathbf u}`,
-:math:`\delta p = \mu_0\delta\hat p`, Table tab:dict) and :math:`\mathcal N_{row}` the row normalization
-(Table tab:N: :math:`\mu_0 L_0^3` for ``displacement`` and ``eps_a``, :math:`\mu_0 L_0^3/t_0` for
+:math:`\delta p = \mu_0\delta\hat p`) and :math:`\mathcal N_{row}` the row normalization
+(:math:`\mu_0 L_0^3` for ``displacement`` and ``eps_a``, :math:`\mu_0 L_0^3/t_0` for
 ``liquid_pressure``, :math:`L_0^3/t_0` for ``cell_fraction``, ``theta``, ``phi``, :math:`L_0^3` for
 ``substrate_smoothed``):
 
@@ -85,9 +110,7 @@ contractile element                ``eps_a``               :math:`L_0^3`        
 =================================  ======================  ===================  =======================
 
 The resulting system is the one of ``"parameters"`` (same Jacobian, checked by
-``tests/integration/demos/test_hill_box_scaling.py``). Before 2026-10-18 the factors omitted :math:`s`
-(equations.tex Table tab:sf): the ``displacement`` row was :math:`1/L_0` too large and the
-``liquid_pressure`` row :math:`1/\mu_0` too small (same solution, :math:`\kappa_2` 9.3e8 instead of 7.5e4).
+``tests/integration/demos/test_hill_box_scaling.py``).
 
 ``quadrature_degrees`` (same row names) sets a quadrature degree per row (``ResidualRows.measure``).
 
@@ -102,8 +125,8 @@ With ``xdmf_si_only`` (default) the XDMF holds only SI fields: the dimensionless
 Exported fields and QOIs are SI in every mode, with the same names, order and spaces
 (:math:`\mathbf u`, :math:`p` projected on the spaces of the unknowns: point data in ParaView).
 
-5. Skeleton options (equations.tex, Remarks rem:kphi, rem:compaction)
------------------------------------------------------------------------
+5. Skeleton options
+-------------------
 :math:`J_c = \Phi_{s,0} + \Phi_c` (compaction point, :math:`\phi_\ell = 0`).
 
 * ``permeability_law``: ``"constant"`` :math:`k_0`; ``"kozeny_carman"``; ``"holmes_mow"``;
@@ -242,7 +265,7 @@ class UserInputs:
 	    stem_mesh_name: Mesh file stem.
 	"""
 
-	# --- Geometry: the CORE gel patch of the pillar demos ---
+	# --- Geometry ---
 	length_x: float = 875e-6
 	width_y: float = 375e-6
 	thickness_z: float = 50e-6
@@ -267,7 +290,7 @@ class UserInputs:
 	gel_kappa: float = 1417.0
 	volumetric_law: VolumetricLaw = "compaction"
 
-	# --- Hill chain (equations.tex, Table tab:groups) ---
+	# --- Hill chain ---
 	f_max: float = 20e3
 	lmbda_opt: float = 1.05
 	width_fl: float = 0.3
@@ -310,9 +333,9 @@ class UserInputs:
 	# --- Time ---
 	steps: Sequence[io.Step] = field(
 		default_factory=lambda: (
-			# io.Step(duration=60.0, init_dt=10.0, min_dt=0.25),  # ramp, dt ~ tau_a
+			io.Step(duration=60.0, init_dt=10.0, min_dt=0.25),  # ramp, dt ~ tau_a
 			# io.Step(duration=600.0, init_dt=60.0, min_dt=0.25, max_dt=60.0),  # hold
-			io.Step(duration=600.0, init_dt=30.0, min_dt=5.0),  # step 0: 0% -> 100% ramp, 10 min
+			# io.Step(duration=600.0, init_dt=30.0, min_dt=5.0),  # step 0: 0% -> 100% ramp, 10 min
 			io.Step(duration=42000.0, init_dt=30.0, min_dt=1.0, max_dt=100.0, min_simu_seconds=3 * 3600),
 		)
 	)
@@ -324,7 +347,7 @@ class UserInputs:
 	)
 
 	# --- Solver ---
-	sol_tol: float = 1e-6
+	sol_tol: float = 1e-7
 	solver_parameters: Dict[str, Any] = field(default_factory=lambda: {"n_iter_max": 12})
 	integrator_parameters: Dict[str, Any] = field(
 		default_factory=lambda: {
@@ -339,7 +362,7 @@ class UserInputs:
 		# integration.TimeInterval(30.0),
 		integration.TimeInterval(840.0),
 	)
-	stagnation_plateau_relative_error: float = 5e-3
+	stagnation_plateau_relative_error: float = 5e-7
 	xdmf_si_only: bool = True
 
 	# --- Output ---
@@ -351,7 +374,8 @@ class UserInputs:
 		r"""Check the saturation and the uniqueness of the CE equilibrium.
 
 		Raises:
-		    ValueError: :math:`\Phi_{s,0} + \Phi_{c,0} \ge 1`, Eq. uniqueness violated, or a value outside its
+		    ValueError: :math:`\Phi_{s,0} + \Phi_{c,0} \ge 1`, uniqueness condition
+		        :math:`k_e + k_p > f_{max} \max_\lambda |f_{FL}'(\lambda)\,\lambda|` violated, or a value outside its
 		        ``Literal`` (``nondimensionalization``, ``permeability_law``, ``volumetric_law``, ``see_variant``).
 		"""
 		for name, choices in _CHOICES.items():
@@ -569,7 +593,7 @@ def row_normalizations(user_inputs: UserInputs) -> Dict[str, float]:
 
 
 def row_test_scales(user_inputs: UserInputs) -> Dict[str, float]:
-	r"""Test-function scale :math:`s` per subsol (Table tab:dict); none unless ``"operator"``.
+	r"""Test-function scale :math:`s` per subsol (:math:`\delta x = s\,\delta\hat x`); none unless ``"operator"``.
 
 	Args:
 	    user_inputs: Configuration.

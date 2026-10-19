@@ -1,6 +1,8 @@
-"""Unit tests of the R_a operator (equations.tex, Eq. Ra; code.tex, Table tab:verif V1, V2).
+"""Unit tests of the R_a operator.
 
-One cell, u = 0 (lambda = 1), f0 = e_x, alpha = 1, nominal parameters.
+R_a = f_max alpha f_FL(lambda_a) h(D_a) + eta_0 D_a + T_p - T_e, on one cell, u = 0 (lambda = 1),
+f0 = e_x, alpha = 1, nominal parameters. Reference states (scalar solves of R_a = 0, D_a = 0):
+isometric cell (lambda_a = 0.92218, T_e = 16.27 kPa) and free cell without SEE (lambda_a = 0.62564).
 """
 
 import math
@@ -12,8 +14,8 @@ import pytest
 from hill_playground.operators.cell.hill import ContractileEvolution
 
 F_MAX = 20e3
-LAMBDA_A_ISO, T_E_ISO = 0.9221836, 16273.16  # V1, equations.tex end of Sec. "Contractile element"
-LAMBDA_A_FREE = 0.6256378  # V2, free cell (T_e = 0)
+LAMBDA_A_ISO, T_E_ISO = 0.9221836, 16273.16  # isometric: f_max f_FL + T_p = T_e at lambda = 1
+LAMBDA_A_FREE = 0.6256378  # free cell (T_e = 0): f_max f_FL + T_p = 0
 
 
 def _operator(hill_setup: Any, dt: float) -> ContractileEvolution:
@@ -51,7 +53,7 @@ def _solve(hill_setup: Any, op: ContractileEvolution) -> float:
 
 
 def test_isometric_equilibrium_zeroes_residual(hill_setup: Any) -> None:
-	"""D_a = 0 at lambda_a = 0.92218: R_a = 0 and T_e = 16.27 kPa (V1)."""
+	"""D_a = 0 at lambda_a = 0.92218: R_a = 0 and T_e = 16.27 kPa."""
 	hill_setup.eps_a.vector()[:] = math.log(LAMBDA_A_ISO)
 	hill_setup.eps_a_old.vector()[:] = math.log(LAMBDA_A_ISO)
 	residual = dolfin.assemble(_operator(hill_setup, 1.0).res_form).get_local()
@@ -60,25 +62,25 @@ def test_isometric_equilibrium_zeroes_residual(hill_setup: Any) -> None:
 
 
 def test_newton_finds_isometric_state(hill_setup: Any) -> None:
-	"""From rest, dt >> tau_a: one implicit step lands on the isometric state (V1)."""
+	"""From rest, dt >> tau_a: one implicit step lands on the isometric state."""
 	assert math.isclose(_solve(hill_setup, _operator(hill_setup, 1e6)), LAMBDA_A_ISO, rel_tol=1e-5)
 
 
 def test_free_cell(make_hill_setup: Any) -> None:
-	"""No SEE (k_e = 0): T_0 + T_p = 0 gives lambda_a = 0.6256 (V2)."""
+	"""No SEE (k_e = 0): T_0 + T_p = 0 gives lambda_a = 0.6256."""
 	setup = make_hill_setup(k_e=0.0)
 	assert math.isclose(_solve(setup, _operator(setup, 1e6)), LAMBDA_A_FREE, rel_tol=1e-5)
 
 
 def test_passive_cell_is_series_springs(make_hill_setup: Any) -> None:
-	"""Alpha = 0 (no motor): T_e = T_p, i.e. lambda_a = 1 at lambda = 1 (V5, at rest)."""
+	"""Alpha = 0 (no motor): T_e = T_p, i.e. lambda_a = 1 at lambda = 1 (rest state)."""
 	setup = make_hill_setup()
 	setup.law.p_act.assign(0.0)
 	assert math.isclose(_solve(setup, _operator(setup, 1.0)), 1.0, abs_tol=1e-10)
 
 
 def test_flat_force_length(make_hill_setup: Any) -> None:
-	"""use_force_length=False: T_0 = f_max alpha (option S3), whatever lambda_a."""
+	"""use_force_length=False: T_0 = f_max alpha (flat force--length), whatever lambda_a."""
 	setup = make_hill_setup(use_force_length=False)
 	setup.eps_a.vector()[:] = math.log(0.7)
 	op = _operator(setup, 1.0)
@@ -87,7 +89,7 @@ def test_flat_force_length(make_hill_setup: Any) -> None:
 
 @pytest.mark.parametrize("dt", [1e-3, 1.0, 1e3])
 def test_jacobian_diagonal_positive(hill_setup: Any, dt: float) -> None:
-	"""dR_a/deps_a > 0 at rest, for any dt (Eq. uniqueness)."""
+	"""dR_a/deps_a > 0 at rest, for any dt (unique implicit update)."""
 	op = _operator(hill_setup, dt)
 	jac = dolfin.assemble(dolfin.derivative(op.res_form, hill_setup.eps_a, dolfin.TrialFunction(hill_setup.dg0)))
 	assert jac.array()[0, 0] > 0.0

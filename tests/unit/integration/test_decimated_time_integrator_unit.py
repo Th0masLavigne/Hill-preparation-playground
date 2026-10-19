@@ -7,12 +7,12 @@ run against the playground copy of the module; the two playground changes are te
 What is tested here is the pure decimation logic (:func:`should_write_at_call`), the
 :class:`TimeInterval` value type, the proxy that applies either kind of period
 (:class:`_DecimatedXDMFFile`, uniform or per-step, ints and :class:`TimeInterval` freely mixed,
-plus the "always keep a step's own last substep" guarantee and the new ``force`` override),
+plus the "always keep a step's own last substep" guarantee and the ``force`` override),
 :class:`DecimatedTimeIntegrator.__init__`'s own write_period-to-proxy branching logic, the two
 dolfin-free pure functions behind the plateau early-exit feature (:func:`_relative_error`,
 :func:`is_subsol_stagnant`), and -- via a richer fake harness -- :meth:`DecimatedTimeIntegrator.integrate`
 itself (the full loop it copies verbatim from ``dolfin_mech.core.TimeIntegrator.integrate``, plus
-the ``-- new --`` plateau-exit lines this project adds on top of it).
+the plateau-exit lines added on top of it).
 
 ``DecimatedTimeIntegrator`` itself subclasses ``dolfin_mech.core.TimeIntegrator``, whose own real
 ``__init__`` needs a genuine ``Problem``/``NonlinearSolver``/mesh -- out of scope here. Rather than
@@ -759,8 +759,8 @@ def test_decimated_time_integrator_per_step_sequence_mixes_int_and_time_interval
 ) -> None:
 	"""A per-step sequence may mix a substep-count ``int`` with a :class:`TimeInterval`.
 
-	This is exactly the fix requested for a ramp (constant ``dt``, kept in full by substep count)
-	followed by an accel/decel hold (kept by elapsed simulated time instead).
+	Typical use: a ramp (constant ``dt``, kept in full by substep count) followed by an accel/decel
+	hold (kept by elapsed simulated time).
 	"""
 	fake_file = _FakeXdmfFile()
 	_patch_base_time_integrator_init(monkeypatch, fake_file)
@@ -869,11 +869,9 @@ def test_decimated_time_integrator_accepts_per_subsol_stagnation_plateau_relativ
 ) -> None:
 	"""A per-subsol stagnation_plateau_relative_error sequence, one entry per problem.subsols, is stored as given.
 
-	This is the fix requested to decouple a subsol's stagnation threshold from its own sol_tol: a
-	subsol whose relative rate of change settles at a constant, nonzero value (e.g. a field
-	decaying purely exponentially -- see is_subsol_stagnant's own docstring) can only ever be
-	caught by a larger stagnation_plateau_relative_error -- entirely decoupled from sol_tol,
-	which is never consulted by the threshold itself (see is_subsol_stagnant's own docstring).
+	A subsol whose relative rate of change settles at a constant, nonzero value (e.g. a field
+	decaying purely exponentially -- see is_subsol_stagnant's own docstring) can only be caught by a
+	larger stagnation_plateau_relative_error; sol_tol is never consulted by the threshold itself.
 	"""
 	fake_file = _FakeXdmfFile()
 	_patch_base_time_integrator_init(monkeypatch, fake_file)
@@ -949,7 +947,7 @@ def test_integrate_zero_subsol_step_runs_inelastic_behaviors_and_wraps_the_write
 ) -> None:
 	"""A successful multi-substep run with 0 subsols, an inelastic behavior, and a throttled writer.
 
-	Exercises three previously-uncovered spots in :meth:`DecimatedTimeIntegrator.integrate` at once,
+	Exercises three spots of :meth:`DecimatedTimeIntegrator.integrate` at once,
 	all naturally part of the same "ordinary successful run" scenario: the inelastic-behavior
 	update call (the real integration test's own problem registers none), the False arm of
 	``len(self.problem.subsols) > 1`` (0 subsols here, so ``dolfin.assign`` -- real-dolfin-only --
@@ -984,7 +982,7 @@ def test_integrate_covers_uncapped_acceleration_and_deceleration_arcs(monkeypatc
 	"""
 	fake_file = _FakeXdmfFile()
 	# n_iter=1 (<= n_iter_for_accel) accelerates dt to 2.0, still below dt_max=50.0 -- the
-	# previously-uncovered "dt > dt_max is False" arm. n_iter=20 (>= n_iter_for_decel) then
+	# "dt > dt_max is False" arm. n_iter=20 (>= n_iter_for_decel) then
 	# decelerates dt to 2.0/10.0=0.2, below dt_min=0.05 -- clamped up to dt_min, covering the
 	# deceleration branch's own clamp line too. Every remaining call converges in few iterations,
 	# so dt re-accelerates and the run reaches t_fin naturally well within this many substeps.
@@ -1009,7 +1007,7 @@ def test_integrate_transient_solver_failure_restores_state_and_recovers_on_retry
 
 	The real integration test's own run never fails a single substep (every one of its 300
 	converges), so ``DecimatedTimeIntegrator.integrate``'s entire "restore and cut dt" branch --
-	inherited verbatim from ``dolfin_mech.core.TimeIntegrator.integrate`` -- has never executed.
+	inherited verbatim from ``dolfin_mech.core.TimeIntegrator.integrate`` -- is not exercised there.
 	Here the scripted solver fails the very first call, then succeeds on the retry (at half the
 	original dt, comfortably above dt_min so this is a transient failure, not a permanent one --
 	see :func:`test_integrate_permanent_solver_failure_ends_the_step_unsuccessfully` for that case).
@@ -1146,7 +1144,7 @@ def test_integrate_n_iter_between_accel_and_decel_thresholds_leaves_dt_unchanged
 	clause: previous tests here each script an ``n_iter`` at or below ``n_iter_for_accel`` or at or
 	above ``n_iter_for_decel`` (accelerating or decelerating every single substep), so the
 	fall-through for an ``n_iter`` strictly *between* the two -- dt carried over completely unchanged
-	to the next substep, and the loop still continuing afterwards -- has never executed. This is
+	to the next substep, and the loop still continuing afterwards -- is not exercised there. This is
 	distinct from either deceleration test just above: those both take the ``elif`` branch (with or
 	without its own inner clamp firing); this one takes neither branch at all.
 	"""
@@ -1256,9 +1254,8 @@ def test_is_subsol_stagnant_uses_the_near_zero_epsilon_by_default() -> None:
 	"""With no explicit min_relative_error, only an (near-)exactly unchanged subsol is stagnant.
 
 	A relative change of 1e-6 comfortably clears :data:`_RELATIVE_ERROR_ZERO_EPS` (``1e-9``, the
-	default) and so is judged still evolving, even though it would already have been caught by the
-	library's old default of 3.0 (or by many looser explicit thresholds) -- the point of this
-	test is that the *default* is now deliberately strict, not that every threshold is.
+	default) and so is judged still evolving, although a looser explicit threshold would catch it:
+	the *default* is deliberately strict.
 	"""
 	assert is_subsol_stagnant(delta_norm=1e-6, scale_norm=1.0) is False
 	assert is_subsol_stagnant(delta_norm=1e-10, scale_norm=1.0) is True

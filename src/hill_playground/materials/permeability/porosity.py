@@ -1,6 +1,7 @@
 r"""Kinematic relations of the saturated mixture shared by the permeability laws (not a law).
 
-equations.tex, Eqs. Phi-def, mixture and darcy-lag:
+With :math:`\Phi_{s,0}` the substrate and :math:`\Phi_c` the cell volume per unit reference volume
+(saturated mixture, incompressible constituents):
 
 .. math::
 	J_c = \Phi_{s,0} + \Phi_c, \qquad \Phi_\ell = J - J_c, \qquad \phi_\ell = \frac{\Phi_\ell}{J} = 1 - \frac{J_c}{J},
@@ -54,7 +55,7 @@ def eulerian_porosity(jacobian: Any, phi_s0: Any, phi_c: Any) -> Any:
 
 
 def pulled_back_conductivity(hydraulic_conductivity: Any, kinematics: Any) -> Any:
-	r""":math:`\mathbf K_L = (k/\eta)\, J \mathbf C^{-1}` (Eq. darcy-lag).
+	r""":math:`\mathbf K_L = (k/\eta)\, J \mathbf C^{-1}` (Darcy conductivity in the reference configuration).
 
 	Args:
 	    hydraulic_conductivity: :math:`k/\eta` (scalar, may depend on the unknowns).

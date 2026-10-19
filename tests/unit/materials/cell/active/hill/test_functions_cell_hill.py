@@ -1,4 +1,4 @@
-"""Unit tests of the Hill-chain UFL functions (equations.tex, Sec. "The cell Hill chain").
+"""Unit tests of the Hill-chain UFL functions: SEE, PEE, force--length and force--velocity laws.
 
 Each UFL expression is evaluated on constants and compared with the scalar formula.
 """
@@ -38,7 +38,7 @@ def test_see_natural_state(variant: str) -> None:
 
 @pytest.mark.parametrize("variant", hill.SEE_VARIANTS)
 def test_see_tension_is_energy_derivative(variant: str) -> None:
-	"""T_e = 2 I4e dPsi_e/dI4e (Eq. taus), checked by UFL differentiation at I4e = 1.2."""
+	"""T_e = 2 I4e dPsi_e/dI4e, checked by UFL differentiation at I4e = 1.2."""
 	k_2e = 0.5 if variant == "exponential" else 0.0
 	inv4e = dolfin.variable(dolfin.Constant(1.2))
 	derivative = 2.0 * inv4e * dolfin.diff(hill.see_energy(inv4e, K_E, variant, k_2e), inv4e)
@@ -58,7 +58,7 @@ def test_pee_tension_is_energy_derivative() -> None:
 
 
 def test_pee_initial_stiffness() -> None:
-	"""dT_p/deps_a = k_p at rest (Eq. springs, property ii)."""
+	"""dT_p/deps_a = k_p at rest (k_p is the initial stiffness)."""
 	eps_a = dolfin.variable(dolfin.Constant(0.0))
 	assert math.isclose(_value(dolfin.diff(hill.pee_tension(eps_a, K_P), eps_a)), K_P, rel_tol=1e-12)
 
@@ -83,7 +83,7 @@ def test_force_velocity_values(rate: float, expected: float) -> None:
 
 
 def test_force_velocity_c1_at_zero() -> None:
-	"""h'(0-) = h'(0+) = (1 + A)/b (Eq. hill-ecc)."""
+	"""h'(0-) = h'(0+) = (1 + A)/b (C1 junction of the concentric and eccentric branches)."""
 	slope = (1 + A) / B
 	step = 1e-7
 

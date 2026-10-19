@@ -1,12 +1,9 @@
-r"""Clipped saturated proliferation (equations.tex, Eq. prolif).
+r"""Clipped saturated proliferation.
 
 .. math::
 	R = -\int r\, \langle 1 - \Phi_c / \Phi_{c,max} \rangle_+\, \Phi_c\, \delta c \, \mathrm{d}V
 
-``fenicsoft``'s ``SaturatedProliferation`` uses :math:`1 - \Phi_c/\Phi_{c,max}` without the
-positive part, so the source turns into a sink above :math:`\Phi_{c,max}` (code.tex, Sec.
-"Saturation of proliferation"). Transfer: clip the saturation in fenicsoft's class and delete
-this module.
+The positive part keeps the term a source: it vanishes at and above :math:`\Phi_{c,max}` (never a sink).
 """
 
 from typing import Any

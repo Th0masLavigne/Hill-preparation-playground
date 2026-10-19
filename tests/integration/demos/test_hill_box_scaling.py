@@ -1,8 +1,8 @@
 r"""Integration: the Hill box demo assembles the same Jacobian in ``"operator"`` and ``"parameters"`` modes.
 
 ``"operator"`` keeps the coefficients in SI and scales each term by :math:`s\,v/\mathcal N_{row}`
-(``ResidualRows``); ``"parameters"`` converts the coefficients. Both must give the dimensionless
-system of equations.tex, Part II, hence the same matrix, well conditioned compared to SI.
+(``ResidualRows``); ``"parameters"`` converts the coefficients. Both must give the same dimensionless
+system, hence the same matrix, well conditioned compared to SI.
 Uses ``demos/hill_box/jacobian_scaling.py`` on a small box (about 2000 dofs).
 """
 

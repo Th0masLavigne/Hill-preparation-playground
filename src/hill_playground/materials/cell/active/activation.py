@@ -1,9 +1,7 @@
 r"""Activation schedule :math:`\alpha(t)` of active cell laws (loading, not a material).
 
 Target: ``fenicsoft.materials.cell.active.activation``. Kept outside any constitutive law so that
-an active law owns its schedule by composition and no law depends on another one: today
-``ActivePowerConfig`` and the ``p_act`` machinery are written in ``iso.law`` and ``aniso.law``;
-both can import them from here once merged.
+an active law owns its schedule by composition and no law depends on another one.
 
 Per step :math:`k`, :math:`\alpha` is either constant, a linear ramp in the step fraction
 :math:`t_{step} \in [0, 1]`, or a function of the global time :math:`t`:

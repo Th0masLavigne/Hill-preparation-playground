@@ -1,6 +1,7 @@
 r"""Cell Hill chain SEE -- (CE :math:`\parallel` PEE) as a stress branch of :math:`R_u`.
 
-equations.tex, Eqs. Psi-h, S-h, P-h. Only the SEE stress enters the momentum balance:
+Energy :math:`\Phi_c(\Psi_e + \Psi_p)` per unit reference mixture volume. Only the SEE stress enters the
+momentum balance:
 
 .. math::
 	\mathbf{S}_h = \Phi_c \frac{T_e(I_{4e})}{I_4}\, \mathbf{f}_0 \otimes \mathbf{f}_0, \qquad
@@ -175,14 +176,14 @@ class Constitutive(ConstitutiveLaw[Parameters]):
 
 	@cached_property
 	def ener(self) -> dolfin.Form:
-		r""":math:`\Phi_c (\Psi_e + \Psi_p)` per unit reference mixture volume (Eq. Psi-h)."""
+		r""":math:`\Phi_c (\Psi_e + \Psi_p)` per unit reference mixture volume."""
 		p = self._parameters
 		psi_e = hill.see_energy(self.inv4e, p.k_e, p.see_variant, p.k_2e)
 		return p.phi_c * (psi_e + hill.pee_energy(p.eps_a, p.k_p))
 
 	@cached_property
 	def pk2(self) -> dolfin.Form:
-		r"""Second Piola stress of the chain at fixed :math:`\varepsilon_a` (Eq. S-h).
+		r"""Second Piola stress of the chain at fixed :math:`\varepsilon_a`.
 
 		.. math::
 			\mathbf{S}_h = \Phi_c \frac{T_e}{I_4}\, \mathbf{f}_0 \otimes \mathbf{f}_0

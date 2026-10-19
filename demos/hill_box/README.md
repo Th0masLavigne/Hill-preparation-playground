@@ -1,9 +1,33 @@
 # Hill box (uniaxial)
 
-First simulation of `equations.tex`: gel slab $875 \times 375 \times 50\ \mu\text{m}$ (the CORE patch of
-the pillar demos), held on its two $x$-faces, drained ($p = 0$) and traction-free on the four
-others, random isotropic cell orientation. Simplified stage B, without pillars, to check the
-implementation.
+Active poro-elastic gel slab $875 \times 375 \times 50\ \mu\text{m}$ seeded with contractile cells
+(Hill chain) of random isotropic orientation. The slab is clamped on its two $x$-faces, drained
+($p = 0$) and traction-free on the four others. Under the activation $\alpha(t)$ (ramp 0 → 1, then hold)
+the cells contract, the gel shortens across $x$ and expels liquid; the cells may also migrate,
+proliferate and reorient.
+
+```text
+                     TOP (z = L_z)
+             +---------------------------+
+            /|      BACK (y = L_y)      /|
+           / |                         / |
+          +---------------------------+  |
+ LEFT     |  |                        |  |     RIGHT
+ x = 0    |  +------------------------|--+     x = L_x
+ u = 0    | /                         | /      u = 0
+          |/       FRONT (y = 0)      |/
+          +---------------------------+
+                   BOTTOM (z = 0)
+   z  y
+   | /        LEFT, RIGHT              : u = 0, impermeable
+   |/___ x    FRONT, BACK, TOP, BOTTOM : p = 0 (drained), traction-free
+              everywhere               : no cell flux
+```
+
+Unknowns: displacement $\mathbf u$, liquid pressure $p$, CE log-stretch $\varepsilon_a$, and optionally
+the cell fraction $\Phi_c$ with the smoothed substrate fraction $\tilde\phi_s$ (`cell_transport`) and the
+cell orientation angles $\theta, \varphi$ (`remodelling`). The full set of residuals is in the module
+docstring of `hill_box_uniaxial.py`.
 
 | Item | Where |
 | --- | --- |
@@ -48,6 +72,25 @@ With `xdmf_si_only=True` (default) the XDMF holds only SI fields: the dimensionl
 (`theta`, `phi`, `cell_fraction`, `substrate_smoothed`, `eps_a`) and the FOIs above; the raw
 `displacement`/`liquid_pressure` (solve units) and the `*_old` copies are not written.
 
+Orientation post-processing (numpy, h5py, matplotlib; no dolfin, also on a run in progress):
+
+```bash
+python3 post_processing.py    # [--results <xdmf>] [--output-dir <dir>] [--bins 36] [--sphere-bins 30]
+```
+
+It writes to `outputs_hill_box_uniaxial/post_processing/`, for the reference fibre $\mathbf f_0$ (remodelling
+only) and the current fibre $\mathbf f$ (remodelling + deformation), with volume-weighted averages:
+
+- `orientation_histograms.png`: first vs last frame, in-plane angle to $x$, tilt out of $xy$, angle to the
+  director, with the isotropic density for reference;
+- `orientation_sphere.png`: equal-area projection of the fibre axes seen from $+z$ (centre: along $z$, rim:
+  in the $xy$ plane), density relative to the isotropic one;
+- `orientation_time.png`: order $S$, $Q_{xx}$, $Q_{zz}$ and mean tilt over the frames, QOIs `order_x`,
+  `order_z`, `mean_tilt_xy_deg` overlaid as a check.
+
+The console table gives the state of the order tensor $\mathbf Q = \langle \tfrac32 \mathbf f\otimes\mathbf f -
+\tfrac12 \mathbf I\rangle$ (isotropic / prolate / oblate / biaxial), $S$, the biaxiality and the director.
+
 ParaView: colour by `tilt_xy_current_deg` (threshold < 15° to see in-plane cells), glyphs of
 `fibre_current` scaled by `tension_see`. The geometry is in m in every mode, so *Warp By Vector*
 uses `displacement_si`.
@@ -73,7 +116,7 @@ iterations at $\Delta t = 10$ s. If MUMPS runs out of memory, the solver reports
 "Linear solver failed", the step is treated as diverged and $\Delta t$ is cut until `min_dt`:
 check the `.out` file and the memory given to Docker.
 
-Expected orders of magnitude (one cell, $\lambda = 1$, $\alpha = 1$, equations.tex):
+Expected orders of magnitude (one cell held at $\lambda = 1$, $\alpha = 1$, default parameters):
 $\lambda_a = 0.922$, $T_e = 16.3$ kPa, CE relaxation time $\tau_a \approx 1.7$ s.
 In the box the gel shortens freely across $y, z$, so expect $\lambda_a$ between 0.92 and 0.63
 (free cell) depending on the fibre direction.
