@@ -328,8 +328,7 @@ def solve(
 	for constraint in problem.steps[0].constraints:
 		constraint.bc.apply(problem.sol_func.vector())
 
-	problem.displacement_subsol.func.set_allow_extrapolation(True)
-	problem.pl_subsol.func.set_allow_extrapolation(True)
+	# No set_allow_extrapolation: under MPI every rank would then return a value and the QOI averages them.
 	mid = h_mesh / 2.0
 	problem.add_qoi(
 		name="u0",
