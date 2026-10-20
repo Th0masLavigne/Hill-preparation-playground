@@ -9,7 +9,7 @@ solver sees it, then reports:
 
 ``"none"`` solves in SI; ``"operator"`` (each residual row multiplied by a constant ``scale_factor``) and
 ``"parameters"`` (dimensionless coefficients) solve the same dimensionless system, hence must give the same
-matrix (see :mod:`hill_box_uniaxial`, "Nondimensionalisation"). Run ``python jacobian_scaling.py`` for the
+matrix (see :mod:`hill_box_all_modes`, "Nondimensionalisation"). Run ``python jacobian_scaling.py`` for the
 table.
 
 Reading the diagonals (scaled mesh, :math:`\hat h = h/L_0`): a row whose leading term is a mass
@@ -30,7 +30,7 @@ from pathlib import Path
 from typing import Any, Dict, Tuple
 
 import dolfin
-import hill_box_uniaxial as demo
+import hill_box_all_modes as demo
 import numpy as np
 import scipy.sparse as sp
 from fenicsoft import io
@@ -38,7 +38,7 @@ from numpy.typing import NDArray
 
 
 def small_box(mode: str, prefix: Path, **overrides: Any) -> demo.UserInputs:
-	"""A 100 x 50 x 50 um box, h = 25 um, one 20 s ramp (about 2000 dofs).
+	"""The default (small) box of :mod:`hill_box_all_modes` in ``mode``: about 2000 dofs.
 
 	Args:
 	    mode: ``nondimensionalization``.
@@ -48,18 +48,7 @@ def small_box(mode: str, prefix: Path, **overrides: Any) -> demo.UserInputs:
 	Returns:
 	    The configuration.
 	"""
-	settings: Dict[str, Any] = dict(
-		length_x=100e-6,
-		width_y=50e-6,
-		mesh_max_size=25e-6,
-		mesh_min_size=25e-6,
-		nondimensionalization=mode,
-		project_prefix=prefix,
-		steps=(io.Step(duration=20.0, init_dt=5.0, min_dt=0.5),),
-		activation_configs=[demo.ActivePowerConfig.ramp(k_step=0, ini=0.0, fin=1.0)],
-	)
-	settings.update(overrides)
-	return dataclasses.replace(demo.UserInputs(), **settings)
+	return dataclasses.replace(demo.UserInputs(), nondimensionalization=mode, project_prefix=prefix, **overrides)
 
 
 def assemble_jacobian(
@@ -142,7 +131,7 @@ if __name__ == "__main__":
 	for mode in ("none", "operator", "parameters"):
 		with contextlib.redirect_stdout(std_io.StringIO()):  # mesh reader prints
 			matrix, blocks = assemble_jacobian(small_box(mode, Path(f"./outputs_jacobian_scaling_{mode}")))
-		table[mode] = {"n": matrix.get_shape()[0], "cond2": condition_number(matrix), **block_diagonals(matrix, blocks)}
+		table[mode] = {"n": matrix.get_shape()[0], "cond2": condition_number(matrix), **block_diagonals(matrix, blocks)}  # type: ignore
 	print("median |J_ii| per row (Dirichlet rows excluded) and 2-norm condition number")
 	print(f"{'row':20s}" + "".join(f"{mode:>12s}" for mode in table))
 	for key in next(iter(table.values())):

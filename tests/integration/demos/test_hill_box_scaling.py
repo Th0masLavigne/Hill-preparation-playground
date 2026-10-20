@@ -3,7 +3,7 @@ r"""Integration: the Hill box demo assembles the same Jacobian in ``"operator"``
 ``"operator"`` keeps the coefficients in SI and scales each term by :math:`s\,v/\mathcal N_{row}`
 (``ResidualRows``); ``"parameters"`` converts the coefficients. Both must give the same dimensionless
 system, hence the same matrix, well conditioned compared to SI.
-Uses ``demos/hill_box/jacobian_scaling.py`` on a small box (about 2000 dofs).
+Uses ``hill_box_modes/jacobian_scaling.py`` on a small box (about 2000 dofs, assembly only, no solve).
 """
 
 import sys
@@ -13,8 +13,7 @@ from typing import Any
 import numpy as np
 import pytest
 
-DEMO = Path(__file__).resolve().parents[3] / "demos" / "hill_box"
-sys.path.insert(0, str(DEMO))
+sys.path.insert(0, str(Path(__file__).resolve().parent / "hill_box_modes"))
 
 import jacobian_scaling as js  # noqa: E402
 

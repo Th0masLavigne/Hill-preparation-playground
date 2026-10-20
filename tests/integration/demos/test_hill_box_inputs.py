@@ -12,7 +12,7 @@ sys.path.insert(0, str(DEMO))
 import hill_box_uniaxial as demo  # noqa: E402
 
 
-@pytest.mark.parametrize("name", ["nondimensionalization", "permeability_law", "volumetric_law", "see_variant"])
+@pytest.mark.parametrize("name", ["permeability_law", "volumetric_law", "see_variant"])
 def test_unknown_option_raises(name: str) -> None:
 	"""A value outside the ``Literal`` stops before any mesh or solve."""
 	with pytest.raises(ValueError, match=name):

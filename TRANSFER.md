@@ -194,7 +194,8 @@ equations.tex Table tab:sf omitted s_row, the scale of the row's test function: 
 ## 14. Hill box demo
 
 **Changes.**
-- `demos/hill_box/{hill_box_uniaxial.py, hill_chain_helpers.py, jacobian_scaling.py, README.md}` → fenicsoft `demos/smooth_muscle_cells/porous_hydrogel/hill_box/`.
+- `demos/hill_box/{hill_box_uniaxial.py, hill_box_scaling.py, hill_box_outputs.py, hill_chain_helpers.py, post_processing.py, README.md}` → fenicsoft `demos/smooth_muscle_cells/porous_hydrogel/hill_box/`.
+- `demos/analytical_consolidation_1D/{nondim_parameters, nondim_operator, terzaghi_analytics.py, post_process.py, README.md}` → fenicsoft `demos/analytical_consolidation_1D/` (next to `single_step/`, `initialising_step/`).
 - `tests/integration/demos/test_hill_box_scaling.py` → `demos/.../hill_box/test/` with a `sys.path` conftest, as in `microtissue_pillar_spherical_scale/test/` (fenicsoft has no `tests/integration/demos/`). `testpaths = ["tests"]` does not collect it: run it explicitly (`pytest demos/.../hill_box/test`), or decide another location before the merge request.
 - Replace the `hill_playground.*` imports by `fenicsoft.*`.
 - `UserInputs` options: `nondimensionalization` (`none`, `operator`, `parameters`), `permeability_law`, `volumetric_law`, `xdmf_si_only`, `quadrature_degrees`.
@@ -209,7 +210,7 @@ equations.tex Table tab:sf omitted s_row, the scale of the row's test function: 
   - The `quadrature_degrees` keys are checked against `UNKNOWNS` (a typo raises an error); rows of switched-off unknowns are ignored. Default: empty, i.e. `quadrature_degree` everywhere.
   - Measured on the size/2 box: `{"displacement": 3}` and the other rows at 2 bring assembly from 1.83 to 1.26 s per iteration, with QOIs within 3e-4.
   - Checked after the refactor: same QOIs as before (difference 0.0), the 3 modes identical (3e-15), and the same holds with per-row degrees (`operator` vs `none` with rows: 2.5e-15).
-- Conditioning: `demos/hill_box/jacobian_scaling.py` assembles J at the first step for the 3 modes (κ₂ by dense SVD, median |J_ii| per row, printed as a table). The mass rows (`cell_fraction`, `theta`, `phi`, `substrate_smoothed`, ~1e-3) and the stiffness rows (`displacement`, `liquid_pressure`, ~2) differ by ĥ²: discretization, not scaling. Test `tests/integration/demos/test_hill_box_scaling.py` (about 80 s): `operator` J = `parameters` J (≤ 1e-10), interior diagonal blocks O(1), κ₂: none 1.7e20, operator 4.3e4, parameters 4.3e4.
+- Conditioning: `tests/integration/demos/hill_box_modes/jacobian_scaling.py` (with the 3-mode reference `hill_box_all_modes.py`) assembles J at the first step for the 3 modes (κ₂ by dense SVD, median |J_ii| per row, printed as a table). The mass rows (`cell_fraction`, `theta`, `phi`, `substrate_smoothed`, ~1e-3) and the stiffness rows (`displacement`, `liquid_pressure`, ~2) differ by ĥ²: discretization, not scaling. Test `tests/integration/demos/test_hill_box_scaling.py` (about 80 s): `operator` J = `parameters` J (≤ 1e-10), interior diagonal blocks O(1), κ₂: none 1.7e20, operator 4.3e4, parameters 4.3e4.
 - Cost profile (size/2, warm JIT cache): MUMPS solve ≈ 78 %, assembly ≈ 21 %, outputs < 1 %. Turning off `cell_transport` and `remodelling` cuts the solve to 5.2 s per iteration (−37 %). size/4: about 210 s per solve and about 5 GB.
 
 **Done when** the three `nondimensionalization` modes give identical QOIs (measured: 3e-15) and identical Jacobians (`operator` vs `parameters`), and an `mpirun` run gives a readable `.out`.

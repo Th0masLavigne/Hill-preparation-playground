@@ -31,6 +31,7 @@ holds what is new.
 │   ├── operators/cell/proliferation/ # clipped SaturatedProliferation                        [patch]
 │   └── scaling/                      # CharacteristicScales (promoted)                       [new]
 ├── tests/{unit,integration,environment}/
+├── demos/analytical_consolidation_1D/  # Terzaghi, nondimensionalised: start here
 ├── demos/hill_box/
 ├── docs/src/
 └── TRANSFER.md             # transfer plan to fenicsoft, one merge request per issue
@@ -90,4 +91,5 @@ for the `local` mode, or use `FENICSOFT_SOURCE=remote`.
 
 | Demo | Content |
 | --- | --- |
+| `demos/analytical_consolidation_1D/` | Terzaghi's consolidation solved in dimensionless variables, by the parameters (`nondim_parameters/`, one step) and by the operators (`nondim_operator/`, initialising step): error vs analytical and figures |
 | `demos/hill_box/` | Active poro-elastic gel slab with Hill-chain cells, clamped on its two $x$-faces, drained and traction-free elsewhere |

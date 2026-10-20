@@ -40,13 +40,21 @@ docstring of `hill_box_uniaxial.py`.
 | Orientation diagnostics | `hill_playground.materials.orientation.display` |
 | Uniqueness check | `hill_chain_helpers.py` (demo side) |
 
+| Demo file | Content |
+| --- | --- |
+| `hill_box_uniaxial.py` | configuration (`UserInputs`), mesh, unknowns, laws, residuals, BCs, solve |
+| `hill_box_scaling.py` | SI inputs → dimensionless coefficients (`Coefficients`) |
+| `hill_box_outputs.py` | SI fields (XDMF) and QOIs (`.dat`) |
+| `post_processing.py` | orientation figures from the results |
+
 Inputs and outputs are SI. `UserInputs` options:
 
-- `nondimensionalization`: `"none"` | `"operator"` (default, `scale_factor` per row, SI time) |
-  `"parameters"` (coefficients converted with `CharacteristicScales.nondimensionalize_*`, time $\hat t$,
-  QOI `time_si` gives seconds). The three give the same solution to round-off. The mesh itself is
-  scaled ($\hat{\mathbf X} = \mathbf X/L_0$), so plain `Kinematics` is exact (no `ScaledKinematics`);
-  after the run the XDMF geometry and time stamps are put back in m and s (`hill_playground.io.xdmf_units`).
+The solve is dimensionless, by the parameters: mesh $\hat{\mathbf X} = \mathbf X/L_0$ (so plain `Kinematics`
+is exact), $\hat p = p/\mu_0$, coefficients converted by `hill_box_scaling.Coefficients`, time $\hat t = t/t_0$
+(QOI `time_si` gives seconds). After the run the XDMF geometry and time stamps are put back in m and s
+(`hill_playground.io.xdmf_units`). The two methods (parameters, operators) are explained step by step on
+Terzaghi's consolidation in `demos/analytical_consolidation_1D/`.
+
 - `permeability_law`: `"constant"` | `"kozeny_carman"` | `"holmes_mow"` | `"compaction_power"`.
 - `volumetric_law`: `"quadratic"` | `"compaction"` ($J > J_c = \Phi_{s,0} + \Phi_c$).
 - `cell_transport` ($\Phi_c$, $\tilde\phi_s$), `remodelling` ($\theta$, $\varphi$).
@@ -56,7 +64,7 @@ cd demos/hill_box
 python3 hill_box_uniaxial.py              # or: mpirun -np 4 python3 hill_box_uniaxial.py
 ```
 
-Outputs in `outputs_hill_box_uniaxial/results/`, same names, order and spaces in every mode:
+Outputs in `outputs_hill_box_uniaxial/results/`, all SI (`hill_box_outputs.py`):
 
 - point data: `displacement_si`, `pressure_si` (SI copies of the unknowns, on their CG spaces);
 - cell data: `jacobian`, `fluid_fraction`, `permeability_ratio`, `theta`, `phi`,
@@ -70,7 +78,7 @@ Outputs in `outputs_hill_box_uniaxial/results/`, same names, order and spaces in
 
 With `xdmf_si_only=True` (default) the XDMF holds only SI fields: the dimensionless unknowns
 (`theta`, `phi`, `cell_fraction`, `substrate_smoothed`, `eps_a`) and the FOIs above; the raw
-`displacement`/`liquid_pressure` (solve units) and the `*_old` copies are not written.
+`displacement`/`liquid_pressure` (dimensionless) and the `*_old` copies are not written.
 
 Orientation post-processing (numpy, h5py, matplotlib; no dolfin, also on a run in progress):
 
@@ -92,18 +100,10 @@ The console table gives the state of the order tensor $\mathbf Q = \langle \tfra
 \tfrac12 \mathbf I\rangle$ (isotropic / prolate / oblate / biaxial), $S$, the biaxiality and the director.
 
 ParaView: colour by `tilt_xy_current_deg` (threshold < 15° to see in-plane cells), glyphs of
-`fibre_current` scaled by `tension_see`. The geometry is in m in every mode, so *Warp By Vector*
-uses `displacement_si`.
+`fibre_current` scaled by `tension_see`. The geometry is in m, so *Warp By Vector* uses
+`displacement_si`.
 
-Rows (`hill_playground.operators.ResidualRows`): a row is named after the subsol of its test function
-(`displacement`, `liquid_pressure`, `cell_fraction`, `substrate_smoothed`, `theta`, `phi`, `eps_a`). Each
-operator takes `rows.measure(dV, row)` and `rows.scale_factor(row, v)`, with `v` its value-preserving
-factor (`TermValues`, written with the FE test function), the test scale from `row_test_scales`
-($s_{\mathbf u} = L_0$, $s_p = \mu_0$) and the row normalization from `row_normalizations` (both
-`"operator"` mode only): `scale_factor` $= s\,v/\mathcal N$. `python jacobian_scaling.py` prints
-$\kappa_2(\mathbf J)$ and the diagonal block sizes per mode (none 1.7e20, operator = parameters 4.3e4).
-
-Quadrature per row: `quadrature_degrees={"displacement": 3, "liquid_pressure": 2, "cell_fraction": 2,
+Quadrature per row (row = subsol of the test function, `hill_playground.operators.ResidualRows`): `quadrature_degrees={"displacement": 3, "liquid_pressure": 2, "cell_fraction": 2,
 "substrate_smoothed": 2, "theta": 2, "phi": 2, "eps_a": 2}` overrides `quadrature_degree` (4) row by row
 (integral metadata `dV(degree=q)`). Measured on the size/2 box: assembly 1.83 → 1.26 s per Newton iteration
 (−31 %), QOIs within 3e-4 of the degree-4 run; the `displacement` row (P2 gel, Hill and fluid stresses) carries

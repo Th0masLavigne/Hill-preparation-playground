@@ -47,9 +47,8 @@ Figures (``--output-dir``, default ``<results>/../post_processing``)
 * ``orientation_time.png``: :math:`S`, :math:`Q_{xx}`, :math:`Q_{zz}` and the mean tilt out of :math:`xy` over the
   XDMF frames.
 
-The XDMF times are SI once the run is over (during a run, only with ``nondimensionalization="none"`` or
-``"operator"``). The script can run on a simulation in progress: frames not yet flushed to the HDF5
-file are skipped.
+The XDMF times are SI once the run is over. During a run they are the solver times :math:`\hat t`, converted
+with the QOI file (columns ``t`` and ``time_si``); frames not yet flushed to the HDF5 file are skipped.
 
 Usage::
 
@@ -154,6 +153,17 @@ class ResultsSeries:
 		attribute = next((a for a in grid.findall("Attribute") if a.get("Name") == name), None)
 		values = self._read(self._reference(attribute))
 		return None if values is None else values.astype(np.float64).reshape(values.shape[0], -1)
+
+	def is_redimensionalized(self) -> bool:
+		"""True once ``hill_playground.io.xdmf_units`` has put the geometry and times back in SI."""
+		reference = self._reference(self._grids[0].find("Geometry"))
+		if reference is None:
+			return False
+		try:
+			with h5py.File(self.xdmf_path.parent / reference[0], "r") as h5:
+				return "geometry_scale" in h5.attrs
+		except OSError:
+			return False
 
 	def cell_weights(self) -> NDArray[np.float64]:
 		r"""Volume fractions :math:`w_e = |\Omega_e|/|\Omega|` of the tetrahedra (mesh of the first frame).
@@ -606,6 +616,9 @@ def main(argv: Optional[Sequence[str]] = None) -> Dict[str, Path]:
 	args = parser.parse_args(argv)
 
 	series = ResultsSeries(args.results)
+	qois = read_qois(args.results.with_suffix(".dat"))
+	if not series.is_redimensionalized() and qois is not None and {"t", "time_si"} <= set(qois):
+		series.times = list(np.interp(series.times, qois["t"], qois["time_si"]))  # run in progress: t_hat -> s
 	weights = series.cell_weights()
 	history: Dict[str, List[OrderMeasures]] = {label: [] for label in DIRECTIONS}
 	times: List[float] = []
@@ -634,7 +647,7 @@ def main(argv: Optional[Sequence[str]] = None) -> Dict[str, Path]:
 	}
 	plot_histograms(frames, weights, paths["histograms"], args.bins)
 	plot_sphere(frames, weights, paths["sphere"], args.sphere_bins)
-	plot_time(times, history, read_qois(args.results.with_suffix(".dat")), paths["time"])
+	plot_time(times, history, qois, paths["time"])
 
 	print(f"{args.results}: {len(times)} frames, {weights.size} cells (volume-weighted).")
 	print(f"{'':28s} {'t':>9s}  {'state':9s} {'S':>6s} {'beta':>6s} {'Q_xx':>7s} {'Q_zz':>7s} {'tilt':>7s}   director")
