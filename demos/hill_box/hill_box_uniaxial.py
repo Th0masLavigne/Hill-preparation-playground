@@ -266,7 +266,7 @@ class UserInputs:
 	# --- Time ---
 	steps: Sequence[io.Step] = field(
 		default_factory=lambda: (
-			io.Step(duration=60.0, init_dt=10.0, min_dt=0.25),  # ramp, dt ~ tau_a
+			io.Step(duration=10.0, init_dt=1.0, min_dt=0.25),  # ramp, dt ~ tau_a ; avant 60 et 10
 			# io.Step(duration=600.0, init_dt=60.0, min_dt=0.25, max_dt=60.0),  # hold
 			# io.Step(duration=600.0, init_dt=30.0, min_dt=5.0),  # step 0: 0% -> 100% ramp, 10 min
 			io.Step(duration=90000.0, init_dt=1000.0, min_dt=100.0, max_dt=3000.0, min_simu_seconds=3 * 3600),
@@ -280,7 +280,7 @@ class UserInputs:
 	)
 
 	# --- Solver ---
-	sol_tol: float = 1e-8
+	sol_tol: float = 1e-6
 	solver_parameters: Dict[str, Any] = field(default_factory=lambda: {"n_iter_max": 12})
 	integrator_parameters: Dict[str, Any] = field(
 		default_factory=lambda: {
