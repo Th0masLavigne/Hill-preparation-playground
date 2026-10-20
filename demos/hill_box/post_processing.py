@@ -115,7 +115,8 @@ class ResultsSeries:
 			root = ET.parse(self.xdmf_path).getroot()
 		except ET.ParseError as error:
 			raise ValueError(f"Unreadable {self.xdmf_path} (being rewritten by the solver?): retry.") from error
-		frames = [(float(g.find("Time").get("Value")), g) for g in root.iter("Grid") if g.find("Time") is not None]  # type: ignore[union-attr, arg-type]
+		grids = [g for g in root.iter("Grid") if g.find("Time") is not None]
+		frames = [(float(g.find("Time").get("Value")), g) for g in grids]  # type: ignore[union-attr, arg-type]
 		frames.sort(key=lambda frame: frame[0])
 		self.times: List[float] = [t for t, _ in frames]
 		self._grids: List[ET.Element] = [g for _, g in frames]
