@@ -131,7 +131,8 @@ if __name__ == "__main__":
 	for mode in ("none", "operator", "parameters"):
 		with contextlib.redirect_stdout(std_io.StringIO()):  # mesh reader prints
 			matrix, blocks = assemble_jacobian(small_box(mode, Path(f"./outputs_jacobian_scaling_{mode}")))
-		table[mode] = {"n": matrix.get_shape()[0], "cond2": condition_number(matrix), **block_diagonals(matrix, blocks)}  # type: ignore
+		diagonals = block_diagonals(matrix, blocks)
+		table[mode] = {"n": matrix.get_shape()[0], "cond2": condition_number(matrix), **diagonals}  # type: ignore
 	print("median |J_ii| per row (Dirichlet rows excluded) and 2-norm condition number")
 	print(f"{'row':20s}" + "".join(f"{mode:>12s}" for mode in table))
 	for key in next(iter(table.values())):
