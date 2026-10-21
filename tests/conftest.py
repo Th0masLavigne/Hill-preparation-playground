@@ -14,6 +14,38 @@ from hill_playground.materials.cell.active.hill import law as hill_law
 K_E, K_P, F_MAX, PHI_C = 200e3, 5e3, 20e3, 0.05
 
 
+def cube_mean(expr: Any, mesh: Any = None) -> float:
+	r"""Volume average over the unit cube, :math:`\int_\Omega e\,\mathrm dV` (:math:`|\Omega| = 1`).
+
+	Args:
+	    expr: UFL scalar.
+	    mesh: Unit cube carrying the coefficients of ``expr``; ``None`` builds one (constants only).
+	        Defaults to None.
+
+	Returns:
+	    The average.
+	"""
+	if mesh is None:
+		mesh = dolfin.UnitCubeMesh(1, 1, 1)
+	return dolfin.assemble(expr * dolfin.dx(domain=mesh))
+
+
+def dilated_kinematics(jac: float) -> tuple[Kinematics, Any]:
+	r"""Homogeneous dilatation :math:`\mathbf F = J^{1/3}\mathbf I` of the unit cube.
+
+	Args:
+	    jac: :math:`J`.
+
+	Returns:
+	    Kinematics and mesh.
+	"""
+	mesh = dolfin.UnitCubeMesh(1, 1, 1)
+	u = dolfin.Function(dolfin.VectorFunctionSpace(mesh, "CG", 1))
+	stretch = jac ** (1.0 / 3.0) - 1.0
+	u.interpolate(dolfin.Expression(("s*x[0]", "s*x[1]", "s*x[2]"), s=stretch, degree=1))
+	return Kinematics(U=u), mesh
+
+
 @dataclass
 class HillSetup:
 	"""Objects of a one-cell Hill-chain problem.
@@ -35,7 +67,7 @@ class HillSetup:
 	law: hill_law.Constitutive
 
 	def mean(self, expr: Any) -> float:
-		"""Volume average of a UFL scalar.
+		"""Volume average of a UFL scalar (:func:`cube_mean` on :attr:`mesh`).
 
 		Args:
 		    expr: UFL scalar.
@@ -43,7 +75,7 @@ class HillSetup:
 		Returns:
 		    Its average over the cube.
 		"""
-		return dolfin.assemble(expr * dolfin.dx(domain=self.mesh))
+		return cube_mean(expr, self.mesh)
 
 
 def make_setup(**overrides: Any) -> HillSetup:
@@ -95,3 +127,23 @@ def make_hill_setup() -> Callable[..., HillSetup]:
 	    :func:`make_setup`.
 	"""
 	return make_setup
+
+
+@pytest.fixture
+def mean() -> Callable[..., float]:
+	"""Volume average over the unit cube.
+
+	Returns:
+	    :func:`cube_mean`.
+	"""
+	return cube_mean
+
+
+@pytest.fixture
+def dilate() -> Callable[[float], tuple[Kinematics, Any]]:
+	"""Kinematics of a homogeneous dilatation.
+
+	Returns:
+	    :func:`dilated_kinematics`.
+	"""
+	return dilated_kinematics

@@ -1,7 +1,7 @@
 """Unit tests of the k(phi_l) laws on a homogeneous isotropic state F = j^(1/3) I."""
 
 import math
-from typing import Any
+from typing import Any, Callable
 
 import dolfin
 import pytest
@@ -10,18 +10,6 @@ from dolfin_mech.kinematics import Kinematics
 from hill_playground.materials.permeability import base, compaction_power, constant, holmes_mow, kozeny_carman, porosity
 
 PHI_S0, PHI_C0, K0 = 0.25, 0.05, 2.0
-
-
-def _kin(jac: float) -> tuple[Kinematics, Any]:
-	mesh = dolfin.UnitCubeMesh(1, 1, 1)
-	u = dolfin.Function(dolfin.VectorFunctionSpace(mesh, "CG", 1))
-	stretch = jac ** (1.0 / 3.0) - 1.0
-	u.interpolate(dolfin.Expression(("s*x[0]", "s*x[1]", "s*x[2]"), s=stretch, degree=1))
-	return Kinematics(U=u), mesh
-
-
-def _mean(expr: Any, mesh: Any) -> float:
-	return dolfin.assemble(expr * dolfin.dx(domain=mesh))
 
 
 def _laws(kin: Kinematics, phi_c: float = PHI_C0) -> dict[str, Any]:
@@ -34,32 +22,38 @@ def _laws(kin: Kinematics, phi_c: float = PHI_C0) -> dict[str, Any]:
 
 
 @pytest.mark.parametrize("name", ["kozeny_carman", "holmes_mow", "compaction_power"])
-def test_reference_state_gives_k0(name: str) -> None:
+def test_reference_state_gives_k0(
+	name: str, mean: Callable[..., float], dilate: Callable[[float], tuple[Kinematics, Any]]
+) -> None:
 	"""J = 1, Phi_c = Phi_c0: k = k0."""
-	kin, mesh = _kin(1.0)
-	assert _mean(_laws(kin)[name].hydraulic_conductivity, mesh) == pytest.approx(K0, rel=1e-12)
+	kin, mesh = dilate(1.0)
+	assert mean(_laws(kin)[name].hydraulic_conductivity, mesh) == pytest.approx(K0, rel=1e-12)
 
 
 @pytest.mark.parametrize("name", ["kozeny_carman", "holmes_mow", "compaction_power"])
-def test_k_decreases_with_compaction_and_vanishes_at_jc(name: str) -> None:
+def test_k_decreases_with_compaction_and_vanishes_at_jc(
+	name: str, mean: Callable[..., float], dilate: Callable[[float], tuple[Kinematics, Any]]
+) -> None:
 	"""k(J=0.8) < k0 and k -> 0 (floor) at J = J_min = Phi_s0 + Phi_c."""
-	kin, mesh = _kin(0.8)
-	assert _mean(_laws(kin)[name].ratio, mesh) < 1.0
-	kin, mesh = _kin(PHI_S0 + PHI_C0)
-	assert _mean(_laws(kin)[name].ratio, mesh) < 1e-6
+	kin, mesh = dilate(0.8)
+	assert mean(_laws(kin)[name].ratio, mesh) < 1.0
+	kin, mesh = dilate(PHI_S0 + PHI_C0)
+	assert mean(_laws(kin)[name].ratio, mesh) < 1e-6
 
 
 @pytest.mark.parametrize("name", ["kozeny_carman", "holmes_mow", "compaction_power"])
-def test_k_decreases_when_cells_proliferate(name: str) -> None:
+def test_k_decreases_when_cells_proliferate(
+	name: str, mean: Callable[..., float], dilate: Callable[[float], tuple[Kinematics, Any]]
+) -> None:
 	"""Phi_c up at fixed J: k down."""
-	kin, mesh = _kin(1.0)
-	assert _mean(_laws(kin, phi_c=0.1)[name].ratio, mesh) < 1.0
+	kin, mesh = dilate(1.0)
+	assert mean(_laws(kin, phi_c=0.1)[name].ratio, mesh) < 1.0
 
 
-def test_closed_forms() -> None:
+def test_closed_forms(mean: Callable[..., float], dilate: Callable[[float], tuple[Kinematics, Any]]) -> None:
 	"""Values at J = 0.8 against the formulas of the module docstrings."""
 	jac = 0.8
-	kin, mesh = _kin(jac)
+	kin, mesh = dilate(jac)
 	laws = _laws(kin)
 	phi, phi_0 = 1.0 - (PHI_S0 + PHI_C0) / jac, 1.0 - PHI_S0 - PHI_C0
 	rel = (jac - PHI_S0 - PHI_C0) / phi_0
@@ -69,19 +63,17 @@ def test_closed_forms() -> None:
 		"compaction_power": rel**1.5,
 	}
 	for name, value in expected.items():
-		assert _mean(laws[name].ratio, mesh) == pytest.approx(value, rel=1e-10), name
+		assert mean(laws[name].ratio, mesh) == pytest.approx(value, rel=1e-10), name
 
 
-def test_tensor_is_pulled_back() -> None:
+def test_tensor_is_pulled_back(mean: Callable[..., float], dilate: Callable[[float], tuple[Kinematics, Any]]) -> None:
 	"""K_L = (k/eta) J C^-1; constant law: K_L = k0 J C^-1."""
 	jac = 0.8
-	kin, mesh = _kin(jac)
+	kin, mesh = dilate(jac)
 	law = constant.Permeability(kin, constant.Parameters(conductivity_0=K0))
-	assert _mean(law.tensor[0, 0], mesh) == pytest.approx(K0 * jac / jac ** (2.0 / 3.0), rel=1e-10)
+	assert mean(law.tensor[0, 0], mesh) == pytest.approx(K0 * jac / jac ** (2.0 / 3.0), rel=1e-10)
 	kc = _laws(kin)["kozeny_carman"]
-	assert _mean(kc.tensor[1, 1] - kc.hydraulic_conductivity * jac ** (1.0 / 3.0), mesh) == pytest.approx(
-		0.0, abs=1e-12
-	)
+	assert mean(kc.tensor[1, 1] - kc.hydraulic_conductivity * jac ** (1.0 / 3.0), mesh) == pytest.approx(0.0, abs=1e-12)
 
 
 def test_porosity_relations() -> None:
@@ -96,37 +88,43 @@ def test_compaction_power_rejects_sublinear_exponent() -> None:
 		compaction_power.Parameters(conductivity_0=K0, phi_s0=PHI_S0, phi_c=PHI_C0, phi_c0=PHI_C0, exponent=0.5)
 
 
-def test_parameters_and_porosity_accessors() -> None:
+def test_parameters_and_porosity_accessors(
+	mean: Callable[..., float], dilate: Callable[[float], tuple[Kinematics, Any]]
+) -> None:
 	"""Every law exposes its parameters; phi_l = 1 - J_min/J."""
 	jac = 0.8
-	kin, mesh = _kin(jac)
+	kin, mesh = dilate(jac)
 	laws = _laws(kin)
 	const = constant.Permeability(kin, constant.Parameters(conductivity_0=K0))
 	assert const.parameters.conductivity_0 == K0
 	assert const.ratio == 1.0
 	for law in laws.values():
 		assert law.parameters.phi_c0 == PHI_C0
-		assert _mean(law.porosity, mesh) == pytest.approx(1.0 - (PHI_S0 + PHI_C0) / jac, rel=1e-10)
-		expected = _mean(law.hydraulic_conductivity, mesh) * jac ** (1.0 / 3.0)  # (k/eta) J C^-1, F = J^(1/3) I
-		assert _mean(law.tensor[0, 0], mesh) == pytest.approx(expected, rel=1e-10)
+		assert mean(law.porosity, mesh) == pytest.approx(1.0 - (PHI_S0 + PHI_C0) / jac, rel=1e-10)
+		expected = mean(law.hydraulic_conductivity, mesh) * jac ** (1.0 / 3.0)  # (k/eta) J C^-1, F = J^(1/3) I
+		assert mean(law.tensor[0, 0], mesh) == pytest.approx(expected, rel=1e-10)
 
 
-def test_base_is_abstract_and_shares_porosity() -> None:
+def test_base_is_abstract_and_shares_porosity(
+	mean: Callable[..., float], dilate: Callable[[float], tuple[Kinematics, Any]]
+) -> None:
 	"""The base class needs a ratio; porous laws share phi_l0 and Phi_l/Phi_l0."""
-	kin, mesh = _kin(0.8)
+	kin, mesh = dilate(0.8)
 	with pytest.raises(TypeError):
 		base.Permeability(kin, constant.Parameters(conductivity_0=K0))  # pyright: ignore[reportAbstractUsage]
 	for law in _laws(kin).values():
 		assert isinstance(law, base.PorousPermeability)
 		assert law.porosity_0 == pytest.approx(1.0 - PHI_S0 - PHI_C0)
-		assert _mean(law.fluid_ratio, mesh) == pytest.approx((0.8 - PHI_S0 - PHI_C0) / (1.0 - PHI_S0 - PHI_C0))
+		assert mean(law.fluid_ratio, mesh) == pytest.approx((0.8 - PHI_S0 - PHI_C0) / (1.0 - PHI_S0 - PHI_C0))
 
 
-def test_uniform_solid_fraction_as_constant() -> None:
+def test_uniform_solid_fraction_as_constant(
+	mean: Callable[..., float], dilate: Callable[[float], tuple[Kinematics, Any]]
+) -> None:
 	"""Phi_s0 given as a dolfin.Constant (as in the demo) gives the same k."""
-	kin, mesh = _kin(0.8)
+	kin, mesh = dilate(0.8)
 	params = kozeny_carman.Parameters(
 		conductivity_0=K0, phi_s0=dolfin.Constant(PHI_S0), phi_c=dolfin.Constant(PHI_C0), phi_c0=PHI_C0
 	)
 	law = kozeny_carman.Permeability(kin, params)
-	assert _mean(law.ratio, mesh) == pytest.approx(_mean(_laws(kin)["kozeny_carman"].ratio, mesh), rel=1e-12)
+	assert mean(law.ratio, mesh) == pytest.approx(mean(_laws(kin)["kozeny_carman"].ratio, mesh), rel=1e-12)
