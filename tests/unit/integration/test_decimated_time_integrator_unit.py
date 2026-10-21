@@ -1,7 +1,4 @@
-"""Unit tests of the decimation helpers and of ``DecimatedTimeIntegrator`` against dolfin-free fakes.
-
-Copy of fenicsoft ``tests/unit/io/test_decimated_time_integrator_unit.py`` (only the import changed); the two
-playground changes are tested in ``test_decimated_time_integrator.py``.
+"""Unit tests of the decimation helpers and of ``DecimatedTimeIntegrator``.
 
 ``dolfin_mech.core.TimeIntegrator.__init__`` is monkeypatched: :func:`_patch_base_time_integrator_init` for the
 ``__init__`` checks, :func:`_patch_full_time_integrator_init` to run ``integrate()`` with scripted fakes.

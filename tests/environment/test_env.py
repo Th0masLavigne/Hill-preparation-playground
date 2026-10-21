@@ -70,7 +70,7 @@ def test_quadrature_degree_per_integral() -> None:
 	import dolfin
 
 	mesh = dolfin.UnitCubeMesh(2, 2, 2)
-	x = dolfin.SpatialCoordinate(mesh)[0]
+	x = dolfin.SpatialCoordinate(mesh)[0]  # type:ignore
 	space = dolfin.FunctionSpace(mesh, "CG", 2)
 	u, test = dolfin.Function(space), dolfin.TestFunction(space)
 	u.interpolate(dolfin.Expression("1.0 + x[0]*x[1]", degree=2))

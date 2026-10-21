@@ -1,4 +1,4 @@
-"""Unit tests of the two playground changes to ``DecimatedTimeIntegrator`` (selected fields, rank-0 logs)."""
+"""Unit tests the ``DecimatedTimeIntegrator`` selected fields and rank-0 logs."""
 
 import os
 import re
