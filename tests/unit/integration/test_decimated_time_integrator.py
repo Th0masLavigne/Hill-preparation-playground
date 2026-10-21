@@ -14,6 +14,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from integrator_case import run  # noqa: E402
 
+from hill_playground.io.xdmf_reading import read_time_stamps  # noqa: E402
+
 CASE = Path(__file__).resolve().parent / "integrator_case.py"
 
 
@@ -25,7 +27,7 @@ def test_written_attributes(tmp_path: Path, functions: str) -> None:
 	text = Path(stem + ".xdmf").read_text()
 	names = set(re.findall(r'Attribute Name="([^"]+)"', text))
 	assert names == ({"double_c"} if functions == "foi" else {"c", "c_old", "double_c"})
-	times = [float(t) for t in re.findall(r'Time Value="([^"]+)"', text)]
+	times = read_time_stamps(Path(stem + ".xdmf"))
 	assert times == pytest.approx([0.0, 0.25, 0.5, 0.75, 1.0], rel=1e-12, abs=1e-12)
 
 
@@ -76,7 +78,7 @@ def test_plateau_exit_on_steady_diffusion(tmp_path: Path) -> None:
 	stem = tmp_path / "plateau"
 	success, _ = run(str(stem), n_steps=40, min_simu_seconds=0.05)  # step 1: before the floor; then not yet stagnant
 	assert success
-	times = [float(t) for t in re.findall(r'Time Value="([^"]+)"', Path(f"{stem}.xdmf").read_text())]
+	times = read_time_stamps(Path(f"{stem}.xdmf"))
 	assert times[-1] < 1.0
 	assert "plateaued" in Path(f"{stem}.out").read_text()
 
