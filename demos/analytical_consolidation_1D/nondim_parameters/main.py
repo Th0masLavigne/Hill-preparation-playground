@@ -145,12 +145,17 @@ class UserInputs:
 
 	@property
 	def scales(self) -> CharacteristicScales:  # NONDIM
-		r""":math:`L_0 = L`, :math:`\mu_0 = M`, :math:`t_0 = L^2/(kM)` (the density scale is unused)."""
-		return CharacteristicScales(
+		r""":math:`L_0 = L`, :math:`\mu_0 = M`, :math:`t_0 = L^2/(kM)` (the density scale is unused).
+
+		:math:`k` is already :math:`k_{\text{gel}}/\eta`, hence ``viscosity=1``.
+		"""
+		return CharacteristicScales.from_consolidation_scale(
 			length=self.length,
 			stress=self.oedometric_modulus,
-			time=self.length**2 / (self.hydraulic_conductivity * self.oedometric_modulus),
 			density=1.0,
+			permeability=self.hydraulic_conductivity,
+			viscosity=1.0,
+			consolidation_modulus=self.oedometric_modulus,
 		)
 
 	@property
