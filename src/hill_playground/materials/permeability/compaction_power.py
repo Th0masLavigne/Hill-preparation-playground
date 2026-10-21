@@ -1,15 +1,12 @@
-r"""Compaction power law: permeability written on the Lagrangian fluid content :math:`\Phi_\ell = J - J_c`.
+r"""Compaction power law: permeability written on the Lagrangian fluid content :math:`\Phi_\ell = J - J_{\min}`.
 
 .. math::
-	\frac{k}{k_0} = \Big(\frac{\Phi_\ell}{\Phi_{\ell,0}}\Big)^n = \Big(\frac{J - J_c}{1 - J_{c,0}}\Big)^n,
-	\qquad J_c = \Phi_{s,0} + \Phi_c, \qquad n \ge 1
+	\frac{k}{k_0} = \Big(\frac{\Phi_\ell}{\Phi_{\ell,0}}\Big)^n = \Big(\frac{J - J_{\min}}{1 - J_{\min,0}}\Big)^n,
+	\qquad J_{\min} = \Phi_{s,0} + \Phi_c, \qquad n \ge 1
 
-Why this form. Written on :math:`(J, \Phi_c)` it vanishes exactly at
-the compaction point :math:`\phi_\ell = 0 \Leftrightarrow J = J_c`, with a controlled order :math:`n`.
-Near :math:`J_c`, the drainage rate behaves like :math:`\dot J \sim -(J - J_c)^n`, so :math:`J = J_c`
-is reached in finite time if and only if :math:`n < 1`: :math:`n \ge 1` keeps :math:`J > J_c` and
-:math:`\int_0^\infty \dot J\,\mathrm dt` finite (kinetic barrier; the energetic one is
-``materials.volumetric.compaction``). Holmes--Mow with :math:`M = 0` is the same law.
+:math:`k = 0` at the compaction point :math:`J = J_{\min}`. Near it :math:`\dot J \sim -(J - J_{\min})^n`:
+:math:`n \ge 1` keeps :math:`J > J_{\min}` for all time (kinetic barrier; energetic one:
+:mod:`hill_playground.materials.volumetric.compaction`). Equals Holmes--Mow with :math:`M = 0`.
 """
 
 from dataclasses import dataclass
@@ -38,7 +35,7 @@ class Parameters(PorousPermeabilityParameters):
 		    ValueError: ``exponent < 1`` (compaction reached in finite time).
 		"""
 		if self.exponent < 1.0:
-			raise ValueError(f"exponent = {self.exponent} < 1: J = J_c would be reached in finite time.")
+			raise ValueError(f"exponent = {self.exponent} < 1: J = J_min would be reached in finite time.")
 
 
 class Permeability(PorousPermeability[Parameters]):

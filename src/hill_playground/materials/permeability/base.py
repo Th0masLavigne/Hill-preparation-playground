@@ -6,8 +6,8 @@ r"""Base classes of the permeability laws: each law only writes :math:`k/k_0` (`
 Porosity-dependent laws (:class:`PorousPermeability`) also share
 
 .. math::
-	\phi_\ell = 1 - \frac{J_c}{J}, \qquad
-	\frac{\Phi_\ell}{\Phi_{\ell,0}} = \frac{J - J_c}{1 - J_{c,0}}, \qquad
+	\phi_\ell = 1 - \frac{J_{\min}}{J}, \qquad
+	\frac{\Phi_\ell}{\Phi_{\ell,0}} = \frac{J - J_{\min}}{1 - J_{\min,0}}, \qquad
 	\Phi_{\ell,0} = \phi_{\ell,0} = 1 - \Phi_{s,0} - \Phi_{c,0}
 """
 
@@ -97,7 +97,7 @@ class PorousPermeability(Permeability[T_Porous]):
 
 	@cached_property
 	def porosity(self) -> Any:
-		r""":math:`\phi_\ell = 1 - J_c/J`."""
+		r""":math:`\phi_\ell = 1 - J_{\min}/J`."""
 		p = self._parameters
 		return porosity.eulerian_porosity(self._kinematics.J, p.phi_s0, p.phi_c)
 
@@ -109,6 +109,6 @@ class PorousPermeability(Permeability[T_Porous]):
 
 	@cached_property
 	def fluid_ratio(self) -> Any:
-		r""":math:`\Phi_\ell/\Phi_{\ell,0} = (J - J_c)/(1 - J_{c,0})` (not floored)."""
+		r""":math:`\Phi_\ell/\Phi_{\ell,0} = (J - J_{\min})/(1 - J_{\min,0})` (not floored)."""
 		p = self._parameters
 		return porosity.lagrangian_fluid_fraction(self._kinematics.J, p.phi_s0, p.phi_c) / self.porosity_0

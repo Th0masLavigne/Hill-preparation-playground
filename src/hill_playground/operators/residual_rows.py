@@ -1,26 +1,23 @@
 r"""Per-row settings of a monolithic residual: quadrature degree, test-function scale, row normalization.
 
-A row of the monolithic system gathers every term tested by the same test function, i.e. by
-the same subsol: a row is named after its subsol (``"displacement"``, ``"liquid_pressure"``, ...).
-With the scaled mesh and unknowns (:math:`\hat{\mathbf X} = \mathbf X/L_0`, :math:`\hat x_k = x_k/s_k`),
-the FE test function is the dimensionless :math:`\delta\hat x_k` while the SI residual :math:`R_k` is written
-with :math:`\delta x_k = s_k\,\delta\hat x_k` (:math:`s_{\mathbf u} = L_0`, :math:`s_p = \mu_0`, else 1).
-For a term of value-preserving factor :math:`v` (SI integral = :math:`v` times the form written on the
-scaled mesh and unknowns, with the FE test function):
+Row :math:`k` = all terms tested by subsol :math:`k` (named after it: ``"displacement"``, ``"liquid_pressure"``, ...).
+Scaled mesh and unknowns (:math:`\hat{\mathbf X} = \mathbf X/L_0`, :math:`\hat x_k = x_k/s_k`): the FE test function is
+:math:`\delta\hat x_k`, the SI residual :math:`R_k` uses :math:`\delta x_k = s_k\,\delta\hat x_k`
+(:math:`s_{\mathbf u} = L_0`, :math:`s_p = \mu_0`, else 1). For a term of value-preserving factor :math:`v`
+(SI integral = :math:`v` times the scaled form):
 
 .. math::
 	\tilde R_k = \frac{R_k}{\mathcal N_k}, \qquad
 	\texttt{scale\_factor} = \frac{s_k\, v}{\mathcal N_k}, \qquad
 	\texttt{measure} = \mathrm{d}V(\text{degree} = q_k)
 
-Missing settings default to :math:`s_k = 1`, :math:`\mathcal N_k = 1` and the problem's
-quadrature degree. ``dV(degree=q)`` is integral metadata: FFC applies it to these integrals only,
-also inside a summed residual (rank 1) and in the Jacobian derived from it (rank 2).
+Defaults: :math:`s_k = \mathcal N_k = 1`, the problem's quadrature degree. ``dV(degree=q)`` applies to these
+integrals only, also in a summed residual (rank 1) and its Jacobian (rank 2).
 
 .. warning::
     Do not mix degrees inside a *scalar* functional (rank 0, e.g. an ``"assembly"`` QOI): the legacy
-    FFC of the devcontainer then returns a wrong value (measured: the low-degree integrand counted
-    twice). Residuals and Jacobians are exact (``tests/environment/test_env.py``).
+    FFC returns a wrong value (low-degree integrand counted twice). Residuals and Jacobians are exact
+    (``tests/environment/test_env.py``).
 
 Target: ``fenicsoft.operators.residual_rows``.
 """

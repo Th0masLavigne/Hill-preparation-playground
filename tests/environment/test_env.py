@@ -1,7 +1,6 @@
 """Environment check: fenicsoft stack + playground are importable.
 
-The generic stack (dolfin, nlopt, scipy, ...) is checked by fenicsoft's own
-``tests/environment``; here we only check what this workspace adds.
+The generic stack (dolfin, nlopt, scipy, ...) is checked by fenicsoft ``tests/environment``.
 """
 
 import importlib

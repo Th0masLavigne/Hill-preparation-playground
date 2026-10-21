@@ -1,8 +1,7 @@
-r"""Hill chain SEE -- (CE :math:`\parallel` PEE).
+r"""Hill chain SEE -- (CE :math:`\parallel` PEE): UFL functions and active stress law.
 
-Series elastic element (SEE) in series with a contractile element (CE) itself in parallel with a passive
-element (PEE). Shared UFL functions of the chain and the active stress law.
-Target: ``fenicsoft.materials.cell.active.hill``.
+Series elastic element (SEE) in series with a contractile element (CE), the CE in parallel with a passive
+element (PEE). Target: ``fenicsoft.materials.cell.active.hill``.
 """
 
 from . import functions

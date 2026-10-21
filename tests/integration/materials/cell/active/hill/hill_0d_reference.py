@@ -1,6 +1,6 @@
-r"""0D (homogeneous) reference of the Hill chain in the gel, written from the model equations only.
+r"""0D (homogeneous) reference of the Hill chain in the gel, from the model equations only.
 
-Independent of the UFL implementation (numpy + scipy), used by the one-element integration tests.
+numpy + scipy, independent of the UFL implementation; used by the one-element integration tests.
 
 Homogeneous state, fibre :math:`\mathbf f_0 = \mathbf e_x`,
 :math:`\mathbf F = \mathrm{diag}(\lambda, \lambda_t, \lambda_t)`:

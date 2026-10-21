@@ -1,13 +1,7 @@
-r"""Integration: the Hill chain inside the solid, one homogeneous element vs the 0D reference.
+r"""Integration: Hill chain in the solid, one homogeneous element (monolithic :math:`(R_u, R_a)`) vs the 0D reference.
 
-Checks, on the assembled monolithic :math:`(R_u, R_a)` problem (``TimeIntegrator`` + ``NonlinearSolver``):
-
-* :math:`\varepsilon_a(t_n)` equals the 0D backward-Euler solution (same :math:`\Delta t`, same :math:`\alpha(t_n)`);
-* :math:`P_{xx}` equals :math:`\lambda(S^{gel}_{xx} + \Phi_c T_e/I_4)` on the computed state;
-* at the end of the hold, :math:`\varepsilon_a` is the isometric equilibrium :math:`f_{max} f_{FL} + T_p = T_e`;
-* traction-free faces: :math:`P_{xx} = P_{yy} = 0` and the cell shortens the gel (:math:`\lambda < 1`).
-
-Figure and error table are written next to this file in ``outputs_hill_one_element/``
+Checked: :math:`\varepsilon_a(t_n)` and :math:`P_{xx}` (isometric), isometric equilibrium at the end of the hold,
+traction-free state (free faces). Figure and error table in ``outputs_hill_one_element/``
 (``hill_one_element.png``, ``errors.csv``); the table is printed in the pytest summary.
 """
 

@@ -42,7 +42,7 @@ def test_reference_state_gives_k0(name: str) -> None:
 
 @pytest.mark.parametrize("name", ["kozeny_carman", "holmes_mow", "compaction_power"])
 def test_k_decreases_with_compaction_and_vanishes_at_jc(name: str) -> None:
-	"""k(J=0.8) < k0 and k -> 0 (floor) at J = J_c = Phi_s0 + Phi_c."""
+	"""k(J=0.8) < k0 and k -> 0 (floor) at J = J_min = Phi_s0 + Phi_c."""
 	kin, mesh = _kin(0.8)
 	assert _mean(_laws(kin)[name].ratio, mesh) < 1.0
 	kin, mesh = _kin(PHI_S0 + PHI_C0)
@@ -85,19 +85,19 @@ def test_tensor_is_pulled_back() -> None:
 
 
 def test_porosity_relations() -> None:
-	"""Phi_l = J - J_c and phi_l = Phi_l / J."""
+	"""Phi_l = J - J_min and phi_l = Phi_l / J."""
 	assert porosity.lagrangian_fluid_fraction(0.8, PHI_S0, PHI_C0) == pytest.approx(0.5)
 	assert porosity.eulerian_porosity(0.8, PHI_S0, PHI_C0) == pytest.approx(0.5 / 0.8)
 
 
 def test_compaction_power_rejects_sublinear_exponent() -> None:
-	"""Exponent n < 1 reaches J_c in finite time: refused."""
+	"""Exponent n < 1 reaches J_min in finite time: refused."""
 	with pytest.raises(ValueError):
 		compaction_power.Parameters(conductivity_0=K0, phi_s0=PHI_S0, phi_c=PHI_C0, phi_c0=PHI_C0, exponent=0.5)
 
 
 def test_parameters_and_porosity_accessors() -> None:
-	"""Every law exposes its parameters; phi_l = 1 - J_c/J."""
+	"""Every law exposes its parameters; phi_l = 1 - J_min/J."""
 	jac = 0.8
 	kin, mesh = _kin(jac)
 	laws = _laws(kin)

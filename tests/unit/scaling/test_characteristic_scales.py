@@ -15,7 +15,7 @@ def test_construction_stores_every_field() -> None:
 
 
 def test_is_frozen() -> None:
-	"""CharacteristicScales is immutable: every field cannot be reassigned after construction."""
+	"""CharacteristicScales is frozen: reassigning a field raises AttributeError."""
 	scales = CharacteristicScales(length=1.0, stress=1.0, time=1.0, density=1.0)
 	with pytest.raises(AttributeError):
 		scales.length = 2.0  # type: ignore[misc]
@@ -23,7 +23,7 @@ def test_is_frozen() -> None:
 
 @pytest.mark.parametrize("field_name", ["length", "stress", "time", "density"])
 def test_rejects_zero_or_negative_base_scale(field_name: str) -> None:
-	"""Each base scale must be strictly positive: zero or negative must raise ValueError."""
+	"""A zero or negative base scale raises ValueError."""
 	kwargs = {"length": 1.0, "stress": 1.0, "time": 1.0, "density": 1.0}
 	kwargs[field_name] = 0.0
 	with pytest.raises(ValueError, match=field_name):
@@ -35,12 +35,7 @@ def test_rejects_zero_or_negative_base_scale(field_name: str) -> None:
 
 
 def test_from_consolidation_scale_matches_the_derivation_formula() -> None:
-	"""Time = length**2 * viscosity / (permeability * consolidation_modulus), per the module docstring.
-
-	Uses a ``consolidation_modulus`` deliberately different from ``stress`` to confirm the two
-	are not conflated internally (a regression test for the mu0-vs-kappa_gel distinction -- see
-	the module docstring's own "Why four base scales" section).
-	"""
+	r""":math:`t_0 = L_0^2 \eta / (k \kappa_{gel})`, with :math:`\kappa_{gel} \ne \mu_0` (not conflated)."""
 	length, stress, density = 1.5e-3, 2.0e3, 1.0e3
 	permeability, viscosity, consolidation_modulus = 1.0e-14, 1.0e-3, 1.7e3
 
@@ -63,7 +58,7 @@ def test_from_consolidation_scale_matches_the_derivation_formula() -> None:
 
 @pytest.mark.parametrize("bad_field", ["permeability", "viscosity", "consolidation_modulus"])
 def test_from_consolidation_scale_rejects_non_positive_gel_parameters(bad_field: str) -> None:
-	"""A non-positive permeability, viscosity, or consolidation_modulus is unphysical and must raise ValueError."""
+	"""A non-positive permeability, viscosity or consolidation_modulus raises ValueError."""
 	kwargs = {
 		"length": 1.0e-3,
 		"stress": 1.0e3,
@@ -78,7 +73,7 @@ def test_from_consolidation_scale_rejects_non_positive_gel_parameters(bad_field:
 
 
 def test_derived_scales_formulas() -> None:
-	"""velocity, diffusivity, rate and permeability_over_viscosity follow their own formulas."""
+	r"""Derived scales :math:`L_0/t_0`, :math:`L_0^2/t_0`, :math:`1/t_0` and :math:`L_0^2/(\mu_0 t_0)`."""
 	scales = CharacteristicScales(length=2.0, stress=4.0, time=5.0, density=1.0)
 	assert scales.velocity == pytest.approx(2.0 / 5.0)
 	assert scales.diffusivity == pytest.approx(2.0**2 / 5.0)
@@ -87,13 +82,7 @@ def test_derived_scales_formulas() -> None:
 
 
 def test_from_consolidation_scale_makes_the_darcy_block_o1_when_stress_equals_kappa() -> None:
-	"""permeability_over_viscosity == permeability/viscosity exactly when stress == consolidation_modulus.
-
-	This is the O(1)-Darcy-block property the time scale is derived to guarantee (see the
-	module docstring): with ``time`` built this way, and ``consolidation_modulus`` equal to
-	``stress``, the characteristic hydraulic conductivity exactly reproduces the gel's own
-	k/eta, so DarcyGradient's nondimensionalized conductivity argument is exactly 1.0.
-	"""
+	r"""``permeability_over_viscosity`` :math:`= k/\eta` (:math:`\hat K = 1`) when :math:`\mu_0 = \kappa_{gel}`."""
 	permeability, viscosity, modulus = 1.0e-14, 1.0e-3, 2.0e3
 	scales = CharacteristicScales.from_consolidation_scale(
 		length=1.5e-3,
@@ -107,11 +96,7 @@ def test_from_consolidation_scale_makes_the_darcy_block_o1_when_stress_equals_ka
 
 
 def test_from_consolidation_scale_scales_permeability_over_viscosity_by_stress_over_kappa() -> None:
-	"""When stress != consolidation_modulus: scale = (k/eta) kappa/mu0, hence K_hat = mu0/kappa.
-
-	L0^2/(mu0 t0) with t0 = L0^2 eta/(k kappa) gives (k/eta) kappa/mu0 (e.g. mu0 = 1700 Pa,
-	kappa_gel = 1417 Pa: K_hat_gel = mu0/kappa_gel = 1.20).
-	"""
+	r""":math:`L_0^2/(\mu_0 t_0) = (k/\eta)\kappa_{gel}/\mu_0`, so :math:`\hat K = \mu_0/\kappa_{gel}` (= 1.20)."""
 	permeability, viscosity, kappa_gel, mu0 = 1.0e-14, 1.0e-3, 1417.0, 1700.0
 	scales = CharacteristicScales.from_consolidation_scale(
 		length=1.5e-3,
@@ -140,12 +125,7 @@ def test_from_consolidation_scale_scales_permeability_over_viscosity_by_stress_o
 	],
 )
 def test_nondimensionalize_redimensionalize_round_trip(quantity_name: str, raw_value: float) -> None:
-	"""redimensionalize_X(nondimensionalize_X(value)) == value for every conversion pair.
-
-	This is the mathematical property that makes solving the rescaled problem and exporting
-	its redimensionalized solution equivalent to solving the original SI problem directly (see
-	the module docstring's discussion of R = N * R_hat).
-	"""
+	"""``redimensionalize_X(nondimensionalize_X(v)) == v``, and the reverse, for every conversion pair."""
 	scales = CharacteristicScales.from_consolidation_scale(
 		length=1.5e-3,
 		stress=2.0e3,

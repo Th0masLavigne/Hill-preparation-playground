@@ -1,105 +1,31 @@
 r"""Hill box in three nondimensionalisation modes: reference for the scaling tests.
 
-Same model as the demo ``demos/hill_box/hill_box_uniaxial.py``, written with every
-``nondimensionalization`` option (``"none"``, ``"operator"``, ``"parameters"``) so that
-``jacobian_scaling.py`` can compare their Jacobians. The defaults are a small box
-(:math:`100 \times 50 \times 50\ \mu\mathrm{m}`, :math:`h = 25\ \mu\mathrm{m}`) and one 20 s ramp: the
-tests only assemble the first Jacobian, nothing here is meant for a long run.
+Model of ``demos/hill_box/hill_box_uniaxial.py`` (geometry, BCs, unknowns, residuals, options: see its
+module docstring), with every ``nondimensionalization`` mode so that ``jacobian_scaling.py`` compares their
+Jacobians. Defaults: small box :math:`100 \times 50 \times 50\ \mu\mathrm{m}`, :math:`h = 25\ \mu\mathrm{m}`,
+one 20 s ramp of :math:`\alpha` (the tests only assemble the first Jacobian).
 
+Nondimensionalisation
+---------------------
+Inputs are SI. Scales :math:`L_0 = L_z`, :math:`\mu_0 = \mu_{gel}`, :math:`t_0 = L_0^2\eta/(k\,\kappa_{gel})`
+(``CharacteristicScales``).
 
-A hydrogel slab seeded with randomly oriented contractile cells (Hill chain) is clamped at both
-ends of its long axis :math:`x` and drained on its four other faces. Under the activation
-:math:`\alpha(t)` the cells contract: the gel shortens across :math:`x`, expels liquid, and the
-cells may migrate, proliferate and reorient.
+* ``"none"``: SI mesh, unknowns and coefficients; every row factor 1.
+* ``"operator"`` (default): mesh :math:`\hat{\mathbf X} = \mathbf X/L_0`, :math:`\hat{\mathbf u} = \mathbf u/L_0`,
+  :math:`\hat p = p/\mu_0`; SI coefficients and time; each operator multiplied by ``scale_factor`` (below).
+* ``"parameters"``: same mesh and unknowns; coefficients and time converted by
+  ``CharacteristicScales.nondimensionalize_*``; every row factor 1.
 
-1. Geometry and boundary conditions
------------------------------------
-Box :math:`\Omega_0 = [0, L_x] \times [0, L_y] \times [0, L_z]` (``BoxGeometry``), all gel
-(default :math:`875 \times 375 \times 50\ \mu\mathrm{m}`).
+``"operator"`` rows are named after the subsol of their test function (``ResidualRows``), and
 
-.. code-block:: text
-
-                         TOP (z = L_z)
-                 +---------------------------+
-                /|      BACK (y = L_y)      /|
-               / |                         / |
-              +---------------------------+  |
-     LEFT     |  |                        |  |     RIGHT
-     x = 0    |  +------------------------|--+     x = L_x
-     u = 0    | /                         | /      u = 0
-              |/       FRONT (y = 0)      |/
-              +---------------------------+
-                       BOTTOM (z = 0)
-       z  y
-       | /        LEFT, RIGHT              : u = 0, impermeable
-       |/___ x    FRONT, BACK, TOP, BOTTOM : p = 0 (drained), traction-free
-
-* :math:`\mathbf{u} = \mathbf{0}` on ``LEFT`` (:math:`x=0`) and ``RIGHT`` (:math:`x=L_x`), impermeable there;
-* :math:`p = 0` (drained) and traction-free on ``FRONT``, ``BACK``, ``BOTTOM``, ``TOP``;
-* no cell flux anywhere (natural).
-
-2. Unknowns (registration order = ``sol_tol`` order)
-------------------------------------------------------
-=========================  ======  =========================================  ==================
-Unknown                    Space   Initial value                              Present if
-=========================  ======  =========================================  ==================
-:math:`\hat{\mathbf u}`    CG2     0                                          always
-:math:`\theta,\varphi`     DG0     isotropic draw                             ``remodelling``
-:math:`\hat p`             CG1     0                                          always
-:math:`\Phi_c`             CG1     :math:`\Phi_{c,0}`                         ``cell_transport``
-:math:`\tilde\phi_s`       CG1     :math:`\Phi_{s,0}`                         ``cell_transport``
-:math:`\varepsilon_a`      DG0     0 (:math:`\lambda_a = 1`)                  always
-=========================  ======  =========================================  ==================
-
-Switched off, :math:`\theta,\varphi` stay at their random draw and :math:`\Phi_c = \Phi_{c,0}`
-(uniform data): the remaining problem is :math:`(R_u, R_p, R_a)`, the poro-elastic gel with the
-Hill chain.
-
-3. Residuals
-------------
 .. math::
-	R_u &= \int \big(\mathbf{P}_S + \mathbf{P}_h - J p \mathbf{F}^{-T}\big) : \nabla\delta\mathbf{u}\,\mathrm{d}V \\
-	R_p &= \int \frac{J - J^n}{\Delta t}\delta p + \mathbf{K}_L \nabla p \cdot \nabla\delta p
-	       - \mathbf{Q}_c \cdot \nabla\delta p \,\mathrm{d}V, \\
-	\mathbf{K}_L &= \frac{k(\phi_\ell)}{\eta} J \mathbf{C}^{-1} \\
-	R_c &= \int \frac{\Phi_c - \Phi_c^n}{\Delta t}\delta c - \mathbf{Q}_c \cdot \nabla\delta c
-	       - r\,\mathrm{sat}\,\Phi_c\,\delta c \,\mathrm{d}V \\
-	R_{\theta} &= \int \Big(\frac{\theta - \theta^n}{\Delta t}
-	       - \frac{\alpha}{\tau_{eff}}\partial_\theta Q\Big)\delta\theta\,\mathrm{d}V \quad (\text{idem } \varphi) \\
-	R_a &= \int \big[f_{max}\alpha f_{FL}(\lambda_a) h(D_a) + \eta_0 D_a + T_p - T_e\big]
-	       \delta\varepsilon\,\mathrm{d}V \\
-	R_s &= \int \Big(\tilde\phi_s - \frac{\Phi_{s,0}}{J}\Big)\delta\phi_s\,\mathrm{d}V
+    \mathtt{scale\_factor} = \frac{s\,v}{\mathcal N_{row}},
 
-with :math:`\mathbf{P}_S` the Neo-Hookean + volumetric gel (section 5),
-:math:`\mathbf{P}_h = \mathbf{F}\,\Phi_c T_e/I_4\,\mathbf{f}_0\otimes\mathbf{f}_0` (Hill chain),
-:math:`I_4 = \mathbf f_0\cdot\mathbf C\mathbf f_0`, :math:`\mathbf{Q}_c` the diffusive + haptotactic cell
-flux, :math:`\mathrm{sat} = \langle 1 - \Phi_c/\Phi_{c,max}\rangle_+` and :math:`Q` the orientation potential. In
-:math:`R_a`, the cell is an elastic element (SEE, tension :math:`T_e`) in series with a contractile
-element (CE, stretch :math:`\lambda_a = e^{\varepsilon_a}`, rate :math:`D_a = \dot\varepsilon_a`) itself in
-parallel with a passive element (PEE, tension :math:`T_p`); :math:`f_{FL}` is the Gaussian force--length law
-and :math:`h` the Hill force--velocity law (``hill_playground.materials.cell.active.hill``).
-
-4. Nondimensionalisation
-------------------------
-Inputs are SI. Scales :math:`L_0 = L_z` (drainage length), :math:`\mu_0 = \mu_{gel}`,
-:math:`t_0 = L_0^2\eta/(k\,\kappa_{gel})` (``CharacteristicScales``). ``nondimensionalization``:
-
-* ``"none"``: SI mesh, unknowns and coefficients, every row factor 1;
-* ``"operator"`` (default): mesh :math:`\hat{\mathbf X} = \mathbf X/L_0` (hence
-  :math:`\hat{\mathbf u} = \mathbf u/L_0`), :math:`\hat p = p/\mu_0`, SI coefficients and SI time,
-  each operator multiplied by ``scale_factor`` :math:`= s\,v_k/\mathcal N_{row}` (table below);
-* ``"parameters"``: same mesh and unknowns, every coefficient converted with
-  ``CharacteristicScales.nondimensionalize_*`` (:math:`\hat\mu, \hat\kappa, \hat f_{max}, \hat K,
-  \hat D, \hat r, \hat b, \hat\tau, \hat t \dots`), every row factor 1.
-
-Rows are named after the subsol of their test function (``ResidualRows``): for ``"operator"``,
-``scale_factor`` :math:`= s\,v/\mathcal N_{row}` with :math:`v` the term's value-preserving factor
-(``TermValues``: SI integral = :math:`v` times the form on the scaled mesh and unknowns, FE test function),
-:math:`s` the scale of the row's test function (:math:`\delta\mathbf u = L_0\delta\hat{\mathbf u}`,
-:math:`\delta p = \mu_0\delta\hat p`) and :math:`\mathcal N_{row}` the row normalization
-(:math:`\mu_0 L_0^3` for ``displacement`` and ``eps_a``, :math:`\mu_0 L_0^3/t_0` for
-``liquid_pressure``, :math:`L_0^3/t_0` for ``cell_fraction``, ``theta``, ``phi``, :math:`L_0^3` for
-``substrate_smoothed``):
+with :math:`v` the value-preserving factor of the term (:class:`TermValues`), :math:`s` the test-function
+scale (:math:`\delta\mathbf u = L_0\delta\hat{\mathbf u}`, :math:`\delta p = \mu_0\delta\hat p`, else 1) and
+:math:`\mathcal N_{row}` = :math:`\mu_0 L_0^3` (``displacement``, ``eps_a``), :math:`\mu_0 L_0^3/t_0`
+(``liquid_pressure``), :math:`L_0^3/t_0` (``cell_fraction``, ``theta``, ``phi``), :math:`L_0^3`
+(``substrate_smoothed``):
 
 =================================  ======================  ===================  =======================
 Term (``"operator"``)              Row (subsol)            :math:`s\,v`         ``scale_factor``
@@ -116,46 +42,23 @@ orientation                        ``theta``, ``phi``      :math:`L_0^3`        
 contractile element                ``eps_a``               :math:`L_0^3`        :math:`1/\mu_0`
 =================================  ======================  ===================  =======================
 
-The resulting system is the one of ``"parameters"`` (same Jacobian, checked by
-``tests/integration/demos/test_hill_box_scaling.py``).
+Both scaled modes are the SI system times a constant per row: ``"operator"`` and ``"parameters"`` give the
+same Jacobian (``tests/integration/demos/test_hill_box_scaling.py``) and Newton iterates identical to SI
+(``tests/integration/analytical_consolidation_1D/test_terzaghi_nondim.py``). ``"parameters"`` integrates in
+:math:`\hat t` (QOI ``time_si``: :math:`t` in s).
 
-``quadrature_degrees`` (same row names) sets a quadrature degree per row (``ResidualRows.measure``).
-
-Both scaled modes are the SI system times a constant per row: Newton's iterates are identical to SI
-(``tests/integration/analytical_consolidation_1D/test_terzaghi_nondim.py``). ``"parameters"``
-integrates in :math:`\hat t` (QOI ``time_si`` gives :math:`t` in s). After the run the XDMF geometry and
-time stamps are brought back to SI (``hill_playground.io.xdmf_units``): no ``ScaledKinematics`` is
-needed since the mesh itself is scaled, so every gradient and measure is in :math:`\hat{\mathbf X}`.
-With ``xdmf_si_only`` (default) the XDMF holds only SI fields: the dimensionless unknowns
-(:math:`\theta, \varphi, \Phi_c, \tilde\phi_s, \varepsilon_a`) and the FOIs, no :math:`\hat{\mathbf u}`,
-:math:`\hat p` nor ``*_old`` copies.
-Exported fields and QOIs are SI in every mode, with the same names, order and spaces
-(:math:`\mathbf u`, :math:`p` projected on the spaces of the unknowns: point data in ParaView).
-
-5. Skeleton options
--------------------
-:math:`J_c = \Phi_{s,0} + \Phi_c` (compaction point, :math:`\phi_\ell = 0`).
-
-* ``permeability_law``: ``"constant"`` :math:`k_0`; ``"kozeny_carman"``; ``"holmes_mow"``;
-  ``"compaction_power"`` :math:`k = k_0((J-J_c)/(1-J_{c,0}))^n`, :math:`n\ge1` (kinetic barrier:
-  :math:`J > J_c` for all :math:`t`), see ``hill_playground.materials.permeability``;
-* ``volumetric_law``: ``"quadratic"`` :math:`\frac{\kappa}{2}(J-1)^2`; ``"compaction"``
-  :math:`\kappa(1-J_c)^2[x - \ln x - 1]`, :math:`x = (J-J_c)/(1-J_c)` (energetic barrier,
-  :math:`J_\infty \in (J_c, 1)`), see ``hill_playground.materials.volumetric.compaction``.
-
-6. Orientation outputs (``hill_playground.materials.orientation.display``)
----------------------------------------------------------------------------
-Reference :math:`\mathbf f_0(\theta,\varphi)` and current
-:math:`\mathbf f = \mathbf F\mathbf f_0/\|\mathbf F\mathbf f_0\|`:
-``theta_deg``/``phi_deg`` (canonical, upper hemisphere), ``theta_wrapped_deg`` (in-plane axis,
-period 180), ``tilt_xy_deg`` (0: fibre in the :math:`xy` plane), ``angle_x_deg`` (0: along the
-held axis), with ``_current`` variants; QOIs ``order_x``/``order_z``
-(:math:`\langle\frac32 f_i^2-\frac12\rangle`: 1 aligned, 0 isotropic, :math:`-\frac12` orthogonal;
-``order_z`` :math:`\to -\frac12` = planar orientation) and ``mean_tilt_xy_deg``.
-
-7. Loading
-------------
-Activation :math:`\alpha`: ramp 0 -> 1, then hold. No external load.
+Outputs
+-------
+* SI in every mode, same names, order and spaces; XDMF geometry and time stamps put back in m and s after
+  the run (``hill_playground.io.xdmf_units``).
+* :math:`\mathbf u = L_0\hat{\mathbf u}`, :math:`p = \mu_0\hat p` on the spaces of the unknowns (point data).
+* ``xdmf_si_only`` (default): no :math:`\hat{\mathbf u}`, :math:`\hat p` nor ``*_old`` in the XDMF.
+* Orientation (``hill_playground.materials.orientation.display``), reference :math:`\mathbf f_0(\theta,\varphi)`
+  and current :math:`\mathbf f = \mathbf F\mathbf f_0/\|\mathbf F\mathbf f_0\|`: ``theta_deg``/``phi_deg``
+  (upper hemisphere), ``theta_wrapped_deg`` (period 180), ``tilt_xy_deg`` (0: in the :math:`xy` plane),
+  ``angle_x_deg`` (0: along :math:`x`), each with a ``_current`` variant; QOIs ``mean_tilt_xy_deg`` and
+  ``order_x``/``order_z`` :math:`= \langle\frac32 f_i^2-\frac12\rangle` (1 aligned, 0 isotropic,
+  :math:`-\frac12` orthogonal).
 """
 
 from __future__ import annotations
@@ -211,7 +114,7 @@ _CHOICES: Dict[str, Any] = {
 
 @dataclass(slots=True, frozen=True)
 class UserInputs:
-	r"""Configuration, SI units (module docstring for the meaning of each group).
+	r"""Configuration, SI units (model: ``hill_box_uniaxial`` module docstring).
 
 	Attributes:
 	    length_x: :math:`L_x`, held direction (m).
@@ -224,12 +127,12 @@ class UserInputs:
 	    quadrature_degrees: Degree per residual row, overriding the default for that row's terms; rows
 	        are named after the subsol of their test function (:data:`UNKNOWNS`).
 	    foi_degree: Degree of the DG spaces of the FOIs.
-	    nondimensionalization: ``"none"``, ``"operator"`` or ``"parameters"`` (module docstring, section 4).
+	    nondimensionalization: ``"none"``, ``"operator"`` or ``"parameters"`` (module docstring).
 	    cell_transport: Solve :math:`\Phi_c, \tilde\phi_s` (:math:`R_c, R_s`); else :math:`\Phi_c = \Phi_{c,0}`.
 	    remodelling: Solve :math:`\theta, \varphi` (:math:`R_{\theta,\varphi}`); else frozen at the draw.
 	    gel_shear_modulus: :math:`\mu_{gel}`, also :math:`\mu_0` (Pa).
 	    gel_kappa: :math:`\kappa_{gel}` (Pa).
-	    volumetric_law: ``"quadratic"`` or ``"compaction"`` (module docstring, section 5).
+	    volumetric_law: ``"quadratic"`` or ``"compaction"`` (``hill_playground.materials.volumetric``).
 	    f_max: :math:`f_{max}` (Pa).
 	    lmbda_opt: :math:`\lambda_{opt}`.
 	    width_fl: :math:`W`.
@@ -246,7 +149,7 @@ class UserInputs:
 	    remodel_tau: Remodelling time :math:`\tau` (s).
 	    permeability: :math:`k_0` (m^2).
 	    viscosity_pa_s: :math:`\eta` (Pa.s).
-	    permeability_law: :math:`k(\phi_\ell)` law (module docstring, section 5).
+	    permeability_law: :math:`k(\phi_\ell)` law (``hill_playground.materials.permeability``).
 	    holmes_mow_exponent: :math:`\kappa_{HM}`.
 	    holmes_mow_stiffening: :math:`M`.
 	    compaction_exponent: :math:`n \ge 1` of ``"compaction_power"``.
@@ -408,7 +311,7 @@ class UserInputs:
 
 @dataclass(frozen=True)
 class SolveUnits:
-	r"""How SI quantities map to the solved system (module docstring, section 4).
+	r"""How SI quantities map to the solved system (module docstring, "Nondimensionalisation").
 
 	Attributes:
 	    unknowns: Scales of mesh, :math:`\mathbf u`, :math:`p` (identity for ``"none"``).
@@ -420,7 +323,7 @@ class SolveUnits:
 
 	@classmethod
 	def from_inputs(cls, user_inputs: UserInputs) -> "SolveUnits":
-		"""Scales actually applied for ``user_inputs.nondimensionalization``.
+		"""Scales applied for ``user_inputs.nondimensionalization``.
 
 		Args:
 		    user_inputs: Configuration.
@@ -518,10 +421,10 @@ UNKNOWNS: Tuple[str, ...] = (
 
 @dataclass(frozen=True)
 class TermValues:
-	r"""Value-preserving factor :math:`v` of each term (module docstring, section 4); all 1 unless ``"operator"``.
+	r"""Value-preserving factor :math:`v` of each term (module docstring); all 1 unless ``"operator"``.
 
-	SI integral = :math:`v` times the form written on the scaled mesh and unknowns, with the FE (dimensionless)
-	test function; the test-function scale :math:`s` is applied per row by ``ResidualRows``.
+	SI integral = :math:`v` times the form on the scaled mesh and unknowns, with the FE (dimensionless) test
+	function; the test-function scale :math:`s` is applied per row by ``ResidualRows``.
 
 	Attributes:
 	    gel: :math:`\int \mathbf P:\nabla\delta\mathbf u`: :math:`L_0^2`.
@@ -560,7 +463,7 @@ class TermValues:
 
 
 def row_normalizations(user_inputs: UserInputs) -> Dict[str, float]:
-	r"""Row normalization :math:`\mathcal N_{row}` per subsol (module docstring, section 4); none unless ``"operator"``.
+	r"""Row normalization :math:`\mathcal N_{row}` per subsol (module docstring); none unless ``"operator"``.
 
 	Args:
 	    user_inputs: Configuration.
@@ -664,12 +567,12 @@ def initialise_problem(
 	user_inputs: UserInputs,
 	coefficients: Coefficients,
 ) -> dolfin_mech.problems.Problem:
-	r"""Register the unknowns (module docstring, section 2) and build the data fields.
+	r"""Register the unknowns (order of :data:`UNKNOWNS` = ``sol_tol`` order) and build the data fields.
 
 	Sets on ``problem``: the subsols, ``theta_func``/``phi_func`` (subsol or frozen draw),
 	``theta_initial``/``phi_initial``, ``phic_func`` (subsol or :math:`\Phi_{c,0}`), ``phi_s0``,
-	``kinematics``, ``permeability`` (law of section 5), ``k_l_tensor``
-	(:math:`\mathbf K_L = (k/\eta) J \mathbf C^{-1}`) and ``sol_tol`` (one entry per subsol, registration order).
+	``kinematics``, ``permeability`` (:func:`build_permeability`), ``k_l_tensor``
+	(:math:`\mathbf K_L = (k/\eta) J \mathbf C^{-1}`) and ``sol_tol`` (one entry per subsol).
 
 	Args:
 	    mesh: Mesh (rescaled when nondimensionalised).
@@ -755,7 +658,7 @@ def initialise_problem(
 def build_permeability(
 	problem: dolfin_mech.problems.Problem, user_inputs: UserInputs, coefficients: Coefficients
 ) -> Any:
-	r""":math:`k(\phi_\ell)/\eta` law of ``user_inputs.permeability_law`` (module docstring, section 5).
+	r""":math:`k(\phi_\ell)/\eta` law of ``user_inputs.permeability_law`` (``hill_playground.materials.permeability``).
 
 	Args:
 	    problem: Problem with ``kinematics``, ``phi_s0``, ``phic_func``.
@@ -790,7 +693,7 @@ def build_permeability(
 def build_materials(
 	problem: dolfin_mech.problems.Problem, user_inputs: UserInputs, coefficients: Coefficients
 ) -> Tuple[Any, hill_law.Constitutive]:
-	r"""Gel law :math:`\mathbf{P}_S + \mathbf{P}_h` (Neo-Hooke + volumetric law of section 5 + Hill chain).
+	r"""Gel law :math:`\mathbf{P}_S + \mathbf{P}_h` (Neo-Hooke + ``volumetric_law`` + Hill chain).
 
 	Args:
 	    problem: Problem from :func:`initialise_problem`.
@@ -855,7 +758,7 @@ def build_step_operators(
 	rows: ResidualRows,
 	values: TermValues,
 ) -> Tuple[List[Any], ContractileEvolution]:
-	r"""Operators shared by every step, with their measure and ``scale_factor`` (module docstring, section 4).
+	"""Operators shared by every step, with their measure and ``scale_factor`` (module docstring).
 
 	Each operator takes ``rows.measure(dV, row)`` and ``rows.scale_factor(row, v)``, ``row`` being the
 	subsol of its test function.
@@ -991,7 +894,9 @@ def set_weak_form_and_bcs(
 	user_inputs: UserInputs,
 	coefficients: Coefficients,
 ) -> dolfin_mech.problems.Problem:
-	r"""Register the residuals, the BCs (module docstring, section 1), the FOIs and QOIs.
+	r"""Register the residuals, the BCs, the FOIs and QOIs.
+
+	BCs: :math:`\mathbf u = \mathbf 0` on ``LEFT``/``RIGHT``; :math:`p = 0` on ``FRONT``, ``BACK``, ``BOTTOM``, ``TOP``.
 
 	Args:
 	    problem: Problem from :func:`initialise_problem`.
@@ -1046,13 +951,12 @@ def add_outputs(
 	contractile: ContractileEvolution,
 	units: SolveUnits,
 ) -> None:
-	r"""FOIs and QOIs, all SI, same names, order and spaces in every mode (module docstring, sections 4, 6).
+	r"""FOIs and QOIs, all SI, same names, order and spaces in every mode (module docstring, "Outputs").
 
-	:math:`\mathbf u = L_0\hat{\mathbf u}` and :math:`p = \mu_0\hat p` are scaled copies of the unknowns,
-	on their CG spaces (point data, no projection); the other fields are cell-wise
-	(``local_solver``) projections on the DG FOI spaces (cell data).
-	``units.unknowns`` redimensionalizes mesh, :math:`\mathbf u`, :math:`p`; ``units.coefficients``
-	the stresses built from the moduli and the time.
+	:math:`\mathbf u = L_0\hat{\mathbf u}`, :math:`p = \mu_0\hat p`: scaled copies on the CG spaces (point data);
+	other fields: cell-wise (``local_solver``) projections on the DG FOI spaces (cell data).
+	``units.unknowns`` redimensionalizes mesh, :math:`\mathbf u`, :math:`p`; ``units.coefficients`` the
+	stresses and the time.
 
 	Args:
 	    problem: Problem.

@@ -11,14 +11,13 @@ momentum balance:
 The CE and the PEE act on :math:`\varepsilon_a = \ln\lambda_a` through :math:`R_a`
 (:class:`hill_playground.operators.cell.hill.ContractileEvolution`).
 
-Self-contained law: it derives from the fenicsoft base classes only (``MaterialParameters``,
-``ConstitutiveLaw``) and owns its activation :math:`\alpha(t)` by composition
-(:class:`~hill_playground.materials.cell.active.activation.ActivationSchedule`): ``p_act`` is the
-single ``dolfin.Constant`` shared with ``OrientationChange`` and ``ContractileEvolution``, refreshed
-through ``set_k_step``/``update_time`` by ``HyperElasticity`` (this law is summed into the gel law).
+Derives from the fenicsoft base classes only (``MaterialParameters``, ``ConstitutiveLaw``); :math:`\alpha(t)`
+comes from an :class:`~hill_playground.materials.cell.active.activation.ActivationSchedule` (composition).
+``p_act`` is the ``dolfin.Constant`` shared with ``OrientationChange`` and ``ContractileEvolution``, refreshed
+by ``HyperElasticity`` via ``set_k_step``/``update_time``.
 
-:func:`check_uniqueness` tests a sufficient condition for a unique CE equilibrium; it is not enforced by
-:class:`Parameters` because legitimate cases (e.g. a free cell, :math:`k_e = 0`) violate it.
+:func:`check_uniqueness` (sufficient CE-uniqueness condition) is not enforced by :class:`Parameters`:
+a free cell (:math:`k_e = 0`) violates it.
 """
 
 import math
@@ -37,10 +36,9 @@ from . import functions as hill
 def check_uniqueness(k_e: float, k_p: float, f_max: float, lmbda_opt: float, width: float) -> float:
 	r"""Check :math:`k_e + k_p > f_{max} \max_\lambda |f_{FL}'(\lambda)\,\lambda|`.
 
-	With :math:`f_{FL}(\lambda) = \exp(-((\lambda - \lambda_{opt})/W)^2)`, the series (SEE, :math:`k_e`) and
-	parallel (PEE, :math:`k_p`) stiffnesses then dominate the softening of the force--length law: the CE
-	equilibrium :math:`\lambda_a` is unique (no descending-limb instability). Sufficient, not necessary.
-	The max is sampled on :math:`\lambda \in [0.05, 3]`. Any consistent stress unit (SI or :math:`\mu_0`).
+	Sufficient (not necessary) condition for a unique CE equilibrium :math:`\lambda_a` (no descending-limb
+	instability), with :math:`f_{FL}(\lambda) = \exp(-((\lambda - \lambda_{opt})/W)^2)`. The max is sampled on
+	:math:`\lambda \in [0.05, 3]`. Any consistent stress unit (SI or :math:`\mu_0`).
 
 	Args:
 	    k_e: SEE stiffness.

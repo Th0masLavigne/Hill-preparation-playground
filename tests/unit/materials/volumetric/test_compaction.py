@@ -1,4 +1,4 @@
-"""Unit tests of the compaction volumetric energy W = kappa (1-J_c)^2 [x - ln x - 1], x = (J-J_c)/(1-J_c)."""
+"""Unit tests of the compaction volumetric energy W = kappa (1-J_min)^2 [x - ln x - 1], x = (J-J_min)/(1-J_min)."""
 
 import math
 from typing import Any
@@ -42,7 +42,7 @@ def test_small_strain_bulk_modulus_is_kappa() -> None:
 
 
 def test_closed_form_and_barrier() -> None:
-	"""S_ii = kappa J (J-1)/x / C_ii; W grows without bound as J -> J_c."""
+	"""S_ii = kappa J (J-1)/x / C_ii; W grows without bound as J -> J_min."""
 	jac = 0.5
 	law, mesh = _law(jac)
 	x = (jac - JC) / (1.0 - JC)

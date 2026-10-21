@@ -56,7 +56,7 @@ is exact), $\hat p = p/\mu_0$, coefficients converted by `hill_box_scaling.Coeff
 Terzaghi's consolidation in `demos/analytical_consolidation_1D/`.
 
 - `permeability_law`: `"constant"` | `"kozeny_carman"` | `"holmes_mow"` | `"compaction_power"`.
-- `volumetric_law`: `"quadratic"` | `"compaction"` ($J > J_c = \Phi_{s,0} + \Phi_c$).
+- `volumetric_law`: `"quadratic"` | `"compaction"` ($J > J_{\min} = \Phi_{s,0} + \Phi_c$).
 - `cell_transport` ($\Phi_c$, $\tilde\phi_s$), `remodelling` ($\theta$, $\varphi$).
 
 ```bash

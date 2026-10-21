@@ -4,7 +4,7 @@ r"""Kozeny--Carman permeability (Carman 1937).
 	\frac{k}{k_0} = \frac{\phi_\ell^3/(1-\phi_\ell)^2}{\phi_{\ell,0}^3/(1-\phi_{\ell,0})^2},
 	\qquad \phi_\ell = 1 - \frac{\Phi_{s,0}+\Phi_c}{J}, \qquad \phi_{\ell,0} = 1 - \Phi_{s,0} - \Phi_{c,0}
 
-:math:`k \sim \phi_\ell^3 \to 0` at the compaction point :math:`J = J_c`.
+:math:`k \sim \phi_\ell^3 \to 0` at the compaction point :math:`J = J_{\min}`.
 """
 
 from dataclasses import dataclass

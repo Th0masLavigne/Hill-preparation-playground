@@ -1,39 +1,19 @@
-r"""Characteristic scales for nondimensionalizing a monolithic poromechanics problem.
+r"""Characteristic scales :math:`(L_0, \mu_0, t_0, \rho_0)` and the SI <-> dimensionless conversions.
 
-This module provides the :class:`CharacteristicScales` dataclass: four base characteristic
-scales (length, stress, time, density) and the paired ``nondimensionalize_*``/
-``redimensionalize_*`` conversions derived from them, used to rescale every residual block of
-a monolithic poromechanics problem so its Jacobian's diagonal spans a much smaller
-range of orders of magnitude than the raw-SI system does.
-
-**Why four base scales, and why this particular time scale.** Length (:math:`L_0`), stress
-(:math:`\mu_0`) and density (:math:`\rho_0`) are free choices (typically the sample's own
-radius, the gel's shear modulus, and the gel's mass density). The time scale :math:`t_0` is
-*not* free: it is fixed by requiring the gel's own Darcy (pressure-diffusion) block to become
-:math:`O(1)` after rescaling, i.e. the gel's own consolidation time,
+Base scales (equations.tex, Eq. ``eq:base-scales``):
 
 .. math::
-	t_0 = \frac{L_0^2 \eta}{k_{\text{gel}} \kappa_{\text{gel}}}
+	L_0\ [\mathrm{m}], \qquad \mu_0\ [\mathrm{Pa}], \qquad
+	t_0 = \frac{L_0^2 \eta}{k_{\text{gel}} \kappa_{\text{gel}}}\ [\mathrm{s}], \qquad
+	\rho_0\ [\mathrm{kg\,m^{-3}}],
 
-where :math:`\eta` is the fluid viscosity, :math:`k_{\text{gel}}` the gel's permeability, and
-:math:`\kappa_{\text{gel}}` the gel's own *confined* (bulk/oedometric) modulus -- the
-physically-correct consolidation-coefficient modulus (:math:`c_v\sim(k/\eta)\kappa`), which is
-**not** the same as :math:`\mu_0` (typically the gel's own *shear* modulus, used as the general
-stress scale everywhere else). See :meth:`CharacteristicScales.from_consolidation_scale`, whose
-own ``consolidation_modulus`` argument is this :math:`\kappa_{\text{gel}}`.
+with :math:`t_0 = L_0^2/c_v` the gel consolidation time (:math:`c_v = (k_{\text{gel}}/\eta)\kappa_{\text{gel}}`),
+built by :meth:`CharacteristicScales.from_consolidation_scale`. :math:`\kappa_{\text{gel}}` is the confined
+modulus, not :math:`\mu_0` (shear modulus).
 
-**Values.** The conversions only multiply or divide, so ``value`` may be a float or a UFL
-expression (e.g. ``redimensionalize_stress(p_hat)`` for an exported field).
-
-**Round-trip equivalence.** Every ``nondimensionalize_*``/``redimensionalize_*`` pair is an
-exact inverse of the other (each characteristic scale is a strictly positive float, so division
-then multiplication -- or the reverse -- recovers the original value up to floating-point
-round-off only). This is what makes solving the rescaled problem and then redimensionalizing
-its solution for export provably equivalent to solving the original SI problem directly: since
-every residual block satisfies :math:`R = \mathcal{N} \hat{R}` for some block-specific,
-strictly positive normalization constant :math:`\mathcal{N} \neq 0`, :math:`\hat{R} = 0
-\Leftrightarrow R = 0` termwise, and the primal unknown recovered by redimensionalizing the
-rescaled solution is exactly the SI solution.
+``nondimensionalize_X`` divides by the scale of X, ``redimensionalize_X`` multiplies by it: exact inverses, valid
+on floats and UFL expressions. With :math:`R_k = \mathcal N_k \tilde R_k`, :math:`\mathcal N_k > 0`
+(Eq. ``eq:nd-principle``), the rescaled problem has the SI solution.
 """
 
 from dataclasses import dataclass
@@ -41,18 +21,13 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class CharacteristicScales:
-	r"""Four base characteristic scales used to nondimensionalize the monolithic residual.
+	r"""Base scales :math:`L_0` (m), :math:`\mu_0` (Pa), :math:`t_0` (s), :math:`\rho_0` (kg/m^3), all > 0.
 
 	Attributes:
-		length (float): Characteristic length :math:`L_0`, in metres. Typically the sample's own
-			overall size, or its drainage length.
-		stress (float): Characteristic stress :math:`\mu_0`, in pascals. Typically the gel's own
-			shear modulus.
-		time (float): Characteristic time :math:`t_0`, in seconds. Not a free choice in practice
-			-- see :meth:`from_consolidation_scale`, which derives it from the gel's own
-			consolidation time so the Darcy block becomes :math:`O(1)`.
-		density (float): Characteristic density :math:`\rho_0`, in kilograms per cubic metre.
-			Typically the gel's own mass density.
+		length (float): :math:`L_0`, in m (sample size or drainage length).
+		stress (float): :math:`\mu_0`, in Pa (gel shear modulus).
+		time (float): :math:`t_0`, in s; see :meth:`from_consolidation_scale`.
+		density (float): :math:`\rho_0`, in kg/m^3 (gel mass density).
 	"""
 
 	length: float
@@ -61,11 +36,10 @@ class CharacteristicScales:
 	density: float
 
 	def __post_init__(self) -> None:
-		"""Validate that every characteristic scale is strictly positive.
+		"""Check that every base scale is strictly positive.
 
 		Raises:
-			ValueError: If ``length``, ``stress``, ``time``, or ``density`` is not strictly
-				positive.
+			ValueError: If ``length``, ``stress``, ``time`` or ``density`` is not strictly positive.
 		"""
 		for field_name in ("length", "stress", "time", "density"):
 			value = getattr(self, field_name)
@@ -82,41 +56,26 @@ class CharacteristicScales:
 		viscosity: float,
 		consolidation_modulus: float,
 	) -> "CharacteristicScales":
-		r"""Build a :class:`CharacteristicScales` whose time scale is the gel's own consolidation time.
+		r"""Scales with :math:`t_0 = L_0^2 \eta / (k_{\text{gel}} \kappa_{\text{gel}})` (Eq. ``eq:base-scales``).
 
-		Derives :math:`t_0 = L_0^2 \eta / (k_{\text{gel}} \kappa_{\text{gel}})` -- the unique
-		time scale for which the gel's Darcy (pressure-diffusion) residual block becomes
-		:math:`O(1)` after rescaling (see the module docstring). Note that the modulus entering
-		this formula is ``consolidation_modulus`` (:math:`\kappa_{\text{gel}}`, the gel's own
-		*confined* modulus), which is deliberately a separate argument from ``stress``
-		(:math:`\mu_0`, typically the gel's *shear* modulus): the two coincide only if the
-		caller passes the same value for both, which is not assumed here. ``length``, ``stress``
-		and ``density`` are passed through unchanged; only ``time`` is derived.
+		``length``, ``stress`` and ``density`` are passed through; only ``time`` is derived. :math:`\kappa_{\text{gel}}`
+		and :math:`\mu_0` are separate arguments (see :attr:`permeability_over_viscosity`).
 
 		Args:
-			length (float): Characteristic length :math:`L_0`, in metres.
-			stress (float): Characteristic stress :math:`\mu_0`, in pascals -- the scale used to
-				nondimensionalize every stress/pressure field. Typically the gel's shear modulus.
-			density (float): Characteristic density :math:`\rho_0`, in kilograms per cubic metre.
-			permeability (float): The gel's intrinsic permeability :math:`k_{\text{gel}}`, in
-				square metres. Must be strictly positive.
-			viscosity (float): The interstitial fluid's dynamic viscosity :math:`\eta`, in
-				pascal-seconds. Must be strictly positive.
-			consolidation_modulus (float): The gel's own confined/oedometric modulus
-				:math:`\kappa_{\text{gel}}`, in pascals -- the modulus entering the
-				consolidation-coefficient estimate :math:`c_v\sim(k_{\text{gel}}/\eta)\,
-				\kappa_{\text{gel}}`. Typically the gel's own volumetric-penalty bulk modulus
-				(``gel_kappa``), *not* necessarily the same value as ``stress``. Must be strictly
-				positive.
+			length (float): :math:`L_0`, in m.
+			stress (float): :math:`\mu_0`, in Pa (gel shear modulus).
+			density (float): :math:`\rho_0`, in kg/m^3.
+			permeability (float): :math:`k_{\text{gel}}`, in m^2 (> 0).
+			viscosity (float): :math:`\eta`, in Pa.s (> 0).
+			consolidation_modulus (float): :math:`\kappa_{\text{gel}}`, in Pa (> 0): confined modulus of
+				:math:`c_v = (k_{\text{gel}}/\eta)\,\kappa_{\text{gel}}`, typically ``gel_kappa``.
 
 		Returns:
-			CharacteristicScales: The four base scales, with ``time`` set to the derived
-				consolidation time.
+			CharacteristicScales: The base scales, with the derived ``time``.
 
 		Raises:
-			ValueError: If ``permeability``, ``viscosity``, or ``consolidation_modulus`` is not
-				strictly positive (or if any base scale fails :meth:`__post_init__`'s own
-				validation).
+			ValueError: If ``permeability``, ``viscosity`` or ``consolidation_modulus`` is not strictly positive, or
+				a base scale fails :meth:`__post_init__`.
 		"""
 		if permeability <= 0:
 			raise ValueError(f"permeability must be strictly positive, got {permeability}.")
@@ -148,28 +107,22 @@ class CharacteristicScales:
 
 	@property
 	def rate(self) -> float:
-		r"""float: Characteristic rate :math:`1 / t_0`, in inverse seconds.
-
-		Use this to nondimensionalize any first-order rate constant (a proliferation rate, a
-		remodeling relaxation rate :math:`1/\tau`, a haptotaxis sensitivity's own time part).
-		"""
+		r"""float: Characteristic rate :math:`1 / t_0`, in inverse seconds (rate constants, e.g. :math:`1/\tau`)."""
 		return 1.0 / self.time
 
 	@property
 	def permeability_over_viscosity(self) -> float:
-		r"""float: Characteristic hydraulic conductivity :math:`L_0^2 / (\mu_0 t_0)`.
+		r"""float: Characteristic hydraulic conductivity :math:`L_0^2 / (\mu_0 t_0)`, in m^2/(Pa.s).
 
-		With ``time`` from :meth:`from_consolidation_scale`
-		(:math:`t_0 = L_0^2\eta/(k_{gel}\kappa_{gel})`):
+		With :math:`t_0` from :meth:`from_consolidation_scale`:
 
 		.. math::
 			\frac{L_0^2}{\mu_0 t_0} = \frac{k_{gel}}{\eta}\,\frac{\kappa_{gel}}{\mu_0},
 			\qquad
-			\hat K_{gel} = \frac{k_{gel}/\eta}{L_0^2/(\mu_0 t_0)} = \frac{\mu_0}{\kappa_{gel}}
+			\hat K_{gel} = \frac{k_{gel}/\eta}{L_0^2/(\mu_0 t_0)} = \frac{\mu_0}{\kappa_{gel}},
 
-		The first equals :math:`k_{gel}/\eta`, and :math:`\hat K_{gel}` equals 1, only when
-		``stress == consolidation_modulus`` (e.g. :math:`\mu_0 = 1700` Pa, :math:`\kappa_{gel} = 1417` Pa gives
-		:math:`\hat K_{gel} = 1.20`).
+		so :math:`\hat K_{gel} = 1` only if ``stress == consolidation_modulus`` (e.g. :math:`\mu_0 = 1700` Pa,
+		:math:`\kappa_{gel} = 1417` Pa: :math:`\hat K_{gel} = 1.20`).
 		"""
 		return self.length**2 / (self.stress * self.time)
 
@@ -287,8 +240,7 @@ class CharacteristicScales:
 		r"""Rescale a hydraulic conductivity (permeability/viscosity) to dimensionless units.
 
 		Args:
-			value (float): A hydraulic conductivity :math:`k/\eta`, in square metres per
-				pascal-second.
+			value (float): Hydraulic conductivity :math:`k/\eta`, in m^2/(Pa.s).
 
 		Returns:
 			float: ``value / self.permeability_over_viscosity``.

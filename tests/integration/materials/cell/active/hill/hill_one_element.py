@@ -293,8 +293,7 @@ def error_history(model: HillChain0D, settings: OneElementRun, table: pd.DataFra
 def plot(model: HillChain0D, runs: dict[str, tuple[OneElementRun, pd.DataFrame]], path: Path) -> Path:
 	r"""FE (markers) vs 0D (lines): :math:`\lambda_a`, :math:`T_e`, gel stretches, error history.
 
-	A case whose label contains ``"rows"`` is drawn dashed with ``x`` markers: it coincides with the
-	default case of the same kinematics and would otherwise hide it.
+	Labels containing ``"rows"`` are drawn dashed with ``x`` markers (they coincide with the default case).
 
 	Args:
 	    model: Parameters.

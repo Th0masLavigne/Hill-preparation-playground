@@ -1,23 +1,18 @@
 r"""Diagnostic: Jacobian of the Hill box at the first step, per nondimensionalization mode.
 
-Assembles :math:`\mathbf J = \partial\tilde R/\partial\hat x` (Dirichlet BCs applied) as the Newton
-solver sees it, then reports:
+Assembles :math:`\mathbf J = \partial\tilde R/\partial\hat x` (Dirichlet BCs applied, as the Newton solver sees
+it) and prints, per mode:
 
 * :math:`\kappa_2(\mathbf J) = \sigma_{max}/\sigma_{min}` (dense SVD: small meshes only);
-* the median :math:`|J_{ii}|` per row (subsol), Dirichlet rows excluded: the order of magnitude of
-  each block, which the row scaling should bring to :math:`\mathcal O(1)` up to the mesh size.
+* the median :math:`|J_{ii}|` per row (subsol), Dirichlet rows excluded.
 
-``"none"`` solves in SI; ``"operator"`` (each residual row multiplied by a constant ``scale_factor``) and
-``"parameters"`` (dimensionless coefficients) solve the same dimensionless system, hence must give the same
-matrix (see :mod:`hill_box_all_modes`, "Nondimensionalisation"). Run ``python jacobian_scaling.py`` for the
-table.
+``"operator"`` and ``"parameters"`` must give the same matrix (:mod:`hill_box_all_modes`,
+"Nondimensionalisation"). Run ``python jacobian_scaling.py`` for the table.
 
-Reading the diagonals (scaled mesh, :math:`\hat h = h/L_0`): a row whose leading term is a mass
-term (:math:`\int \hat N_i^2\,\mathrm d\hat V \sim \hat h^3`: ``cell_fraction``, ``theta``, ``phi``,
-``substrate_smoothed``) and a row led by a stiffness term (:math:`\int |\hat\nabla \hat N_i|^2 \sim
-\hat h`: ``displacement``, ``liquid_pressure``) differ by :math:`\hat h^2` (here :math:`\sim 10^{-3}`
-with the P1/P2 constants). This is the usual mass/stiffness ratio of the discretization, not a
-scaling error: it does not depend on the units, and a row factor removing it would depend on the mesh.
+Note:
+    With :math:`\hat h = h/L_0`, mass-led rows (``cell_fraction``, ``theta``, ``phi``, ``substrate_smoothed``,
+    :math:`\sim \hat h^3`) and stiffness-led rows (``displacement``, ``liquid_pressure``, :math:`\sim \hat h`)
+    differ by :math:`\hat h^2` (:math:`\sim 10^{-3}` here): a discretization ratio, not a scaling error.
 """
 
 from __future__ import annotations

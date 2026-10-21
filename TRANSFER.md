@@ -125,7 +125,7 @@ It is not a constitutive law. Active laws use it by composition, so no law depen
 ## 8. Permeability laws $k(\phi_\ell)$
 
 **Changes.** New package `src/fenicsoft/materials/permeability/`:
-- `porosity.py`: J_c = Φ_s0 + Φ_c, Φ_ℓ = J − J_c, φ_ℓ = 1 − J_c/J, K_L = (k/η) J C⁻¹. Shared relations, not a law.
+- `porosity.py`: J_min = Φ_s0 + Φ_c, Φ_ℓ = J − J_min, φ_ℓ = 1 − J_min/J, K_L = (k/η) J C⁻¹. Shared relations, not a law.
 - `base.py`: `PermeabilityParameters(MaterialParameters)` (k₀/η) and `PorousPermeabilityParameters` (+ Φ_s0 uniform, Φ_c, Φ_c0); `Permeability` (abstract `_ratio()` = k/k₀ read through the cached `ratio`, then `hydraulic_conductivity` and `tensor`) and `PorousPermeability` (+ `porosity` φ_ℓ, `porosity_0` φ_ℓ0, `fluid_ratio` Φ_ℓ/Φ_ℓ0).
 - One module per law, with its `Parameters` (own fields only) and `Permeability` (only `_ratio`): `constant`, `kozeny_carman`, `holmes_mow`, `compaction_power` (n ≥ 1 enforced).
 - Afterwards, the pillar demos can replace their `permeability.py` (gel/pillar field) by these laws times a domain field.
@@ -134,7 +134,7 @@ It is not a constitutive law. Active laws use it by composition, so no law depen
 
 ## 9. Volumetric energy with a compaction point
 
-**Changes.** New `src/fenicsoft/materials/volumetric/compaction.py`: `CompactionVolumetricPenalty` (Ehlers), W = κ(1−J_c)²[x − ln x − 1], with its own `Parameters(kappa, solid_jacobian, x_floor)`. Below x_floor, W is continued linearly in x, so S = 2∂W/∂C holds everywhere and S stays finite (checked by finite differences in the test).
+**Changes.** New `src/fenicsoft/materials/volumetric/compaction.py`: `CompactionVolumetricPenalty` (Ehlers), W = κ(1−J_min)²[x − ln x − 1], with its own `Parameters(kappa, solid_jacobian, x_floor)`. Below x_floor, W is continued linearly in x, so S = 2∂W/∂C holds everywhere and S stays finite (checked by finite differences in the test).
 
 **Tests.** `tests/unit/materials/volumetric/test_compaction.py`.
 

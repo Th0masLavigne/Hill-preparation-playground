@@ -32,12 +32,11 @@ Modes (scales :math:`L_0 = L`, :math:`\mu_0 = \mu`, :math:`t_0 = L_0^2\eta/(k\ka
 * ``"parameters"``: mesh :math:`\hat X`, unknowns :math:`(\hat u, \hat p)`, coefficients
   :math:`(\hat\mu, \hat\kappa, \hat K, \hat p_0)` and time :math:`\hat t`, row factors 1.
 
-Each operator takes ``ResidualRows.measure`` and ``ResidualRows.scale_factor`` of its row (the subsol
-of its test function: ``displacement`` or ``liquid_pressure``); ``quadrature_degrees`` gives a degree
-per row (variants ``"<mode>+rows"`` of the test). The ``"parameters"`` coefficients come from the
-``CharacteristicScales.nondimensionalize_*`` methods, and every output is brought back with
-``redimensionalize_*``. Row scaling leaves Newton's iterates
-unchanged, so the three modes must agree to round-off. Run as a script to get the figures.
+Each operator takes ``ResidualRows.measure``/``scale_factor`` of its row (subsol of its test function:
+``displacement`` or ``liquid_pressure``); ``quadrature_degrees`` sets a degree per row (``"<mode>+rows"``).
+Coefficients of ``"parameters"`` come from ``CharacteristicScales.nondimensionalize_*``; outputs are brought
+back with ``redimensionalize_*``. Row scaling leaves Newton's iterates unchanged: the three modes agree to
+round-off. Run as a script to get the figures.
 """
 
 from __future__ import annotations

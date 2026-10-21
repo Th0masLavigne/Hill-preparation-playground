@@ -1,9 +1,8 @@
-r"""Integration: the Hill box demo assembles the same Jacobian in ``"operator"`` and ``"parameters"`` modes.
+r"""Integration: the Hill box assembles the same Jacobian in ``"operator"`` and ``"parameters"`` modes.
 
-``"operator"`` keeps the coefficients in SI and scales each term by :math:`s\,v/\mathcal N_{row}`
-(``ResidualRows``); ``"parameters"`` converts the coefficients. Both must give the same dimensionless
-system, hence the same matrix, well conditioned compared to SI.
-Uses ``hill_box_modes/jacobian_scaling.py`` on a small box (about 2000 dofs, assembly only, no solve).
+Both solve the same dimensionless system (``"operator"``: SI coefficients, rows scaled by
+:math:`s\,v/\mathcal N_{row}`; ``"parameters"``: converted coefficients), better conditioned than SI.
+Small box (about 2000 dofs), assembly only, via ``hill_box_modes/jacobian_scaling.py``.
 """
 
 import sys

@@ -1,10 +1,10 @@
 r"""Holmes--Mow permeability for large deformations of hydrated tissues (Holmes 1990).
 
 .. math::
-	\frac{k}{k_0} = \Big(\frac{J - J_c}{1 - J_{c,0}}\Big)^{\kappa_{HM}} \exp\Big(\frac{M}{2}(J^2 - 1)\Big),
-	\qquad J_c = \Phi_{s,0} + \Phi_c, \quad J_{c,0} = \Phi_{s,0} + \Phi_{c,0}
+	\frac{k}{k_0} = \Big(\frac{J - J_{\min}}{1 - J_{\min,0}}\Big)^{\kappa_{HM}} \exp\Big(\frac{M}{2}(J^2 - 1)\Big),
+	\qquad J_{\min} = \Phi_{s,0} + \Phi_c, \quad J_{\min,0} = \Phi_{s,0} + \Phi_{c,0}
 
-:math:`(J-J_c)/(1-J_{c,0}) = \Phi_\ell/\Phi_{\ell,0}`: :math:`k = 0` exactly when :math:`\Phi_\ell = 0`.
+:math:`(J-J_{\min})/(1-J_{\min,0}) = \Phi_\ell/\Phi_{\ell,0}`: :math:`k = 0` exactly when :math:`\Phi_\ell = 0`.
 """
 
 from dataclasses import dataclass

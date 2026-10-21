@@ -13,7 +13,6 @@ Unknown :math:`\varepsilon_a = \ln\lambda_a` (DG0); exponential-map rate (backwa
 	D_a = \frac{\varepsilon_a - \varepsilon_a^n}{\Delta t}
 
 No division by :math:`T_0`: valid for :math:`\alpha = 0` (then :math:`T_e = T_p`).
-Same ``(f - f_old)/dt`` idiom and ``tv_dt`` handling as ``ChangeRate`` and ``OrientationChange``.
 """
 
 from typing import Any, Optional

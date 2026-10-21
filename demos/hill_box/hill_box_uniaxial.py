@@ -83,7 +83,7 @@ Options
 * ``permeability_law``: ``"constant"``, ``"kozeny_carman"``, ``"holmes_mow"``, ``"compaction_power"``
   (``hill_playground.materials.permeability``);
 * ``volumetric_law``: ``"quadratic"`` :math:`\frac{\kappa}{2}(J-1)^2` or ``"compaction"``
-  (barrier at :math:`J_c = \Phi_{s,0} + \Phi_c`, ``hill_playground.materials.volumetric.compaction``);
+  (barrier at :math:`J_{\min} = \Phi_{s,0} + \Phi_c`, ``hill_playground.materials.volumetric.compaction``);
 * ``cell_transport``, ``remodelling``: solve :math:`(\Phi_c, \tilde\phi_s)` and :math:`(\theta, \varphi)`;
 * ``quadrature_degrees``: quadrature degree per residual row (row = subsol of the test function).
 

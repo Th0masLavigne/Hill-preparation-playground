@@ -1,8 +1,7 @@
 r"""UFL building blocks of the cell Hill chain SEE -- (CE :math:`\parallel` PEE).
 
-Series elastic element (SEE), contractile element (CE), parallel elastic element (PEE). Pure functions
-shared by the stress law (:math:`R_u`) and the CE evolution operator (:math:`R_a`), so that :math:`T_e`,
-:math:`T_p`, :math:`f_{FL}` and :math:`h` are written once.
+Series elastic (SEE), contractile (CE) and parallel elastic (PEE) elements. Pure functions shared by the
+stress law (:math:`R_u`) and the CE evolution operator (:math:`R_a`).
 
 Internal variable: the CE log-stretch :math:`\varepsilon_a = \ln\lambda_a` (multiplicative split of the
 fibre stretch :math:`\lambda = \lambda_e\lambda_a`), hence
@@ -11,7 +10,7 @@ fibre stretch :math:`\lambda = \lambda_e\lambda_a`), hence
 	\lambda_a = e^{\varepsilon_a}, \qquad I_{4e} = I_4\, e^{-2\varepsilon_a}, \qquad
 	D_a = \dot\varepsilon_a .
 
-Every function works on SI tensions (Pa) and rates (1/s).
+Units: tensions in Pa, rates in 1/s.
 """
 
 from typing import Any, Literal, get_args
@@ -167,8 +166,8 @@ def force_velocity(rate: Any, hill_a: Any, hill_b: Any, f_ecc: Any) -> Any:
 		b_e = \frac{(f_{ecc}-1)\,b}{1+A}
 
 	:math:`h(0) = 1`, :math:`h'(0) = (1+A)/b` on both sides, :math:`h` strictly increasing,
-	:math:`h \ge 0` on :math:`D_a \ge -b/A`. Below :math:`-b/A` the hyperbola is extrapolated (:math:`h < 0`).
-	Each branch is evaluated on its own half-line, so the unused one never divides by zero.
+	:math:`h \ge 0` on :math:`D_a \ge -b/A` (below, the hyperbola is extrapolated: :math:`h < 0`).
+	Each branch is evaluated on its half-line only (no division by zero in the unused one).
 
 	Args:
 	    rate: :math:`D_a` (1/s).
