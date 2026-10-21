@@ -28,6 +28,7 @@ from typing import Any
 
 import dolfin
 import ufl_legacy
+from fenicsoft.materials.orientation.generic import from_vector
 
 _TO_DEG = 180.0 / math.pi
 
@@ -40,10 +41,9 @@ def current_direction(kinematics: Any, f0: Any) -> Any:
 	    f0: Unit reference direction (UFL vector).
 
 	Returns:
-	    UFL unit vector.
+	    UFL unit vector (``fenicsoft.materials.orientation.generic.from_vector``).
 	"""
-	stretched = kinematics.F * f0
-	return stretched / dolfin.sqrt(dolfin.inner(stretched, stretched))
+	return from_vector(kinematics.F * f0)
 
 
 def tilt_degrees(direction: Any, normal: Any) -> Any:
@@ -58,7 +58,7 @@ def tilt_degrees(direction: Any, normal: Any) -> Any:
 	"""
 	normal_part = dolfin.inner(direction, normal)
 	in_plane = direction - normal_part * normal
-	return _TO_DEG * ufl_legacy.atan_2(abs(normal_part), dolfin.sqrt(dolfin.inner(in_plane, in_plane)))
+	return _TO_DEG * ufl_legacy.atan_2(abs(normal_part), dolfin.sqrt(dolfin.inner(in_plane, in_plane)))  # type: ignore
 
 
 def axis_angle_degrees(direction: Any, axis: Any) -> Any:
@@ -72,7 +72,7 @@ def axis_angle_degrees(direction: Any, axis: Any) -> Any:
 	    UFL scalar in :math:`[0, 90]`.
 	"""
 	cross = dolfin.cross(direction, axis)
-	return _TO_DEG * ufl_legacy.atan_2(dolfin.sqrt(dolfin.inner(cross, cross)), abs(dolfin.inner(direction, axis)))
+	return _TO_DEG * ufl_legacy.atan_2(dolfin.sqrt(dolfin.inner(cross, cross)), abs(dolfin.inner(direction, axis)))  # type: ignore
 
 
 def order_parameter(direction: Any, axis: Any) -> Any:
