@@ -11,9 +11,11 @@ from typing import Any
 import dolfin
 from fenicsoft.operators.cell import SaturatedProliferation as _SaturatedProliferation
 
+from ....materials.ufl_functions import macaulay
+
 
 class SaturatedProliferation(_SaturatedProliferation):
-	r"""``fenicsoft`` ``SaturatedProliferation`` with :math:`\mathrm{sat} = \max(0, 1 - \Phi_c/\Phi_{c,max})`.
+	r"""``fenicsoft`` ``SaturatedProliferation`` with :math:`\mathrm{sat} = \langle 1 - \Phi_c/\Phi_{c,max} \rangle_+`.
 
 	Args:
 	    phi_c: :math:`\Phi_c`.
@@ -35,5 +37,5 @@ class SaturatedProliferation(_SaturatedProliferation):
 	) -> None:
 		"""Builds the parent form, then replaces it by the clipped one."""
 		super().__init__(phi_c, r, phi_c_max, test_c, measure, scale_factor)
-		saturation = dolfin.conditional(dolfin.gt(phi_c, phi_c_max), 0.0, 1.0 - phi_c / phi_c_max)
+		saturation = macaulay(1.0 - phi_c / phi_c_max)
 		self.res_form = -scale_factor * r * saturation * phi_c * test_c * self.measure
