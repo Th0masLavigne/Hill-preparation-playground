@@ -80,3 +80,15 @@ def test_floor_keeps_stress_finite(
 	s_floor = KAPPA * (1.0 - JC) * (1.0 - 1.0 / x_floor)
 	assert mean(at.cauchy[0, 0], mesh_at) == pytest.approx(s_floor, rel=1e-8)
 	assert mean(inside.cauchy[0, 0], mesh_in) == pytest.approx(s_floor, rel=1e-8)
+
+
+def test_parameters_from_young_poisson_and_lame() -> None:
+	r"""Factories: :math:`\kappa = E/(3(1-2\nu)) = \lambda + 2\mu/3`; ``solid_jacobian`` and ``x_floor`` kept."""
+	young, poisson = 3000.0, 0.25
+	lame_lambda, lame_mu = 1200.0, 1200.0  # same material: E = 3000, nu = 0.25
+	from_e = compaction.Parameters.from_young_poisson(young, poisson, solid_jacobian=JC, x_floor=0.1)
+	from_l = compaction.Parameters.from_lame(lame_lambda, lame_mu, solid_jacobian=JC)
+	assert from_e.kappa == pytest.approx(young / (3.0 * (1.0 - 2.0 * poisson)))
+	assert from_l.kappa == pytest.approx(from_e.kappa)
+	assert (from_e.solid_jacobian, from_e.x_floor) == (JC, 0.1)
+	assert (from_l.solid_jacobian, from_l.x_floor) == (JC, 1e-8)
