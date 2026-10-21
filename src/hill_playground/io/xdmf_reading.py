@@ -1,4 +1,4 @@
-"""Read-only helpers on a results XDMF (no dolfin, no HDF5)."""
+"""Read-only helpers on a results XDMF."""
 
 import re
 from pathlib import Path
