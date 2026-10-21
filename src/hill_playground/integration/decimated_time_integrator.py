@@ -38,7 +38,7 @@ from typing import Any, List, Optional, Sequence, Union
 
 import dolfin
 import dolfin_mech
-from dolfin_mech.core import write_VTU_file
+from dolfin_mech.core import compute_error, write_VTU_file
 from dolfin_mech.core.xdmffile import XDMFFile
 from mpi4py import MPI
 
@@ -73,7 +73,7 @@ _StepPeriod = Union[int, TimeInterval]
 def should_write_at_call(call_index: int, period: int) -> bool:
 	r"""Integer-period rule: write call :math:`k` iff :math:`k = 1` or :math:`(k - 1) \bmod p = 0`.
 
-	Dolfin-free (unit-testable). Step ends are handled by :class:`_DecimatedXDMFFile`.
+	Step ends are handled by :class:`_DecimatedXDMFFile`.
 
 	Args:
 	    call_index (int): 1-based call count :math:`k`, current call included.
@@ -90,25 +90,6 @@ def should_write_at_call(call_index: int, period: int) -> bool:
 	return call_index == 1 or (call_index - 1) % period == 0
 
 
-def _relative_error(val: float, ref: float) -> float:
-	r"""Relative error :math:`e = v / r`, same convention as ``NonlinearSolver.exit_test``.
-
-	Near-zero guard (:math:`|\cdot| < 10^{-9}`): :math:`e = 0` if :math:`v \approx r \approx 0`,
-	:math:`e = 1` if only :math:`r \approx 0`. Copied from ``dolfin_mech.core.compute_error`` to stay
-	dolfin-free.
-
-	Args:
-	    val (float): Value :math:`v` (increment norm).
-	    ref (float): Reference :math:`r` (scale norm).
-
-	Returns:
-	    float: Relative error :math:`e`.
-	"""
-	if abs(ref) < _RELATIVE_ERROR_ZERO_EPS:
-		return 0.0 if abs(val) < _RELATIVE_ERROR_ZERO_EPS else 1.0
-	return val / ref
-
-
 def is_subsol_stagnant(
 	delta_norm: float,
 	scale_norm: float,
@@ -117,7 +98,7 @@ def is_subsol_stagnant(
 	r"""Stagnation test of one subsol over one substep: :math:`e < \varepsilon`.
 
 	With :math:`e = \lVert u - u_{old} \rVert / \max(\lVert u \rVert, \lVert u_{old} \rVert)`
-	(:func:`_relative_error`). Dolfin-free; the norms come from
+	(``dolfin_mech.core.compute_error``). The norms come from
 	:meth:`DecimatedTimeIntegrator._step_is_stagnant`.
 
 	Args:
@@ -133,7 +114,7 @@ def is_subsol_stagnant(
 	"""
 	if min_relative_error <= 0:
 		raise ValueError(f"min_relative_error must be strictly positive, got {min_relative_error}.")
-	return _relative_error(delta_norm, scale_norm) < min_relative_error
+	return compute_error(val=delta_norm, ref=scale_norm) < min_relative_error
 
 
 class _DecimatedXDMFFile:

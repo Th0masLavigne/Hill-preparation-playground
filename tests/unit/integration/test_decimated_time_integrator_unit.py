@@ -19,7 +19,6 @@ from hill_playground.integration.decimated_time_integrator import (
 	DecimatedTimeIntegrator,
 	TimeInterval,
 	_DecimatedXDMFFile,  # type: ignore
-	_relative_error,  # type: ignore
 	is_subsol_stagnant,
 	should_write_at_call,
 )
@@ -955,21 +954,6 @@ def test_integrate_permanent_solver_failure_skips_forced_write_when_write_sol_is
 	assert integrator.integrate() is False
 	assert any("failed to move forward" in message for message in integrator.printer.messages)
 	assert fake_file.written_times == []  # never touched: write_sol was False throughout.
-
-
-def test_relative_error_both_near_zero_returns_zero() -> None:
-	"""Both ``val`` and ``ref`` near zero: error 0 (no division by ~0)."""
-	assert _relative_error(val=1e-10, ref=1e-10) == 0.0
-
-
-def test_relative_error_ref_near_zero_val_not_returns_one() -> None:
-	"""Ref alone near zero: the same "maximal disagreement" convention as ``dolfin_mech.core.compute_error``."""
-	assert _relative_error(val=0.5, ref=0.0) == 1.0
-
-
-def test_relative_error_normal_ratio() -> None:
-	"""Away from the near-zero guard, this is a plain val/ref ratio."""
-	assert _relative_error(val=4.0, ref=2.0) == 2.0
 
 
 def test_is_subsol_stagnant_true_when_error_below_threshold() -> None:
