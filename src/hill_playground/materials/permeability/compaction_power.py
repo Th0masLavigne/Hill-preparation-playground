@@ -12,7 +12,7 @@ r"""Compaction power law: permeability written on the Lagrangian fluid content :
 from dataclasses import dataclass
 from typing import Any
 
-from ..ufl_functions import floored
+from ...ufl_functions import floored
 from .base import PorousPermeability, PorousPermeabilityParameters
 
 

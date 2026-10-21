@@ -12,7 +12,7 @@ from typing import Any
 
 import dolfin
 
-from ..ufl_functions import floored
+from ...ufl_functions import floored
 from .base import PorousPermeability, PorousPermeabilityParameters
 
 

@@ -18,11 +18,11 @@ holds what is new.
 │   ├── initialize.sh       # host-side: base image + bind-mount folders
 │   └── secrets.env.example # token for the remote mode
 ├── src/hill_playground/    # -> fenicsoft/ (one issue per item: TRANSFER.md)
+│   ├── ufl_functions.py              # floored, macaulay (Newton guards)                     [new]
 │   ├── integration/                  # DecimatedTimeIntegrator, field selection + rank-0 logs [copy]
 │   ├── io/                           # XDMF geometry/time back to SI                         [new]
 │   ├── materials/cell/active/        # activation.py: shared activation schedule             [new]
 │   ├── materials/cell/active/hill/   # Hill law (R_u) + shared UFL functions                 [new]
-│   ├── materials/ufl_functions.py    # floored, macaulay (Newton guards)                     [new]
 │   ├── materials/permeability/       # k(phi_l) laws on a common base class                  [new]
 │   ├── materials/volumetric/         # volumetric energy with a compaction point             [new]
 │   ├── materials/orientation/        # orientation diagnostics                               [new]

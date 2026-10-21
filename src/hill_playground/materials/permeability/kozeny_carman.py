@@ -10,7 +10,7 @@ r"""Kozeny--Carman permeability (Carman 1937).
 from dataclasses import dataclass
 from typing import Any
 
-from ..ufl_functions import floored
+from ...ufl_functions import floored
 from .base import PorousPermeability, PorousPermeabilityParameters
 
 

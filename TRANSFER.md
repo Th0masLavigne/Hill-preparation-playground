@@ -11,7 +11,7 @@ Legend: **new**: the file does not exist in fenicsoft. **change**: patch an exis
 
 | # | Issue | Kind | Depends on |
 |---|---|---|---|
-| 0 | Materials: shared UFL guards `floored`, `macaulay` | new | – |
+| 0 | Shared UFL guards (package root) `floored`, `macaulay` | new | – |
 | 1 | Integration: select XDMF fields, write logs on rank 0 only | copy | – |
 | 2 | Scaling: promote `CharacteristicScales` to `fenicsoft.scaling` | new | – |
 | 3 | IO: write XDMF geometry and time back in SI | new | – |
@@ -30,11 +30,11 @@ Legend: **new**: the file does not exist in fenicsoft. **change**: patch an exis
 
 ---
 
-## 0. Materials: shared UFL guards
+## 0. Shared UFL guards
 
-**Changes.** New `src/fenicsoft/materials/ufl_functions.py`: `floored(x, x_f)` = max(x, x_f) and `macaulay(x)` = max(x, 0), the Newton safeguards of the Hill, permeability and compaction laws (written once; they were three copies). Export `ufl_functions` from `fenicsoft/materials/__init__.py`.
+**Changes.** New `src/fenicsoft/ufl_functions.py`: `floored(x, x_f)` = max(x, x_f) and `macaulay(x)` = max(x, 0), the Newton safeguards of the Hill, permeability and compaction laws and of `SaturatedProliferation` (written once; they were three copies). Package root, not `materials/`: operators use them too. Import it first in `fenicsoft/__init__.py`. Reuse candidates in fenicsoft: `safe_inv4` in `materials/cell/active/aniso/law.py` (`floored`), the clamped `sqrt` in `materials/orientation/generic.py` (`macaulay`).
 
-**Tests.** `tests/unit/materials/test_ufl_functions.py`.
+**Tests.** `tests/unit/test_ufl_functions.py`.
 
 ## 1. Integration: select XDMF fields, write logs on rank 0 only
 
@@ -98,7 +98,7 @@ It is not a constitutive law. Active laws use it by composition, so no law depen
 ## 5. Hill chain law (self-contained)
 
 **Changes.** New `src/fenicsoft/materials/cell/active/hill/{__init__.py, functions.py, law.py}`:
-- `functions.py`: T_e (variants `mooney`, `tension_only`, `exponential`), Ψ_e, T_p, Ψ_p, f_FL, h(D_a); guards from `materials.ufl_functions` (issue 0);
+- `functions.py`: T_e (variants `mooney`, `tension_only`, `exponential`), Ψ_e, T_p, Ψ_p, f_FL, h(D_a); guards from `fenicsoft.ufl_functions` (issue 0);
 - `law.py`:
   - `Parameters(MaterialParameters)` and `Constitutive(ConstitutiveLaw)`, with S_h = Φ_c T_e/I₄ f₀⊗f₀;
   - activation through `ActivationSchedule`, exposed as `current_activation` and `current_time`;

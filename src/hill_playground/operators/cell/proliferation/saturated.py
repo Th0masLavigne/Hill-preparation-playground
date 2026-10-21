@@ -11,7 +11,7 @@ from typing import Any
 import dolfin
 from fenicsoft.operators.cell import SaturatedProliferation as _SaturatedProliferation
 
-from ....materials.ufl_functions import macaulay
+from ....ufl_functions import macaulay
 
 
 class SaturatedProliferation(_SaturatedProliferation):

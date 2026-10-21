@@ -17,7 +17,7 @@ from typing import Any, Literal, get_args
 
 import dolfin
 
-from ....ufl_functions import floored, macaulay
+from .....ufl_functions import floored, macaulay
 
 SeeVariant = Literal["mooney", "tension_only", "exponential"]
 """SEE law: ``"mooney"`` (baseline), ``"tension_only"``, ``"exponential"`` (see :func:`see_tension`)."""

@@ -1,6 +1,6 @@
-r"""Scalar UFL guards shared by the constitutive laws.
+r"""Scalar UFL guards shared by the constitutive laws and the operators.
 
-Target: ``fenicsoft.materials.ufl_functions``.
+Target: ``fenicsoft.ufl_functions``.
 
 .. math::
 	\mathrm{floored}(x, x_f) = \max(x, x_f), \qquad \langle x \rangle_+ = \max(x, 0)
