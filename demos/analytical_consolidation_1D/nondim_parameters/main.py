@@ -67,6 +67,7 @@ import logging
 import sys
 import time
 from dataclasses import dataclass, field, replace
+from datetime import timedelta
 from pathlib import Path
 from typing import Any, Dict, Sequence, Tuple
 
@@ -441,7 +442,7 @@ def solve_problem(problem: dolfin_mech.problems.Problem, paths: io.SimulationPat
 	if not success:
 		raise RuntimeError("Time integration failed.")
 	if rank == 0:
-		logging.getLogger(__name__).info(f"Solve: {time.time() - begin:.1f} s.")
+		logging.getLogger(__name__).info(f"Solve: {timedelta(seconds=int(time.time() - begin))}, success={success}.")
 
 
 def post_processing(paths: io.SimulationPaths, user_inputs: UserInputs) -> post_process.Errors:

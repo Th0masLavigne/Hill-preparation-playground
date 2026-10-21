@@ -130,7 +130,7 @@ class ResultsSeries:
 		h5_name, _, dataset = item.text.strip().partition(":")
 		return h5_name, dataset
 
-	def _read(self, reference: Optional[Tuple[str, str]]) -> Optional[NDArray]:
+	def _read(self, reference: Optional[Tuple[str, str]]) -> Optional[NDArray]:  # type: ignore
 		"""Dataset of ``reference``, or None if absent (not yet flushed)."""
 		if reference is None:
 			return None
@@ -454,7 +454,7 @@ def plot_histograms(
 			ax.legend(fontsize=8, frameon=False, loc="upper right" if col != 1 else "upper right")
 	fig.suptitle("Cell orientation: first vs last frame (volume-weighted)", fontsize=12)
 	fig.tight_layout()
-	fig.savefig(output, dpi=150)
+	fig.savefig(output, dpi=150)  # type: ignore
 	plt.close(fig)
 
 
@@ -524,7 +524,7 @@ def plot_sphere(
 		"Equal-area projection of the fibre axes seen from +z (centre: along z, rim: in the xy plane, dotted: 45°)",
 		fontsize=11,
 	)
-	fig.savefig(output, dpi=150, bbox_inches="tight")
+	fig.savefig(output, dpi=150, bbox_inches="tight")  # type: ignore
 	plt.close(fig)
 
 
@@ -568,7 +568,7 @@ def plot_time(
 		if qoi is not None and qoi_hours is not None and qoi in qois:  # type: ignore[operator]
 			ax.plot(
 				qoi_hours,
-				qois[qoi],
+				qois[qoi],  # type: ignore
 				color=MUTED,
 				linewidth=1.0,
 				linestyle="--",  # type: ignore[index]
@@ -578,7 +578,7 @@ def plot_time(
 		ax.set_xlabel("time (h)")
 		ax.legend(fontsize=8, frameon=False)
 	fig.tight_layout()
-	fig.savefig(output, dpi=150)
+	fig.savefig(output, dpi=150)  # type: ignore
 	plt.close(fig)
 
 
