@@ -75,6 +75,8 @@ import numpy as np  # noqa: E402
 from matplotlib.colors import LinearSegmentedColormap, LogNorm  # noqa: E402
 from numpy.typing import NDArray  # noqa: E402
 
+from hill_playground.io import xdmf_units  # noqa: E402
+
 DEFAULT_RESULTS = Path(__file__).resolve().parent / "outputs_hill_box_uniaxial" / "results" / "hill_box_uniaxial.xdmf"
 DIRECTIONS: Dict[str, str] = {"reference": "fibre", "current": "fibre_current"}
 """Analysed directions: label -> XDMF field (DG0 vector)."""
@@ -158,13 +160,7 @@ class ResultsSeries:
 	def is_redimensionalized(self) -> bool:
 		"""True once ``hill_playground.io.xdmf_units`` has put the geometry and times back in SI."""
 		reference = self._reference(self._grids[0].find("Geometry"))
-		if reference is None:
-			return False
-		try:
-			with h5py.File(self.xdmf_path.parent / reference[0], "r") as h5:
-				return "geometry_scale" in h5.attrs
-		except OSError:
-			return False
+		return reference is not None and xdmf_units.is_redimensionalized(self.xdmf_path.parent / reference[0])
 
 	def cell_weights(self) -> NDArray[np.float64]:
 		r"""Volume fractions :math:`w_e = |\Omega_e|/|\Omega|` of the tetrahedra (mesh of the first frame).

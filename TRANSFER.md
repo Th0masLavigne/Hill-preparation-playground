@@ -77,9 +77,9 @@ Legend: **new**: the file does not exist in fenicsoft. **change**: patch an exis
 
 ## 3. IO: write XDMF geometry and time back in SI
 
-**Changes.** New `src/fenicsoft/io/xdmf_units.py`. `redimensionalize_results(xdmf, length, time)` multiplies `Mesh/*/mesh/geometry` by L₀ and `<Time Value>` by t₀. It is idempotent through the HDF5 attribute `geometry_scale`. Call it on rank 0 after `integrate()` whenever the mesh was scaled. Export `redimensionalize_results` from `fenicsoft.io`. New direct dependency of `src`: `h5py` (already in the image; add it to the `dependencies` of `pyproject.toml`).
+**Changes.** New `src/fenicsoft/io/xdmf_units.py`. `redimensionalize_results(xdmf, length, time)` multiplies `Mesh/*/mesh/geometry` by L₀ and `<Time Value>` by t₀. It is idempotent step by step through the HDF5 attributes `geometry_scale` and `time_scale` (the XDMF is replaced atomically), so an interrupted call never scales twice. Both attributes are recorded even when the scale is 1; `is_redimensionalized(h5)` is True once both are set. New `src/fenicsoft/io/xdmf_reading.py`: `read_time_stamps(xdmf)` returns the `<Time Value>` entries as floats (use it in tests rather than matching the formatted text), and `TIME_VALUE` is the pattern shared with `xdmf_units`. Call it on rank 0 after `integrate()` whenever the mesh was scaled. Export `redimensionalize_results`, `is_redimensionalized` and `read_time_stamps` from `fenicsoft.io`. New direct dependency of `src`: `h5py` (already in the image; add it to the `dependencies` of `pyproject.toml`).
 
-**Tests.** `tests/unit/io/test_xdmf_units.py`.
+**Tests.** `tests/unit/io/test_xdmf_units.py`, `tests/unit/io/test_xdmf_reading.py`.
 
 ## 4. Active laws: shared activation schedule
 
