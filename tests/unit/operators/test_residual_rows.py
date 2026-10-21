@@ -14,9 +14,9 @@ ROWS = ("displacement", "liquid_pressure", "eps_a")
 def test_scale_factor_is_test_scale_times_value_over_normalization() -> None:
 	"""scale_factor = s_k v / N_k; s_k = N_k = 1 for a row without settings."""
 	rows = ResidualRows(ROWS, test_scales={"liquid_pressure": 3.0}, normalizations={"liquid_pressure": 4.0})
-	assert rows.scale_factor("liquid_pressure", 2.0) == pytest.approx(1.5)
-	assert rows.scale_factor("liquid_pressure") == pytest.approx(0.75)
-	assert rows.scale_factor("eps_a", 3.0) == pytest.approx(3.0)
+	assert rows.scale_factor("liquid_pressure", 2.0) == pytest.approx(1.5, rel=1e-12)
+	assert rows.scale_factor("liquid_pressure") == pytest.approx(0.75, rel=1e-12)
+	assert rows.scale_factor("eps_a", 3.0) == pytest.approx(3.0, rel=1e-12)
 
 
 def test_measure_degree_overrides_default_for_its_row_only() -> None:
@@ -46,7 +46,7 @@ def test_from_problem_uses_subsol_names() -> None:
 	)
 	assert rows.rows == ROWS
 	assert rows.quadrature_degrees["eps_a"] == 2
-	assert rows.scale_factor("displacement") == pytest.approx(2.5)
+	assert rows.scale_factor("displacement") == pytest.approx(2.5, rel=1e-12)
 	assert ResidualRows.from_problem(problem).normalizations == {}
 	assert ResidualRows.from_problem(problem).test_scales == {}
 

@@ -50,6 +50,7 @@ def test_from_consolidation_scale_matches_the_derivation_formula() -> None:
 
 	expected_time = length**2 * viscosity / (permeability * consolidation_modulus)
 	assert scales.time == pytest.approx(expected_time, rel=1e-12)
+	# loose on purpose: the two time scales must differ by far more than round-off
 	assert scales.time != pytest.approx(length**2 * viscosity / (permeability * stress), rel=1e-6)
 	assert scales.length == length
 	assert scales.stress == stress
@@ -75,10 +76,10 @@ def test_from_consolidation_scale_rejects_non_positive_gel_parameters(bad_field:
 def test_derived_scales_formulas() -> None:
 	r"""Derived scales :math:`L_0/t_0`, :math:`L_0^2/t_0`, :math:`1/t_0` and :math:`L_0^2/(\mu_0 t_0)`."""
 	scales = CharacteristicScales(length=2.0, stress=4.0, time=5.0, density=1.0)
-	assert scales.velocity == pytest.approx(2.0 / 5.0)
-	assert scales.diffusivity == pytest.approx(2.0**2 / 5.0)
-	assert scales.rate == pytest.approx(1.0 / 5.0)
-	assert scales.permeability_over_viscosity == pytest.approx(2.0**2 / (4.0 * 5.0))
+	assert scales.velocity == pytest.approx(2.0 / 5.0, rel=1e-12)
+	assert scales.diffusivity == pytest.approx(2.0**2 / 5.0, rel=1e-12)
+	assert scales.rate == pytest.approx(1.0 / 5.0, rel=1e-12)
+	assert scales.permeability_over_viscosity == pytest.approx(2.0**2 / (4.0 * 5.0), rel=1e-12)
 
 
 def test_from_consolidation_scale_makes_the_darcy_block_o1_when_stress_equals_kappa() -> None:

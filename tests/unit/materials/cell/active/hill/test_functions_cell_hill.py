@@ -53,7 +53,7 @@ def test_pee_initial_stiffness(mean: Callable[..., float]) -> None:
 
 def test_force_length_peak(mean: Callable[..., float]) -> None:
 	"""f_FL(lambda_opt) = 1."""
-	assert math.isclose(mean(hill.force_length(dolfin.Constant(math.log(1.05)), 1.05, 0.3)), 1.0)
+	assert math.isclose(mean(hill.force_length(dolfin.Constant(math.log(1.05)), 1.05, 0.3)), 1.0, rel_tol=1e-12)
 
 
 @pytest.mark.parametrize(

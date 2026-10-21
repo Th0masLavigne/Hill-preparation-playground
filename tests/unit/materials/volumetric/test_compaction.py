@@ -88,7 +88,7 @@ def test_parameters_from_young_poisson_and_lame() -> None:
 	lame_lambda, lame_mu = 1200.0, 1200.0  # same material: E = 3000, nu = 0.25
 	from_e = compaction.Parameters.from_young_poisson(young, poisson, solid_jacobian=JC, x_floor=0.1)
 	from_l = compaction.Parameters.from_lame(lame_lambda, lame_mu, solid_jacobian=JC)
-	assert from_e.kappa == pytest.approx(young / (3.0 * (1.0 - 2.0 * poisson)))
-	assert from_l.kappa == pytest.approx(from_e.kappa)
+	assert from_e.kappa == pytest.approx(young / (3.0 * (1.0 - 2.0 * poisson)), rel=1e-12)
+	assert from_l.kappa == pytest.approx(from_e.kappa, rel=1e-12)
 	assert (from_e.solid_jacobian, from_e.x_floor) == (JC, 0.1)
 	assert (from_l.solid_jacobian, from_l.x_floor) == (JC, 1e-8)

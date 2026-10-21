@@ -38,7 +38,7 @@ def test_isotropic_set() -> None:
 	"""Uniform on the sphere: Q = 0, isotropic, mean tilt out of xy = 90 - 180/pi rad = 32.70 deg."""
 	m = pp.order_measures(_fibonacci_sphere(N), _uniform(N))
 	assert m.state == "isotropic"
-	assert np.allclose(m.q, 0.0, atol=2e-3)
+	assert np.allclose(m.q, 0.0, rtol=0.0, atol=2e-3)
 	assert m.mean_tilt_xy_deg == pytest.approx(90.0 - 180.0 / np.pi, abs=0.05)
 
 
@@ -48,9 +48,9 @@ def test_aligned_set() -> None:
 	f[:, 0] = np.where(np.arange(N) % 2, 1.0, -1.0)
 	m = pp.order_measures(f, _uniform(N))
 	assert m.state == "prolate"
-	assert m.order == pytest.approx(1.0)
-	assert (m.q_xx, m.q_zz) == pytest.approx((1.0, -0.5))
-	assert np.allclose(m.director, [1.0, 0.0, 0.0])
+	assert m.order == pytest.approx(1.0, rel=1e-12)
+	assert (m.q_xx, m.q_zz) == pytest.approx((1.0, -0.5), rel=1e-12)
+	assert np.allclose(m.director, [1.0, 0.0, 0.0], rtol=0.0, atol=1e-10)
 
 
 def test_planar_set() -> None:
@@ -59,10 +59,10 @@ def test_planar_set() -> None:
 	f = np.stack((np.cos(angle), np.sin(angle), np.zeros(N)), axis=1)
 	m = pp.order_measures(f, _uniform(N))
 	assert m.state == "oblate"
-	assert m.order == pytest.approx(1.0)
-	assert np.allclose(m.director, [0.0, 0.0, 1.0])
-	assert m.q_zz == pytest.approx(-0.5)
-	assert m.mean_tilt_xy_deg == pytest.approx(0.0)
+	assert m.order == pytest.approx(1.0, rel=1e-12)
+	assert np.allclose(m.director, [0.0, 0.0, 1.0], rtol=0.0, atol=1e-10)
+	assert m.q_zz == pytest.approx(-0.5, rel=1e-12)
+	assert m.mean_tilt_xy_deg == pytest.approx(0.0, abs=1e-12)
 
 
 def test_head_tail_invariance() -> None:
@@ -70,7 +70,7 @@ def test_head_tail_invariance() -> None:
 	f = _fibonacci_sphere(N)[:, [2, 0, 1]] * np.array([1.0, 0.3, 0.3])
 	f = pp.unit_directions(f)
 	flipped = np.where((np.arange(N) % 3 == 0)[:, None], -f, f)
-	assert np.allclose(pp.order_tensor(f, _uniform(N)), pp.order_tensor(flipped, _uniform(N)))
+	assert np.allclose(pp.order_tensor(f, _uniform(N)), pp.order_tensor(flipped, _uniform(N)), rtol=0.0, atol=1e-14)
 
 
 def test_lambert_projection_is_equal_area() -> None:
@@ -80,7 +80,7 @@ def test_lambert_projection_is_equal_area() -> None:
 	assert r2.max() <= 1.0 + 1e-12
 	assert r2.mean() == pytest.approx(0.5, abs=2e-3)
 	ends = pp.lambert_upper_hemisphere(np.array([[0.0, 0.0, -1.0], [0.0, 1.0, 0.0]]))
-	assert np.allclose(ends, [[0.0, 0.0], [0.0, 1.0]])
+	assert np.allclose(ends, [[0.0, 0.0], [0.0, 1.0]], rtol=0.0, atol=1e-12)
 
 
 def _write_results(folder: Path, frames: list[NDArray[np.float64]]) -> Path:
@@ -116,6 +116,6 @@ def test_main_on_synthetic_results(tmp_path: Path) -> None:
 	xdmf = _write_results(tmp_path, [np.array([[0.0, 0.0, 1.0], [1.0, 0.0, 0.0]]), np.array([[2.0, 0, 0], [1, 0, 0]])])
 	series = pp.ResultsSeries(xdmf)
 	assert series.times == [0.0, 3600.0]
-	assert series.cell_weights() == pytest.approx([1.0 / 3.0, 2.0 / 3.0])
+	assert series.cell_weights() == pytest.approx([1.0 / 3.0, 2.0 / 3.0], rel=1e-12)
 	paths = pp.main(["--results", str(xdmf), "--output-dir", str(tmp_path / "figures")])
 	assert all(path.stat().st_size > 0 for path in paths.values())

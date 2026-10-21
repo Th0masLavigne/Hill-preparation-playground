@@ -36,13 +36,13 @@ def test_schedule_ramp_constant_function() -> None:
 	)
 	assert schedule.value == 0.0
 	schedule.update_time(0.5)
-	assert schedule.value == pytest.approx(0.6)
+	assert schedule.value == pytest.approx(0.6, rel=1e-12)
 	schedule.set_k_step(1)
 	schedule.update_time(0.3)
-	assert schedule.value == pytest.approx(0.7)
+	assert schedule.value == pytest.approx(0.7, rel=1e-12)
 	schedule.set_k_step(2)
 	schedule.update_time(0.5)
-	assert schedule.value == pytest.approx(0.5)
+	assert schedule.value == pytest.approx(0.5, rel=1e-12)
 
 
 def test_schedule_without_config_keeps_value() -> None:
@@ -59,10 +59,10 @@ def test_schedule_tracks_global_time() -> None:
 	steps = [MagicMock(t_ini=0.0, t_fin=2.0), MagicMock(t_ini=2.0, t_fin=6.0)]
 	schedule = ActivationSchedule([ActivePowerConfig.constant(k_step=0, value=1.0)], steps)
 	schedule.update_time(0.5)
-	assert schedule.time == pytest.approx(1.0)
+	assert schedule.time == pytest.approx(1.0, rel=1e-12)
 	schedule.set_k_step(1)
 	schedule.update_time(0.25)
-	assert schedule.time == pytest.approx(3.0)
+	assert schedule.time == pytest.approx(3.0, rel=1e-12)
 
 
 def test_function_on_missing_step_raises_index_error() -> None:

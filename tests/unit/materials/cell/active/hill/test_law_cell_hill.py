@@ -104,12 +104,12 @@ def test_activation_follows_steps(make_hill_setup: Any) -> None:
 	law = make_hill_setup(activation_configs=configs, simulation_steps=steps).law
 	law.set_k_step(0)
 	law.update_time(0.25)
-	assert law.current_activation == pytest.approx(0.25)
-	assert float(law.p_act) == pytest.approx(0.25)
+	assert law.current_activation == pytest.approx(0.25, rel=1e-12)
+	assert float(law.p_act) == pytest.approx(0.25, rel=1e-12)
 	law.set_k_step(1)
 	law.update_time(0.7)
-	assert law.current_activation == pytest.approx(0.5)
-	assert law.current_time == pytest.approx(1.7)  # t_ini + t_step (t_fin - t_ini) of step 1
+	assert law.current_activation == pytest.approx(0.5, rel=1e-12)
+	assert law.current_time == pytest.approx(1.7, rel=1e-12)  # t_ini + t_step (t_fin - t_ini) of step 1
 
 
 def test_uniqueness_margin_of_defaults() -> None:

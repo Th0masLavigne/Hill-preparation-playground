@@ -37,10 +37,10 @@ def test_scales_geometry_and_times_once(tmp_path: Path) -> None:
 	xdmf = tmp_path / "res.xdmf"
 	_write(xdmf)
 	assert xdmf_units.redimensionalize_results(xdmf, length=50e-6, time=2.0)
-	assert _geometry_max(xdmf) == pytest.approx(50e-6)
+	assert _geometry_max(xdmf) == pytest.approx(50e-6, rel=1e-12)
 	assert 'Time Value="1.000000000000000e+00"' in xdmf.read_text()
 	assert not xdmf_units.redimensionalize_results(xdmf, length=50e-6, time=2.0)
-	assert _geometry_max(xdmf) == pytest.approx(50e-6)
+	assert _geometry_max(xdmf) == pytest.approx(50e-6, rel=1e-12)
 
 
 def test_identity_does_nothing(tmp_path: Path) -> None:
@@ -48,7 +48,7 @@ def test_identity_does_nothing(tmp_path: Path) -> None:
 	xdmf = tmp_path / "res.xdmf"
 	_write(xdmf)
 	assert not xdmf_units.redimensionalize_results(xdmf, length=1.0, time=1.0)
-	assert _geometry_max(xdmf) == pytest.approx(1.0)
+	assert _geometry_max(xdmf) == pytest.approx(1.0, rel=1e-12)
 
 
 def test_geometry_only_keeps_times(tmp_path: Path) -> None:
@@ -56,5 +56,5 @@ def test_geometry_only_keeps_times(tmp_path: Path) -> None:
 	xdmf = tmp_path / "res.xdmf"
 	_write(xdmf)
 	assert xdmf_units.redimensionalize_results(xdmf, length=2.0)
-	assert _geometry_max(xdmf) == pytest.approx(2.0)
+	assert _geometry_max(xdmf) == pytest.approx(2.0, rel=1e-12)
 	assert 'Time Value="5.000000000000000e-01"' in xdmf.read_text()

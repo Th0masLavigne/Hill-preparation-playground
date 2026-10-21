@@ -53,7 +53,7 @@ def test_same_solution_as_si(tables: dict[str, pd.DataFrame], mode: str, referen
 	"""Row scaling does not change Newton's iterates: same times, settlement and pressures as SI (same rows)."""
 	reference, scaled = tables[reference_mode], tables[mode]
 	assert len(scaled) == len(reference)
-	np.testing.assert_allclose(scaled["t"], reference["t"], rtol=1e-12)
+	np.testing.assert_allclose(scaled["t"], reference["t"], rtol=1e-12, atol=0.0)
 	np.testing.assert_allclose(scaled["u0"], reference["u0"], rtol=1e-8, atol=1e-8 * reference["u0"].abs().max())
 	p_cols = [c for c in reference.columns if c.startswith("p_")]
 	np.testing.assert_allclose(scaled[p_cols], reference[p_cols], rtol=0.0, atol=1e-8 * INPUTS.load)

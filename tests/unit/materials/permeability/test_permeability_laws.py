@@ -78,8 +78,8 @@ def test_tensor_is_pulled_back(mean: Callable[..., float], dilate: Callable[[flo
 
 def test_porosity_relations() -> None:
 	"""Phi_l = J - J_min and phi_l = Phi_l / J."""
-	assert porosity.lagrangian_fluid_fraction(0.8, PHI_S0, PHI_C0) == pytest.approx(0.5)
-	assert porosity.eulerian_porosity(0.8, PHI_S0, PHI_C0) == pytest.approx(0.5 / 0.8)
+	assert porosity.lagrangian_fluid_fraction(0.8, PHI_S0, PHI_C0) == pytest.approx(0.5, rel=1e-12)
+	assert porosity.eulerian_porosity(0.8, PHI_S0, PHI_C0) == pytest.approx(0.5 / 0.8, rel=1e-12)
 
 
 def test_compaction_power_rejects_sublinear_exponent() -> None:
@@ -114,8 +114,10 @@ def test_base_is_abstract_and_shares_porosity(
 		base.Permeability(kin, constant.Parameters(conductivity_0=K0))  # pyright: ignore[reportAbstractUsage]
 	for law in _laws(kin).values():
 		assert isinstance(law, base.PorousPermeability)
-		assert law.porosity_0 == pytest.approx(1.0 - PHI_S0 - PHI_C0)
-		assert mean(law.fluid_ratio, mesh) == pytest.approx((0.8 - PHI_S0 - PHI_C0) / (1.0 - PHI_S0 - PHI_C0))
+		assert law.porosity_0 == pytest.approx(1.0 - PHI_S0 - PHI_C0, rel=1e-12)
+		assert mean(law.fluid_ratio, mesh) == pytest.approx(
+			(0.8 - PHI_S0 - PHI_C0) / (1.0 - PHI_S0 - PHI_C0), rel=1e-12
+		)
 
 
 def test_uniform_solid_fraction_as_constant(

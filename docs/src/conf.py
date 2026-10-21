@@ -164,6 +164,7 @@ def generate_simple_toc(app):
 		("tests/integration", "Integration Tests"),
 		("tests/unit", "Unit Tests"),
 		("tests/environment", "Environment Tests"),
+		("tests/conventions", "Convention Tests"),
 	]
 
 	def ensure_index_exists(folder_path, title, current_rel_path):

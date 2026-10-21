@@ -48,4 +48,4 @@ def test_conditioning_improved(jacobians: dict[str, Any]) -> None:
 	print("\ncond2:", {mode: f"{value:.2e}" for mode, value in cond.items()})
 	assert cond["none"] > 1e15
 	assert cond["operator"] < 1e6
-	assert np.isclose(cond["operator"], cond["parameters"], rtol=1e-6)
+	assert np.isclose(cond["operator"], cond["parameters"], rtol=1e-6, atol=1e-8)

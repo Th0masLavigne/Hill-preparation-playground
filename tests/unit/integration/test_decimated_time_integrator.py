@@ -25,7 +25,8 @@ def test_written_attributes(tmp_path: Path, functions: str) -> None:
 	text = Path(stem + ".xdmf").read_text()
 	names = set(re.findall(r'Attribute Name="([^"]+)"', text))
 	assert names == ({"double_c"} if functions == "foi" else {"c", "c_old", "double_c"})
-	assert [float(t) for t in re.findall(r'Time Value="([^"]+)"', text)] == pytest.approx([0.0, 0.25, 0.5, 0.75, 1.0])
+	times = [float(t) for t in re.findall(r'Time Value="([^"]+)"', text)]
+	assert times == pytest.approx([0.0, 0.25, 0.5, 0.75, 1.0], rel=1e-12, abs=1e-12)
 
 
 def _numbers_masked(path: Path) -> list[str]:
@@ -53,7 +54,7 @@ def test_mpi_logs_match_serial(tmp_path: Path) -> None:
 	assert _numbers_masked(tmp_path / "mpi.out") == _numbers_masked(tmp_path / "serial.out")
 	assert (tmp_path / "mpi.sta").read_text() == (tmp_path / "serial.sta").read_text()
 	np.testing.assert_allclose(
-		np.loadtxt(tmp_path / "mpi-qois.dat"), np.loadtxt(tmp_path / "serial-qois.dat"), rtol=1e-10
+		np.loadtxt(tmp_path / "mpi-qois.dat"), np.loadtxt(tmp_path / "serial-qois.dat"), rtol=1e-10, atol=0.0
 	)
 
 

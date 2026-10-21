@@ -35,8 +35,8 @@ def test_head_tail_symmetry(mean: Callable[..., float]) -> None:
 
 def test_order_parameter_bounds(mean: Callable[..., float]) -> None:
 	"""S = 1 aligned, -1/2 orthogonal."""
-	assert mean(display.order_parameter(EX, EX), MESH) == pytest.approx(1.0)
-	assert mean(display.order_parameter(EZ, EX), MESH) == pytest.approx(-0.5)
+	assert mean(display.order_parameter(EX, EX), MESH) == pytest.approx(1.0, rel=1e-12)
+	assert mean(display.order_parameter(EZ, EX), MESH) == pytest.approx(-0.5, rel=1e-12)
 
 
 def test_current_direction_follows_shear(mean: Callable[..., float]) -> None:
@@ -45,5 +45,5 @@ def test_current_direction_follows_shear(mean: Callable[..., float]) -> None:
 	u.interpolate(dolfin.Expression(("0.5*x[1]", "0.0", "0.0"), degree=1))
 	f = display.current_direction(Kinematics(U=u), dolfin.Constant((0.0, 1.0, 0.0)))
 	norm = math.sqrt(1.25)
-	assert mean(f[0], MESH) == pytest.approx(0.5 / norm)
-	assert mean(f[1], MESH) == pytest.approx(1.0 / norm)
+	assert mean(f[0], MESH) == pytest.approx(0.5 / norm, rel=1e-12)
+	assert mean(f[1], MESH) == pytest.approx(1.0 / norm, rel=1e-12)
