@@ -95,6 +95,7 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass, field
+from datetime import timedelta
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Literal, Sequence, Tuple, Union, get_args
 
@@ -269,7 +270,7 @@ class UserInputs:
 			io.Step(duration=10.0, init_dt=1.0, min_dt=0.25),  # ramp, dt ~ tau_a ; avant 60 et 10
 			# io.Step(duration=600.0, init_dt=60.0, min_dt=0.25, max_dt=60.0),  # hold
 			# io.Step(duration=600.0, init_dt=30.0, min_dt=5.0),  # step 0: 0% -> 100% ramp, 10 min
-			io.Step(duration=90000.0, init_dt=1000.0, min_dt=100.0, max_dt=3000.0, min_simu_seconds=3 * 3600),
+			io.Step(duration=180000.0, init_dt=1000.0, min_dt=100.0, max_dt=3000.0, min_simu_seconds=3 * 3600),
 		)
 	)
 	activation_configs: Sequence[ActivePowerConfig] = field(
@@ -824,7 +825,7 @@ def solve_problem(
 	success = integrator.integrate()
 	comm.Barrier()
 	if rank == 0:
-		logging.getLogger(__name__).info(f"Solve: {time.time() - begin_t:.1f} s, success={success}.")
+		logging.getLogger(__name__).info(f"Solve: {timedelta(seconds=int(time.time() - begin_t))}, success={success}.")
 	return success
 
 
