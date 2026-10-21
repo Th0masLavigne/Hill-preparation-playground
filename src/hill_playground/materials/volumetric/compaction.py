@@ -28,14 +28,15 @@ from functools import cached_property
 from typing import Any
 
 import dolfin
-from fenicsoft.materials.materials import ConstitutiveLaw, MaterialParameters
+from fenicsoft.materials.materials import ConstitutiveLaw
+from fenicsoft.materials.volumetric.parameters import VolumetricPenaltyParameters
 
 from ..ufl_functions import floored
 
 
 @dataclass(slots=True, frozen=True)
-class Parameters(MaterialParameters):
-	r"""Parameters.
+class Parameters(VolumetricPenaltyParameters):
+	r""":class:`VolumetricPenaltyParameters` (:math:`\kappa`) plus the compaction point.
 
 	Attributes:
 	    kappa: Drained bulk modulus at :math:`J = 1`, :math:`\kappa` (Pa, or :math:`\hat\kappa`).
@@ -43,9 +44,44 @@ class Parameters(MaterialParameters):
 	    x_floor: :math:`x_f`, start of the linear continuation of :math:`W` (Newton safeguard).
 	"""
 
-	kappa: Any
 	solid_jacobian: Any
 	x_floor: float = 1e-8
+
+	@classmethod
+	def from_young_poisson(  # type: ignore[override]
+		cls, young: Any, poisson: Any, solid_jacobian: Any, x_floor: float = 1e-8
+	) -> "Parameters":
+		r""":math:`\kappa = E / (3(1 - 2\nu))`, via :meth:`VolumetricPenaltyParameters.from_young_poisson`.
+
+		Args:
+		    young: Drained Young modulus :math:`E`.
+		    poisson: Drained Poisson ratio :math:`\nu`.
+		    solid_jacobian: :math:`J_{\min}`.
+		    x_floor: :math:`x_f`. Defaults to ``1e-8``.
+
+		Returns:
+		    Parameters.
+		"""
+		kappa = VolumetricPenaltyParameters.from_young_poisson(young, poisson).kappa
+		return cls(kappa=kappa, solid_jacobian=solid_jacobian, x_floor=x_floor)
+
+	@classmethod
+	def from_lame(  # type: ignore[override]
+		cls, lame_lambda: Any, lame_mu: Any, solid_jacobian: Any, x_floor: float = 1e-8
+	) -> "Parameters":
+		r""":math:`\kappa = \lambda + 2\mu/3`, via :meth:`VolumetricPenaltyParameters.from_lame`.
+
+		Args:
+		    lame_lambda: Drained :math:`\lambda`.
+		    lame_mu: Drained :math:`\mu`.
+		    solid_jacobian: :math:`J_{\min}`.
+		    x_floor: :math:`x_f`. Defaults to ``1e-8``.
+
+		Returns:
+		    Parameters.
+		"""
+		kappa = VolumetricPenaltyParameters.from_lame(lame_lambda, lame_mu).kappa
+		return cls(kappa=kappa, solid_jacobian=solid_jacobian, x_floor=x_floor)
 
 
 class CompactionVolumetricPenalty(ConstitutiveLaw[Parameters]):
