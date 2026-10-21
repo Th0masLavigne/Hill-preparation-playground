@@ -110,3 +110,14 @@ def test_activation_follows_steps(make_hill_setup: Any) -> None:
 	law.update_time(0.7)
 	assert law.current_activation == pytest.approx(0.5)
 	assert law.current_time == pytest.approx(1.7)  # t_ini + t_step (t_fin - t_ini) of step 1
+
+
+def test_uniqueness_margin_of_defaults() -> None:
+	"""Nominal chain (k_e = 200 kPa, k_p = 5 kPa, f_max = 20 kPa, lambda_opt = 1.05, W = 0.3): unique."""
+	assert hill_law.check_uniqueness(K_E, K_P, 20e3, 1.05, 0.3) > 1.0
+
+
+def test_uniqueness_violated_without_see() -> None:
+	"""k_e = 0 (free cell): k_p alone cannot dominate the descending limb."""
+	with pytest.raises(ValueError, match="not unique"):
+		hill_law.check_uniqueness(0.0, K_P, 20e3, 1.05, 0.3)

@@ -38,7 +38,7 @@ docstring of `hill_box_uniaxial.py`.
 | $k(\phi_\ell)$, $\mathbf K_L = (k/\eta) J \mathbf C^{-1}$ | `hill_playground.materials.permeability` |
 | Compaction volumetric energy | `hill_playground.materials.volumetric.compaction` |
 | Orientation diagnostics | `hill_playground.materials.orientation.display` |
-| Uniqueness check | `hill_chain_helpers.py` (demo side) |
+| Uniqueness check of the CE equilibrium | `hill_playground.materials.cell.active.hill.law.check_uniqueness` |
 
 | Demo file | Content |
 | --- | --- |

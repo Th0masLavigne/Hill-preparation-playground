@@ -6,6 +6,6 @@ Target: ``fenicsoft.materials.cell.active.hill``.
 """
 
 from . import functions
-from .law import Constitutive, Parameters
+from .law import Constitutive, Parameters, check_uniqueness
 
-__all__ = ["Constitutive", "functions", "Parameters"]
+__all__ = ["check_uniqueness", "Constitutive", "functions", "Parameters"]

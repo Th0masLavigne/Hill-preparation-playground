@@ -194,7 +194,7 @@ equations.tex Table tab:sf omitted s_row, the scale of the row's test function: 
 ## 14. Hill box demo
 
 **Changes.**
-- `demos/hill_box/{hill_box_uniaxial.py, hill_box_scaling.py, hill_box_outputs.py, hill_chain_helpers.py, post_processing.py, README.md}` → fenicsoft `demos/smooth_muscle_cells/porous_hydrogel/hill_box/`.
+- `demos/hill_box/{hill_box_uniaxial.py, hill_box_scaling.py, hill_box_outputs.py, post_processing.py, README.md}` → fenicsoft `demos/smooth_muscle_cells/porous_hydrogel/hill_box/`.
 - `demos/analytical_consolidation_1D/{nondim_parameters, nondim_operator, terzaghi_analytics.py, post_process.py, README.md}` → fenicsoft `demos/analytical_consolidation_1D/` (next to `single_step/`, `initialising_step/`).
 - `tests/integration/demos/test_hill_box_scaling.py` → `demos/.../hill_box/test/` with a `sys.path` conftest, as in `microtissue_pillar_spherical_scale/test/` (fenicsoft has no `tests/integration/demos/`). `testpaths = ["tests"]` does not collect it: run it explicitly (`pytest demos/.../hill_box/test`), or decide another location before the merge request.
 - Replace the `hill_playground.*` imports by `fenicsoft.*`.

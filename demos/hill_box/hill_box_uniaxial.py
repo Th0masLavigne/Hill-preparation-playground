@@ -104,7 +104,6 @@ import dolfin_mech
 import fenicsoft
 import fenicsoft.materials.orientation.spherical as spherical_mod
 import fenicsoft.operators.cell as cell_ops
-import hill_chain_helpers
 from fenicsoft import io
 from fenicsoft.mesh_geometries.box import BoxGeometry, BoxMarker, BoxMeshGenerator
 from fenicsoft.mesh_geometries.mesh_geometries import GmshKeys, MeshOptions
@@ -319,7 +318,7 @@ class UserInputs:
 		if self.phi_s0 + self.phi_c_init >= 1.0:
 			raise ValueError(f"phi_s0 + phi_c_init = {self.phi_s0 + self.phi_c_init} must be < 1.")
 		if self.use_force_length:
-			hill_chain_helpers.check_hill_uniqueness(self.k_e, self.k_p, self.f_max, self.lmbda_opt, self.width_fl)
+			hill_law.check_uniqueness(self.k_e, self.k_p, self.f_max, self.lmbda_opt, self.width_fl)
 
 	@property
 	def hydraulic_conductivity(self) -> float:

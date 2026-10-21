@@ -16,8 +16,12 @@ Self-contained law: it derives from the fenicsoft base classes only (``MaterialP
 (:class:`~hill_playground.materials.cell.active.activation.ActivationSchedule`): ``p_act`` is the
 single ``dolfin.Constant`` shared with ``OrientationChange`` and ``ContractileEvolution``, refreshed
 through ``set_k_step``/``update_time`` by ``HyperElasticity`` (this law is summed into the gel law).
+
+:func:`check_uniqueness` tests a sufficient condition for a unique CE equilibrium; it is not enforced by
+:class:`Parameters` because legitimate cases (e.g. a free cell, :math:`k_e = 0`) violate it.
 """
 
+import math
 from dataclasses import dataclass
 from functools import cached_property
 from typing import Any, Sequence
@@ -28,6 +32,39 @@ from fenicsoft.materials.materials import ConstitutiveLaw, MaterialParameters
 
 from ..activation import ActivationSchedule, ActivePowerConfig
 from . import functions as hill
+
+
+def check_uniqueness(k_e: float, k_p: float, f_max: float, lmbda_opt: float, width: float) -> float:
+	r"""Check :math:`k_e + k_p > f_{max} \max_\lambda |f_{FL}'(\lambda)\,\lambda|`.
+
+	With :math:`f_{FL}(\lambda) = \exp(-((\lambda - \lambda_{opt})/W)^2)`, the series (SEE, :math:`k_e`) and
+	parallel (PEE, :math:`k_p`) stiffnesses then dominate the softening of the force--length law: the CE
+	equilibrium :math:`\lambda_a` is unique (no descending-limb instability). Sufficient, not necessary.
+	The max is sampled on :math:`\lambda \in [0.05, 3]`. Any consistent stress unit (SI or :math:`\mu_0`).
+
+	Args:
+	    k_e: SEE stiffness.
+	    k_p: PEE stiffness.
+	    f_max: Maximal isometric tension.
+	    lmbda_opt: :math:`\lambda_{opt}`.
+	    width: :math:`W`.
+
+	Returns:
+	    Margin :math:`(k_e + k_p) / (f_{max} \max|f_{FL}'\lambda|)`, > 1.
+
+	Raises:
+	    ValueError: Condition violated (descending-limb instability possible).
+	"""
+	n_samples = 20001
+	worst = 0.0
+	for i in range(n_samples):
+		lam = 0.05 + 2.95 * i / (n_samples - 1)
+		f_fl = math.exp(-(((lam - lmbda_opt) / width) ** 2))
+		worst = max(worst, abs(-2.0 * (lam - lmbda_opt) / width**2 * f_fl * lam))
+	bound = f_max * worst
+	if k_e + k_p <= bound:
+		raise ValueError(f"Hill chain not unique: k_e + k_p = {k_e + k_p:.3g} <= {bound:.3g}.")
+	return (k_e + k_p) / bound
 
 
 @dataclass(slots=True, frozen=True, kw_only=True)
