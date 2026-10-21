@@ -109,6 +109,7 @@ autoapi_prepare_getattr = True
 autoapi_options = [
 	"members",
 	# "undoc-members",
+	"private-members",  # documented _names (e.g. _DecimatedXDMFFile); undocumented ones stay hidden
 	"show-inheritance",
 	"imported-members",  
 ]
