@@ -32,7 +32,7 @@ Legend: **new**: the file does not exist in fenicsoft. **change**: patch an exis
 
 ## 0. Shared UFL guards
 
-**Changes.** New `src/fenicsoft/ufl_functions.py`: `piecewise(x, x0, f_le, f_gt)` (the tie x = x0 and its UFL tangent go to the lower branch), and with it `floored(x, x_f)` = max(x, x_f), `capped(x, x_c)` = min(x, x_c), `macaulay(x)` = max(x, 0) (tangent 0 at 0) and `macaulay_negative(x)` = min(x, 0) (tangent 1 at 0), the Newton safeguards of the Hill, permeability and compaction laws and of `SaturatedProliferation` (written once; they were three copies). Package root, not `materials/`: operators use them too. Import it first in `fenicsoft/__init__.py`. Reuse candidates in fenicsoft: `safe_inv4` in `materials/cell/active/aniso/law.py` (`floored`), the clamped `sqrt` in `materials/orientation/generic.py` (`macaulay`).
+**Changes.** New `src/fenicsoft/ufl_functions.py`: `piecewise(x, x0, f_le, f_gt)` (the tie x = x0 and its UFL tangent go to the lower branch), and with it `floored(x, x_f)` = max(x, x_f), `capped(x, x_c)` = min(x, x_c), `macaulay(x)` = max(x, 0) (tangent 0 at 0) and `macaulay_negative(x)` = min(x, 0) (tangent 1 at 0), the Newton safeguards of the Hill, permeability and compaction laws and of `SaturatedProliferation` (written once; they were three copies). Package root, not `materials/`: operators use them too. Import it first in `fenicsoft/__init__.py`. Reuse candidates in fenicsoft: `safe_inv4` in `materials/cell/active/aniso/law.py` (`floored`), the clamped `sqrt` in `materials/orientation/generic.py` (`macaulay`), the saturation `conditional(phi_c > phi_c_max, 0, 1 - phi_c/phi_c_max)` in `operators/cell/haptotaxis/saturated.py` (`macaulay`).
 
 **Tests.** `tests/unit/test_ufl_functions.py`.
 
@@ -42,13 +42,15 @@ Legend: **new**: the file does not exist in fenicsoft. **change**: patch an exis
 - `dolfin_mech.core.TimeIntegrator` always writes every subsol, every `*_old` copy and every FOI. When the solve is nondimensionalized, the raw unknowns (û, p̂) are not SI, and the `*_old` copies duplicate every frame.
 - Under `mpirun`, the `.out`, `.sta` and `.dat` files are opened by every rank, each with its own buffer and file offset. The ranks overwrite each other once the buffers flush. Reproduced with `mpirun -n 2`: the `.out` keeps 272 lines instead of 521.
 
-**Changes** (`src/fenicsoft/integration/decimated_time_integrator.py`; diff = blocks tagged `CHANGE (playground)` in `hill_playground/integration/decimated_time_integrator.py`):
+**Changes** (`src/fenicsoft/integration/decimated_time_integrator.py`). The playground file replaces fenicsoft's: all docstrings were shortened (no tagged blocks), so diff the code without docstrings (e.g. `ast.unparse` of both files with docstrings stripped). Code changes:
 - `DecimatedTimeIntegrator.__init__(..., functions_to_write=None, root_only_logs=True)`.
 - `_silence_logs()`: on ranks other than 0, the printers write to `os.devnull`. Every logged value is already MPI-reduced, so nothing is lost.
 - `_reopen_xdmf()`: reopens the results XDMF on `functions_to_write` and rewrites the t = 0 frame, before the decimation proxy is built.
 - `_DecimatedXDMFFile`: the last written t is no longer reset at a step change (initially 0: the file already holds t = 0); only the period state is (call count, first frame of the step). Before, a solver failure on the first substep of a step forced a second frame at t_ini (= previous t_fin, or t = 0).
 - Cleaner long-term alternative: add `functions_to_write` to `dolfin_mech.core.TimeIntegrator` itself, which removes the rewrite of t = 0.
-- Module `Status` paragraph: remove it once merged.
+- `_relative_error` removed: `is_subsol_stagnant` calls `dolfin_mech.core.compute_error` (same rule: scale within 1e-9 of 0 gives e = 0 if the change is too, else 1; checked in `dolfin_mech_devel_lavigne@master`). The default threshold is renamed `_DEFAULT_PLATEAU_RELATIVE_ERROR` (was `_RELATIVE_ERROR_ZERO_EPS`).
+- `write_period` is validated even with `write_sol=False` (fenicsoft returned before the checks).
+- Plateau log message: no `s` after the elapsed time (solve units: s, or t₀ for a scaled solve).
 - Permanent fix on the fenicsoft side: no dolfin_mech change is expected, and fenicsoft only uses `DecimatedTimeIntegrator`. `NonlinearSolver` needs no change: the base `TimeIntegrator.__init__` sets `solver.printer = self.printer`, so silencing `self.printer` also silences the Newton lines. Only a `NonlinearSolver` used on its own with `print_out=<file>` would still write from every rank.
 
 **Tests.**
@@ -59,9 +61,9 @@ Legend: **new**: the file does not exist in fenicsoft. **change**: patch an exis
   - the plateau exit on a real problem, including the "before `min_simu_seconds`" and "not yet stagnant" branches.
 - `integrator_case.py` is a no-flux diffusion with c₀ = 1 + cos πx, so c → 1 and the plateau is reached around t ≈ 0.6. Avoid a Dirichlet BC with a single subsol: it does not act on the solution and the case becomes trivial (c ≡ 0).
 - The MPI test works with both MPICH and Open MPI. `--oversubscribe` and `--allow-run-as-root` are only added when `mpirun --version` says Open MPI, because MPICH's hydra rejects them. The parent's `OMPI_*`, `PMIX_*` and `PMI_*` variables are dropped for the child job, since dolfin has already initialised MPI in the parent.
-- `test_decimated_time_integrator_unit.py` is the fenicsoft test with its import and module docstring changed, plus the duplicate-frame fix: `test_integrate_permanent_solver_failure_ends_the_step_unsuccessfully` now expects no write (t = 0 already in the file), and two new tests (`..._force_at_previous_step_end_after_step_change_is_a_no_op`, `..._force_at_initial_time_is_a_no_op`). Port these three changes into fenicsoft's file.
+- `test_decimated_time_integrator_unit.py` is fenicsoft's test with the import changed, all docstrings shortened, the `_relative_error` tests removed (function gone), the constant renamed, and: `test_integrate_permanent_solver_failure_ends_the_step_unsuccessfully` now expects no write (t = 0 already in the file); new tests `..._force_at_previous_step_end_after_step_change_is_a_no_op`, `..._force_at_initial_time_is_a_no_op` (duplicate-frame fix) and `test_is_subsol_stagnant_zero_scale` (zero norm). Port these changes into fenicsoft's file.
 
-**Done when** the 59 integration unit tests pass with 100 % coverage of the module, and an `mpirun -n 2` run of a demo gives a `.out` with the same line count as the serial run.
+**Done when** the 61 integration unit test cases (59 functions, 2 of them parametrized) pass with 100 % coverage of the module, and an `mpirun -n 2` run of a demo gives a `.out` with the same line count as the serial run.
 
 ## 2. Scaling: promote `CharacteristicScales` to `fenicsoft.scaling`
 
@@ -104,7 +106,8 @@ It is not a constitutive law. Active laws use it by composition, so no law depen
 - `law.py`:
   - `Parameters(MaterialParameters)` and `Constitutive(ConstitutiveLaw)`, with S_h = Φ_c T_e/I₄ f₀⊗f₀;
   - activation through `ActivationSchedule`, exposed as `current_activation` and `current_time`;
-  - no import of `iso` or `aniso`.
+  - no import of `iso` or `aniso`;
+  - `check_uniqueness`: sufficient condition of a unique isometric CE equilibrium, k_e + k_p > f_max max|f_FL′λ| (Mooney SEE, or any SEE while taut).
 
 **Tests.** `tests/unit/materials/cell/active/hill/test_{functions,law}_cell_hill.py` and the fixtures in `tests/conftest.py` (`HillSetup`, `make_setup`).
 
@@ -215,7 +218,7 @@ equations.tex Table tab:sf omitted s_row, the scale of the row's test function: 
   - The `quadrature_degrees` keys are checked against `UNKNOWNS` (a typo raises an error); rows of switched-off unknowns are ignored. Default: empty, i.e. `quadrature_degree` everywhere.
   - Measured on the size/2 box: `{"displacement": 3}` and the other rows at 2 bring assembly from 1.83 to 1.26 s per iteration, with QOIs within 3e-4.
   - Checked after the refactor: same QOIs as before (difference 0.0), the 3 modes identical (3e-15), and the same holds with per-row degrees (`operator` vs `none` with rows: 2.5e-15).
-- Conditioning: `tests/integration/demos/hill_box_modes/jacobian_scaling.py` (with the 3-mode reference `hill_box_all_modes.py`) assembles J at the first step for the 3 modes (κ₂ by dense SVD, median |J_ii| per row, printed as a table). The mass rows (`cell_fraction`, `theta`, `phi`, `substrate_smoothed`, ~1e-3) and the stiffness rows (`displacement`, `liquid_pressure`, ~2) differ by ĥ²: discretization, not scaling. Test `tests/integration/demos/test_hill_box_scaling.py` (about 80 s): `operator` J = `parameters` J (≤ 1e-10), interior diagonal blocks O(1), κ₂: none 1.7e20, operator 4.3e4, parameters 4.3e4.
+- Conditioning: `tests/integration/demos/hill_box_modes/jacobian_scaling.py` (with the 3-mode reference `hill_box_all_modes.py`) assembles J at the first step for the 3 modes (κ₂ by dense SVD, median |J_ii| per row, printed as a table). The mass rows (`cell_fraction`, `theta`, `phi`, `substrate_smoothed`, ~1e-3) and the stiffness rows (`displacement`, `liquid_pressure`, ~2) differ by about (t₀/Δt) ĥ²/6 (ĥ = h/L₀ = 0.5, t₀ ≈ 1 s, Δt = 5 s): discretization and time step, not scaling. Test `tests/integration/demos/test_hill_box_scaling.py` (about 80 s): `operator` J = `parameters` J (≤ 1e-10), interior diagonal blocks O(1), κ₂: none 1.7e20, operator 4.3e4, parameters 4.3e4.
 - Cost profile (size/2, warm JIT cache): MUMPS solve ≈ 78 %, assembly ≈ 21 %, outputs < 1 %. Turning off `cell_transport` and `remodelling` cuts the solve to 5.2 s per iteration (−37 %). size/4: about 210 s per solve and about 5 GB.
 
 **Done when** the three `nondimensionalization` modes of `hill_box_all_modes.py` give identical QOIs (measured: 3e-15) and identical Jacobians (`operator` vs `parameters`), and an `mpirun` run gives a readable `.out`.
