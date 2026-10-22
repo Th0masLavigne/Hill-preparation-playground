@@ -1,4 +1,4 @@
-r"""UFL building blocks of the cell Hill chain SEE -- (CE :math:`\parallel` PEE).
+r"""UFL building blocks of the cell Hill chain SEE -- (CE :math:`\parallel` damper :math:`\parallel` PEE).
 
 Series elastic (SEE), contractile (CE) and parallel elastic (PEE) elements. Pure functions shared by the
 stress law (:math:`R_u`) and the CE evolution operator (:math:`R_a`).
@@ -6,7 +6,7 @@ stress law (:math:`R_u`) and the CE evolution operator (:math:`R_a`).
 Rheological scheme (fibre direction :math:`\mathbf{f}_0`):
 
 .. image:: /_static/resources/hill_rheology.svg
-	:alt: Hill chain: SEE in series with CE parallel to PEE
+	:alt: Hill chain: SEE in series with CE, optional damper and PEE in parallel
 	:width: 80%
 	:align: center
 
@@ -14,7 +14,9 @@ Series equilibrium (same tension through the chain):
 
 .. math::
 	T = T_e(I_{4e}) = T_{CE} + T_p(\varepsilon_a), \qquad
-	T_{CE} = T_0\, h(D_a) + \eta_0 D_a .
+	T_{CE} = T_0\, h(D_a) + \eta_0 D_a
+
+(motor :math:`T_0 h` and optional damper :math:`\eta_0 D_a`, ``ContractileEvolution.tension_ce``).
 
 Internal variable: the CE log-stretch :math:`\varepsilon_a = \ln\lambda_a` (multiplicative split of the
 fibre stretch :math:`\lambda = \lambda_e\lambda_a`), hence
@@ -30,7 +32,7 @@ from typing import Any, Literal, get_args
 
 import dolfin
 
-from .....ufl_functions import floored, macaulay
+from .....ufl_functions import floored, macaulay, macaulay_negative, piecewise
 
 SeeVariant = Literal["mooney", "tension_only", "exponential"]
 """SEE law: ``"mooney"`` (baseline), ``"tension_only"``, ``"exponential"`` (see :func:`see_tension`)."""
@@ -128,6 +130,8 @@ def see_energy(inv4e: Any, k_e: Any, variant: str = "mooney", k_2e: Any = 0.0) -
 def pee_tension(eps_a: Any, k_p: Any) -> Any:
 	r"""PEE tension :math:`T_p = \tfrac{k_p}{4}(\lambda_a^2 - \lambda_a^{-2}) = \tfrac{k_p}{2}\sinh(2\varepsilon_a)`.
 
+	Mooney law of the SEE (:func:`see_tension`) evaluated at :math:`\lambda_a^2 = e^{2\varepsilon_a}`.
+
 	Args:
 	    eps_a: :math:`\varepsilon_a`.
 	    k_p: PEE initial stiffness (Pa).
@@ -135,12 +139,14 @@ def pee_tension(eps_a: Any, k_p: Any) -> Any:
 	Returns:
 	    UFL scalar (Pa).
 	"""
-	return 0.25 * k_p * (dolfin.exp(2.0 * eps_a) - dolfin.exp(-2.0 * eps_a))
+	return see_tension(dolfin.exp(2.0 * eps_a), k_p, "mooney")
 
 
 def pee_energy(eps_a: Any, k_p: Any) -> Any:
 	r"""PEE energy :math:`\Psi_p = \tfrac{k_p}{8}(\lambda_a^2 + \lambda_a^{-2} - 2)`.
 
+	Mooney law of the SEE (:func:`see_energy`) evaluated at :math:`\lambda_a^2 = e^{2\varepsilon_a}`.
+
 	Args:
 	    eps_a: :math:`\varepsilon_a`.
 	    k_p: PEE initial stiffness (Pa).
@@ -148,7 +154,7 @@ def pee_energy(eps_a: Any, k_p: Any) -> Any:
 	Returns:
 	    UFL scalar (Pa).
 	"""
-	return k_p / 8.0 * (dolfin.exp(2.0 * eps_a) + dolfin.exp(-2.0 * eps_a) - 2.0)
+	return see_energy(dolfin.exp(2.0 * eps_a), k_p, "mooney")
 
 
 def force_length(eps_a: Any, lmbda_opt: Any, width: Any) -> Any:
@@ -172,13 +178,17 @@ def force_velocity(rate: Any, hill_a: Any, hill_b: Any, f_ecc: Any) -> Any:
 	r"""Hill force--velocity :math:`h(D_a)`: Hill hyperbola when shortening, saturating when lengthening.
 
 	.. math::
-		h = \frac{(1+A)\,b}{b - D_a} - A \quad (D_a \le 0), \qquad
-		h = f_{ecc} - (f_{ecc}-1)\frac{b_e}{b_e + D_a} \quad (D_a > 0), \qquad
+		h_{con}(D_a) = \frac{(1+A)\,b}{b - D_a} - A \quad (D_a \le 0), \qquad
+		h_{ecc}(D_a) = f_{ecc} - (f_{ecc}-1)\frac{b_e}{b_e + D_a} \quad (D_a > 0), \qquad
 		b_e = \frac{(f_{ecc}-1)\,b}{1+A}
 
 	:math:`h(0) = 1`, :math:`h'(0) = (1+A)/b` on both sides, :math:`h` strictly increasing,
 	:math:`h \ge 0` on :math:`D_a \ge -b/A` (below, the hyperbola is extrapolated: :math:`h < 0`).
-	Each branch is evaluated on its half-line only (no division by zero in the unused one).
+	Each branch is evaluated on its half-line (Macaulay brackets: no division by zero in the unused one):
+
+	.. math::
+		h(D_a) = h_{con}\big(\langle D_a \rangle_-\big) \ (D_a \le 0), \qquad
+		h(D_a) = h_{ecc}\big(\langle D_a \rangle_+\big) \ (D_a > 0)
 
 	Args:
 	    rate: :math:`D_a` (1/s).
@@ -190,8 +200,6 @@ def force_velocity(rate: Any, hill_a: Any, hill_b: Any, f_ecc: Any) -> Any:
 	    UFL scalar (-).
 	"""
 	b_ecc = (f_ecc - 1.0) * hill_b / (1.0 + hill_a)
-	rate_neg = dolfin.conditional(dolfin.le(rate, 0.0), rate, 0.0)
-	rate_pos = dolfin.conditional(dolfin.gt(rate, 0.0), rate, 0.0)
-	concentric = (1.0 + hill_a) * hill_b / (hill_b - rate_neg) - hill_a
-	eccentric = f_ecc - (f_ecc - 1.0) * b_ecc / (b_ecc + rate_pos)
-	return dolfin.conditional(dolfin.le(rate, 0.0), concentric, eccentric)
+	concentric = (1.0 + hill_a) * hill_b / (hill_b - macaulay_negative(rate)) - hill_a
+	eccentric = f_ecc - (f_ecc - 1.0) * b_ecc / (b_ecc + macaulay(rate))
+	return piecewise(rate, 0.0, concentric, eccentric)

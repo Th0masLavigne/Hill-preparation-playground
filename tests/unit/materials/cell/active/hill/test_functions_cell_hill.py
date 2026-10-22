@@ -82,6 +82,13 @@ def test_force_velocity_c1_at_zero(mean: Callable[..., float]) -> None:
 	assert math.isclose((h(step) - h(0.0)) / step, slope, rel_tol=1e-4)
 
 
+def test_force_velocity_tangent_at_zero(mean: Callable[..., float]) -> None:
+	"""UFL tangent at D_a = 0 exactly (first Newton iterate of a step): h'(0) = (1 + A)/b, not 0."""
+	rate = dolfin.Constant(0.0)
+	tangent = dolfin.diff(hill.force_velocity(rate, A, B, F_ECC), rate)
+	assert math.isclose(mean(tangent), (1 + A) / B, rel_tol=1e-12)
+
+
 def test_unknown_variant() -> None:
 	"""Unknown SEE variant raises, for the tension and the energy."""
 	with pytest.raises(ValueError):
