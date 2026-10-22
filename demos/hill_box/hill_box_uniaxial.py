@@ -13,23 +13,10 @@ Geometry and boundary conditions
 Box :math:`\Omega_0 = [0, L_x] \times [0, L_y] \times [0, L_z]`, all gel (default
 :math:`875 \times 375 \times 50\ \mu\mathrm{m}`).
 
-.. code-block:: text
-
-                         TOP (z = L_z)
-                 +---------------------------+
-                /|      BACK (y = L_y)      /|
-               / |                         / |
-              +---------------------------+  |
-     LEFT     |  |                        |  |     RIGHT
-     x = 0    |  +------------------------|--+     x = L_x
-     u = 0    | /                         | /      u = 0
-              |/       FRONT (y = 0)      |/
-              +---------------------------+
-                       BOTTOM (z = 0)
-       z  y
-       | /        LEFT, RIGHT              : u = 0, impermeable
-       |/___ x    FRONT, BACK, TOP, BOTTOM : p = 0 (drained), traction-free
-                  everywhere               : no cell flux
+.. image:: /_static/resources/hill_box_bcs.svg
+	:alt: Gel slab clamped and impermeable on LEFT and RIGHT, drained and traction-free elsewhere
+	:width: 90%
+	:align: center
 
 Unknowns
 --------

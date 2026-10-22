@@ -1,0 +1,38 @@
+% Terzaghi consolidation column: loading and boundary conditions.
+% Build: pdflatex terzaghi_column.tex && pdftocairo -svg terzaghi_column.pdf terzaghi_column.svg
+\documentclass[tikz,border=4pt]{standalone}
+\usetikzlibrary{arrows.meta,patterns,calc,decorations.pathreplacing}
+\tikzset{
+	load/.style={-{Latex[length=2mm]},thick,red!70!black},
+	dim/.style={{Latex[length=2mm]}-{Latex[length=2mm]},thin},
+	roller/.style={draw,thick,fill=white,circle,inner sep=0pt,minimum size=2.2mm},
+}
+\begin{document}
+\begin{tikzpicture}[font=\small]
+	\def\L{8} \def\H{1.6}
+	% gel column
+	\draw[thick,fill=cyan!8] (0,0) rectangle (\L,\H);
+	\node at (\L/2,\H/2) {gel column, section $[0,h]^2$};
+	% x = L: clamped and impermeable
+	\fill[pattern=north east lines] (\L,-0.25) rectangle (\L+0.3,\H+0.25);
+	\draw[very thick] (\L,-0.25) -- (\L,\H+0.25);
+	\node[right,align=left] at (\L+0.35,\H/2) {$u_x = 0$\\ impermeable};
+	% x = 0: load and drained
+	\foreach \y in {0.2,0.5,...,1.45} \draw[load] (-0.8,\y) -- (0,\y);
+	\node[left,align=right] at (-0.85,\H/2) {$p_0$\\ $p = 0$ (drained)};
+	% lateral faces: rollers
+	\foreach \x in {0.8,2.2,...,7.5} {
+		\node[roller] at (\x,-0.11) {}; \node[roller] at (\x,\H+0.11) {};
+	}
+	\fill[pattern=north east lines] (0,-0.22) rectangle (\L,-0.45);
+	\draw[thick] (0,-0.22) -- (\L,-0.22);
+	\fill[pattern=north east lines] (0,\H+0.22) rectangle (\L,\H+0.45);
+	\draw[thick] (0,\H+0.22) -- (\L,\H+0.22);
+	\node[below] at (\L/2,-0.5) {lateral faces: rollers $\mathbf u\cdot\mathbf n = 0$, impermeable};
+	% dimension and abscissae
+	\draw[dim] (0,\H+0.85) -- node[fill=white,inner sep=1pt] {$L$} (\L,\H+0.85);
+	\draw[thin,gray] (0,\H+0.5) -- (0,\H+1.0) (\L,\H+0.5) -- (\L,\H+1.0);
+	\node[above] at (0,\H+1.0) {$x = 0$};
+	\node[above] at (\L,\H+1.0) {$x = L$};
+\end{tikzpicture}
+\end{document}

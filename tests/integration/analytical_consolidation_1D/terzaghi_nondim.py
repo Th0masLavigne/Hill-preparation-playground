@@ -5,16 +5,10 @@ biphasic fluid stress :math:`-Jp\mathbf F^{-T}`, Darcy with :math:`\mathbf K_L =
 Column :math:`[0, L] \times [0, h]^2` (3D, one cell across), lateral rollers, :math:`u_x = 0` at
 :math:`x = L` (impermeable), load :math:`p_0` and :math:`p = 0` at :math:`x = 0`, :math:`p(t=0) = p_0`.
 
-.. code-block:: text
-
-            x = 0                                        x = L
-              |<------------------- L ------------------->|
-              +-------------------------------------------+
-     p0 ----> |                                           | u_x = 0
-     p = 0    |             gel column [0, h]^2           | impermeable
-   (drained)  |                                           |
-              +-------------------------------------------+
-               lateral faces: rollers (u . n = 0), impermeable
+.. image:: /_static/resources/terzaghi_column.svg
+	:alt: Gel column loaded by p0 at x = 0 (drained), clamped and impermeable at x = L, lateral rollers
+	:width: 90%
+	:align: center
 
 Small-strain analytical solution (:math:`M = \kappa + \frac43\mu`, :math:`c_v = (k/\eta) M`,
 :math:`T = c_v t / L^2`, :math:`m_j = (2j-1)\pi/2`):

@@ -3,6 +3,19 @@ r"""UFL building blocks of the cell Hill chain SEE -- (CE :math:`\parallel` PEE)
 Series elastic (SEE), contractile (CE) and parallel elastic (PEE) elements. Pure functions shared by the
 stress law (:math:`R_u`) and the CE evolution operator (:math:`R_a`).
 
+Rheological scheme (fibre direction :math:`\mathbf{f}_0`):
+
+.. image:: /_static/resources/hill_rheology.svg
+	:alt: Hill chain: SEE in series with CE parallel to PEE
+	:width: 80%
+	:align: center
+
+Series equilibrium (same tension through the chain):
+
+.. math::
+	T = T_e(I_{4e}) = T_{CE} + T_p(\varepsilon_a), \qquad
+	T_{CE} = T_0\, h(D_a) + \eta_0 D_a .
+
 Internal variable: the CE log-stretch :math:`\varepsilon_a = \ln\lambda_a` (multiplicative split of the
 fibre stretch :math:`\lambda = \lambda_e\lambda_a`), hence
 
@@ -56,11 +69,10 @@ def elastic_invariant(inv4: Any, eps_a: Any) -> Any:
 def see_tension(inv4e: Any, k_e: Any, variant: str = "mooney", k_2e: Any = 0.0) -> Any:
 	r"""SEE tension :math:`T_e = 2 I_{4e}\, \partial\Psi_e / \partial I_{4e}`.
 
-	.. math::
-		\text{mooney: } T_e = \tfrac{k_e}{4}(I_{4e} - I_{4e}^{-1}), \quad
-		\text{tension\_only: } T_e = \tfrac{k_e}{2} I_{4e} \langle I_{4e}-1 \rangle_+, \quad
-		\text{exponential: } T_e = \tfrac{k_e}{2} I_{4e} \langle I_{4e}-1 \rangle_+
-		e^{k_{2e}\langle I_{4e}-1 \rangle_+^2}
+	- ``"mooney"``: :math:`T_e = \tfrac{k_e}{4}(I_{4e} - I_{4e}^{-1})`
+	- ``"tension_only"``: :math:`T_e = \tfrac{k_e}{2} I_{4e} \langle I_{4e}-1 \rangle_+`
+	- ``"exponential"``:
+	  :math:`T_e = \tfrac{k_e}{2} I_{4e} \langle I_{4e}-1 \rangle_+ e^{k_{2e}\langle I_{4e}-1 \rangle_+^2}`
 
 	Args:
 	    inv4e: :math:`I_{4e}`.
@@ -87,10 +99,9 @@ def see_tension(inv4e: Any, k_e: Any, variant: str = "mooney", k_2e: Any = 0.0) 
 def see_energy(inv4e: Any, k_e: Any, variant: str = "mooney", k_2e: Any = 0.0) -> Any:
 	r"""SEE energy :math:`\Psi_e` per unit reference cell volume.
 
-	.. math::
-		\text{mooney: } \Psi_e = \tfrac{k_e}{8}(I_{4e} + I_{4e}^{-1} - 2), \quad
-		\text{tension\_only: } \tfrac{k_e}{8}\langle I_{4e}-1 \rangle_+^2, \quad
-		\text{exponential: } \tfrac{k_e}{8 k_{2e}}\big(e^{k_{2e}\langle I_{4e}-1 \rangle_+^2} - 1\big)
+	- ``"mooney"``: :math:`\Psi_e = \tfrac{k_e}{8}(I_{4e} + I_{4e}^{-1} - 2)`
+	- ``"tension_only"``: :math:`\Psi_e = \tfrac{k_e}{8}\langle I_{4e}-1 \rangle_+^2`
+	- ``"exponential"``: :math:`\Psi_e = \tfrac{k_e}{8 k_{2e}}\big(e^{k_{2e}\langle I_{4e}-1 \rangle_+^2} - 1\big)`
 
 	Args:
 	    inv4e: :math:`I_{4e}`.

@@ -10,15 +10,10 @@ Problem
 Rectangle :math:`[0, L] \times [0, W]` (plane strain), saturated with an incompressible fluid, loaded at
 :math:`t = 0` by :math:`p_0` on its left face, which is drained:
 
-.. code-block:: text
-
-	          u_y = 0, no flux (BACK)
-	        +-----------------------------------+
-	 p0 --> |                                   | u_x = 0
-	 p = 0  |            gel  (E, nu, k)        | no flux
-	        +-----------------------------------+
-	          u_y = 0, no flux (FRONT)
-	 x = 0 (LEFT)                          x = L (RIGHT)
+.. image:: /_static/resources/terzaghi_plane_strain.svg
+	:alt: Plane-strain gel rectangle loaded by p0 at x = 0 (drained), u_x = 0 at x = L, rollers on y = 0 and y = W
+	:width: 90%
+	:align: center
 
 Initial state: :math:`\mathbf u = \mathbf 0` and :math:`p = p_0` everywhere (undrained response to the load).
 

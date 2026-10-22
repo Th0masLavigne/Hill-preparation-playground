@@ -12,15 +12,10 @@ Two kinematic set-ups, both homogeneous:
 * ``"isometric"``: :math:`u_x = (\lambda-1)x`, :math:`u_y = u_z = 0` on every face (:math:`\mathbf F` imposed);
 * ``"free"``: symmetry planes :math:`u_x(0,\cdot)=u_y(\cdot,0,\cdot)=u_z(\cdot,\cdot,0)=0`, other faces traction-free.
 
-.. code-block:: text
-
-       "isometric"                              "free"
-        +----------+                             +----------+  x, y, z = 1: traction-free
-       /          /|                            /          /|
-      +----------+ |  every face:              +----------+ |
-      |  f0 -->  | +  u = ((lambda-1)x, 0, 0)  |  f0 -->  | +  x = 0: u_x = 0
-      |          |/                            |          |/   y = 0: u_y = 0
-      +----------+                             +----------+    z = 0: u_z = 0
+.. image:: /_static/resources/hill_one_element_bcs.svg
+	:alt: Unit cube, isometric (u imposed on every face) and free (symmetry planes x, y, z = 0)
+	:width: 90%
+	:align: center
 """
 
 from __future__ import annotations

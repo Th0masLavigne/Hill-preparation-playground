@@ -24,8 +24,6 @@ import dolfin_mech as dmech
 class ActivePowerConfig:
 	r""":math:`\alpha` on one step: ``val`` | (``val_ini``, ``val_fin``) | ``func(t)``, exclusively.
 
-	Same API as ``fenicsoft.materials.cell.active.iso.law.ActivePowerConfig``.
-
 	Attributes:
 	    k_step: Step index.
 	    val: Constant :math:`\alpha_k`.
