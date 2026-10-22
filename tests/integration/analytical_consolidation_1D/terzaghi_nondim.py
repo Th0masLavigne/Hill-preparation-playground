@@ -367,7 +367,7 @@ class Errors:
 
 	Attributes:
 	    pressure: :math:`\max_t \|p_h - p\|_{\ell^2(\text{probes})} / (p_0\sqrt{n})`, for :math:`T \ge T_{min}`.
-	    settlement: :math:`\max_t |u_h(0) - u(0)| / u_\infty`.
+	    settlement: :math:`\max_t |u_h(0) - u(0)| / u_\infty`, for :math:`T \ge T_{min}`.
 	"""
 
 	pressure: float

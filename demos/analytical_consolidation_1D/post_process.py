@@ -55,16 +55,18 @@ class Errors:
 	    history: Columns ``t`` (s), ``T``, ``pressure`` (:math:`e_p`), ``settlement`` (:math:`e_u`).
 	    pressure: :math:`\max e_p` over :math:`T \ge T_{min}`.
 	    settlement: :math:`\max e_u` over :math:`T \ge T_{min}`.
+	    t_factor_min: :math:`T_{min}`.
 	"""
 
 	history: pd.DataFrame
 	pressure: float
 	settlement: float
+	t_factor_min: float
 
 	def __str__(self) -> str:
 		"""One line for the console."""
 		return (
-			f"max error vs Terzaghi (T >= 0.05): pressure {self.pressure:.2e} p0, "
+			f"max error vs Terzaghi (T >= {self.t_factor_min:g}): pressure {self.pressure:.2e} p0, "
 			f"settlement {self.settlement:.2e} u_inf"
 		)
 
@@ -92,7 +94,12 @@ def compute_errors(
 	settlement = np.abs(table["u0"].to_numpy() - case.settlement(times)) / case.final_settlement
 	history = pd.DataFrame({"t": times, "T": case.time_factor(times), "pressure": pressure, "settlement": settlement})
 	kept = history[history["T"] >= t_factor_min]
-	return Errors(history=history, pressure=float(kept["pressure"].max()), settlement=float(kept["settlement"].max()))
+	return Errors(
+		history=history,
+		pressure=float(kept["pressure"].max()),
+		settlement=float(kept["settlement"].max()),
+		t_factor_min=t_factor_min,
+	)
 
 
 def plot_results(
@@ -131,7 +138,7 @@ def plot_results(
 	history = errors.history
 	ax_e.semilogy(history["T"], history["pressure"], color=COLORS[0], linewidth=1.5, label=r"pressure $e_p$")
 	ax_e.semilogy(history["T"], history["settlement"], color=COLORS[1], linewidth=1.5, label=r"settlement $e_u$")
-	ax_e.axvline(0.05, color="#8c8b85", linestyle=":", linewidth=1.0)
+	ax_e.axvline(errors.t_factor_min, color="#8c8b85", linestyle=":", linewidth=1.0)
 	ax_e.set(xlabel=r"$T = c_v (t - t_s)/L^2$", ylabel="relative error", title="Error vs Terzaghi")
 
 	for ax in (ax_p, ax_u, ax_e):
@@ -142,6 +149,6 @@ def plot_results(
 	fig.suptitle(f"{title}\n{errors}", fontsize=11)
 	fig.tight_layout()
 	path.parent.mkdir(parents=True, exist_ok=True)
-	fig.savefig(path, dpi=150)
+	fig.savefig(path, dpi=150)  # type:ignore
 	plt.close(fig)
 	return path
