@@ -11,7 +11,7 @@ Legend: **new**: the file does not exist in fenicsoft. **change**: patch an exis
 
 | # | Issue | Kind | Depends on |
 |---|---|---|---|
-| 0 | Shared UFL guards (package root) `floored`, `macaulay` | new | – |
+| 0 | Shared UFL guards (package root) `piecewise`, `floored`, `capped`, `macaulay`, `macaulay_negative` | new | – |
 | 1 | Integration: select XDMF fields, write logs on rank 0 only | copy | – |
 | 2 | Scaling: promote `CharacteristicScales` to `fenicsoft.scaling` | new | – |
 | 3 | IO: write XDMF geometry and time back in SI | new | – |
@@ -20,7 +20,7 @@ Legend: **new**: the file does not exist in fenicsoft. **change**: patch an exis
 | 6 | Contractile element operator $R_a$ | new | 5 |
 | 7 | Saturated proliferation: clip the saturation | change | – |
 | 8 | Permeability laws $k(\phi_\ell)$ | new | 0 |
-| 9 | Volumetric energy with a compaction point | new | 0; 8 (`porosity`, demo only) |
+| 9 | Volumetric energy with a compaction point | new | 0; 8 (`saturated_mixture`, demo only) |
 | 10 | Orientation diagnostics | new | – |
 | 11 | Residual rows: quadrature degree, test scale and normalization per row | new | – |
 | 12 | Hill one-element integration test | new | 5, 6, 11 |
@@ -32,7 +32,7 @@ Legend: **new**: the file does not exist in fenicsoft. **change**: patch an exis
 
 ## 0. Shared UFL guards
 
-**Changes.** New `src/fenicsoft/ufl_functions.py`: `floored(x, x_f)` = max(x, x_f) and `macaulay(x)` = max(x, 0), the Newton safeguards of the Hill, permeability and compaction laws and of `SaturatedProliferation` (written once; they were three copies). Package root, not `materials/`: operators use them too. Import it first in `fenicsoft/__init__.py`. Reuse candidates in fenicsoft: `safe_inv4` in `materials/cell/active/aniso/law.py` (`floored`), the clamped `sqrt` in `materials/orientation/generic.py` (`macaulay`).
+**Changes.** New `src/fenicsoft/ufl_functions.py`: `piecewise(x, x0, f_le, f_gt)` (the tie x = x0 and its UFL tangent go to the lower branch), and with it `floored(x, x_f)` = max(x, x_f), `capped(x, x_c)` = min(x, x_c), `macaulay(x)` = max(x, 0) (tangent 0 at 0) and `macaulay_negative(x)` = min(x, 0) (tangent 1 at 0), the Newton safeguards of the Hill, permeability and compaction laws and of `SaturatedProliferation` (written once; they were three copies). Package root, not `materials/`: operators use them too. Import it first in `fenicsoft/__init__.py`. Reuse candidates in fenicsoft: `safe_inv4` in `materials/cell/active/aniso/law.py` (`floored`), the clamped `sqrt` in `materials/orientation/generic.py` (`macaulay`).
 
 **Tests.** `tests/unit/test_ufl_functions.py`.
 
@@ -124,13 +124,14 @@ It is not a constitutive law. Active laws use it by composition, so no law depen
 
 ## 8. Permeability laws $k(\phi_\ell)$
 
-**Changes.** New package `src/fenicsoft/materials/permeability/`:
-- `porosity.py`: J_min = Φ_s0 + Φ_c, Φ_ℓ = J − J_min, φ_ℓ = 1 − J_min/J, K_L = (k/η) J C⁻¹. Shared relations, not a law.
-- `base.py`: `PermeabilityParameters(MaterialParameters)` (k₀/η) and `PorousPermeabilityParameters` (+ Φ_s0 uniform, Φ_c, Φ_c0); `Permeability` (abstract `_ratio()` = k/k₀ read through the cached `ratio`, then `hydraulic_conductivity` and `tensor`) and `PorousPermeability` (+ `porosity` φ_ℓ, `porosity_0` φ_ℓ0, `fluid_ratio` Φ_ℓ/Φ_ℓ0).
+**Changes.**
+- New module `src/fenicsoft/materials/saturated_mixture.py`: J_min = Φ_s0 + Φ_c, Φ_ℓ = J − J_min, φ_ℓ = 1 − J_min/J, φ_s = Φ_s0/J. Mixture kinematics shared by the permeability laws and the compaction energy (issue 9), not a law. Φ_c = 0 by default (here and in `PorousPermeabilityParameters`): two-phase mixture, solid + liquid. Reuse candidate: φ_s = φ_s0/J re-coded in `operators/cell/haptotaxis/saturated.py`. Add it to `materials/__init__.py`.
+- New package `src/fenicsoft/materials/permeability/`:
+- `base.py`: `pulled_back_conductivity` K_L = (k/η) J C⁻¹; `PermeabilityParameters(MaterialParameters)` (k₀/η) and `PorousPermeabilityParameters` (+ Φ_s0 uniform, Φ_c, Φ_c0); `Permeability` (abstract `_ratio()` = k/k₀ read through the cached `ratio`, then `hydraulic_conductivity` and `tensor`) and `PorousPermeability` (+ `porosity` φ_ℓ, `porosity_0` φ_ℓ0, `fluid_ratio` Φ_ℓ/Φ_ℓ0).
 - One module per law, with its `Parameters` (own fields only) and `Permeability` (only `_ratio`): `constant`, `kozeny_carman`, `holmes_mow`, `compaction_power` (n ≥ 1 enforced).
 - Afterwards, the pillar demos can replace their `permeability.py` (gel/pillar field) by these laws times a domain field.
 
-**Tests.** `tests/unit/materials/permeability/test_permeability_laws.py`.
+**Tests.** `tests/unit/materials/test_saturated_mixture.py`, `tests/unit/materials/permeability/test_permeability_laws.py`.
 
 ## 9. Volumetric energy with a compaction point
 

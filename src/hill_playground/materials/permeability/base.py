@@ -17,9 +17,10 @@ from functools import cached_property
 from typing import Any, Generic, TypeVar
 
 import dolfin
+import dolfin_mech
 from fenicsoft.materials.materials import MaterialParameters
 
-from . import porosity
+from .. import saturated_mixture
 
 
 @dataclass(slots=True, frozen=True)
@@ -39,13 +40,26 @@ class PorousPermeabilityParameters(PermeabilityParameters):
 
 	Attributes:
 	    phi_s0: :math:`\Phi_{s,0}`, uniform (float or ``dolfin.Constant``): it enters :math:`\Phi_{\ell,0}`.
-	    phi_c: :math:`\Phi_c` (unknown or data).
-	    phi_c0: :math:`\Phi_{c,0}` of the reference state.
+	    phi_c: :math:`\Phi_c` (unknown or data); 0 (default): two-phase mixture, solid + liquid.
+	    phi_c0: :math:`\Phi_{c,0}` of the reference state; 0 (default) for a two-phase mixture.
 	"""
 
 	phi_s0: float | dolfin.Constant
-	phi_c: Any
-	phi_c0: float
+	phi_c: Any = 0.0
+	phi_c0: float = 0.0
+
+
+def pulled_back_conductivity(hydraulic_conductivity: Any, kinematics: Any) -> Any:
+	r""":math:`\mathbf K_L = (k/\eta)\, J \mathbf C^{-1}` (Darcy conductivity in the reference configuration).
+
+	Args:
+	    hydraulic_conductivity: :math:`k/\eta` (scalar, may depend on the unknowns).
+	    kinematics: Object exposing ``J`` and ``C_inv``.
+
+	Returns:
+	    UFL tensor.
+	"""
+	return hydraulic_conductivity * kinematics.J * kinematics.C_inv
 
 
 T_Perm = TypeVar("T_Perm", bound=PermeabilityParameters, covariant=True)
@@ -55,11 +69,11 @@ class Permeability(ABC, Generic[T_Perm]):
 	r"""Law :math:`k/k_0`; gives :math:`k/\eta` and :math:`\mathbf K_L`.
 
 	Args:
-	    kinematics: Object exposing ``J`` and ``C_inv``.
+	    kinematics: dolfin_mech object exposing ``J`` and ``C_inv``.
 	    parameters: Parameters of the law.
 	"""
 
-	def __init__(self, kinematics: Any, parameters: T_Perm) -> None:
+	def __init__(self, kinematics: dolfin_mech.kinematics.Kinematics, parameters: T_Perm) -> None:
 		"""Store the kinematics and the parameters."""
 		self._kinematics = kinematics
 		self._parameters = parameters
@@ -86,7 +100,7 @@ class Permeability(ABC, Generic[T_Perm]):
 	@cached_property
 	def tensor(self) -> Any:
 		r""":math:`\mathbf K_L = (k/\eta) J \mathbf C^{-1}`."""
-		return porosity.pulled_back_conductivity(self.hydraulic_conductivity, self._kinematics)
+		return pulled_back_conductivity(self.hydraulic_conductivity, self._kinematics)
 
 
 T_Porous = TypeVar("T_Porous", bound=PorousPermeabilityParameters, covariant=True)
@@ -99,16 +113,16 @@ class PorousPermeability(Permeability[T_Porous]):
 	def porosity(self) -> Any:
 		r""":math:`\phi_\ell = 1 - J_{\min}/J`."""
 		p = self._parameters
-		return porosity.eulerian_porosity(self._kinematics.J, p.phi_s0, p.phi_c)
+		return saturated_mixture.eulerian_porosity(self._kinematics.J, p.phi_s0, p.phi_c)
 
 	@cached_property
 	def porosity_0(self) -> float:
 		r""":math:`\phi_{\ell,0} = \Phi_{\ell,0} = 1 - \Phi_{s,0} - \Phi_{c,0}` (at :math:`J = 1`)."""
 		p = self._parameters
-		return porosity.eulerian_porosity(1.0, float(p.phi_s0), p.phi_c0)
+		return saturated_mixture.eulerian_porosity(1.0, float(p.phi_s0), p.phi_c0)
 
 	@cached_property
 	def fluid_ratio(self) -> Any:
 		r""":math:`\Phi_\ell/\Phi_{\ell,0} = (J - J_{\min})/(1 - J_{\min,0})` (not floored)."""
 		p = self._parameters
-		return porosity.lagrangian_fluid_fraction(self._kinematics.J, p.phi_s0, p.phi_c) / self.porosity_0
+		return saturated_mixture.lagrangian_fluid_fraction(self._kinematics.J, p.phi_s0, p.phi_c) / self.porosity_0

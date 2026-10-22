@@ -1,5 +1,5 @@
 """Constitutive laws (target: ``fenicsoft.materials``)."""
 
-from . import cell, orientation, permeability, volumetric
+from . import cell, orientation, permeability, saturated_mixture, volumetric
 
-__all__ = ["cell", "orientation", "permeability", "volumetric"]
+__all__ = ["cell", "orientation", "permeability", "saturated_mixture", "volumetric"]

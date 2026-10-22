@@ -7,7 +7,7 @@ import dolfin
 import pytest
 from dolfin_mech.kinematics import Kinematics
 
-from hill_playground.materials.permeability import base, compaction_power, constant, holmes_mow, kozeny_carman, porosity
+from hill_playground.materials.permeability import base, compaction_power, constant, holmes_mow, kozeny_carman
 
 PHI_S0, PHI_C0, K0 = 0.25, 0.05, 2.0
 
@@ -76,12 +76,6 @@ def test_tensor_is_pulled_back(mean: Callable[..., float], dilate: Callable[[flo
 	assert mean(kc.tensor[1, 1] - kc.hydraulic_conductivity * jac ** (1.0 / 3.0), mesh) == pytest.approx(0.0, abs=1e-12)
 
 
-def test_porosity_relations() -> None:
-	"""Phi_l = J - J_min and phi_l = Phi_l / J."""
-	assert porosity.lagrangian_fluid_fraction(0.8, PHI_S0, PHI_C0) == pytest.approx(0.5, rel=1e-12)
-	assert porosity.eulerian_porosity(0.8, PHI_S0, PHI_C0) == pytest.approx(0.5 / 0.8, rel=1e-12)
-
-
 def test_compaction_power_rejects_sublinear_exponent() -> None:
 	"""Exponent n < 1 reaches J_min in finite time: refused."""
 	with pytest.raises(ValueError):
@@ -130,3 +124,20 @@ def test_uniform_solid_fraction_as_constant(
 	)
 	law = kozeny_carman.Permeability(kin, params)
 	assert mean(law.ratio, mesh) == pytest.approx(mean(_laws(kin)["kozeny_carman"].ratio, mesh), rel=1e-12)
+
+
+@pytest.mark.parametrize("name", ["kozeny_carman", "holmes_mow", "compaction_power"])
+def test_two_phase_mixture_is_phi_c_zero(
+	name: str, mean: Callable[..., float], dilate: Callable[[float], tuple[Kinematics, Any]]
+) -> None:
+	"""phi_c, phi_c0 omitted (solid + liquid) = the three-phase law with Phi_c = Phi_c0 = 0."""
+	kin, mesh = dilate(0.8)
+	module = {"kozeny_carman": kozeny_carman, "holmes_mow": holmes_mow, "compaction_power": compaction_power}[name]
+	two_phase = module.Permeability(kin, module.Parameters(conductivity_0=K0, phi_s0=PHI_S0))
+	zero_cells = module.Permeability(
+		kin, module.Parameters(conductivity_0=K0, phi_s0=PHI_S0, phi_c=dolfin.Constant(0.0), phi_c0=0.0)
+	)
+	assert mean(two_phase.hydraulic_conductivity, mesh) == pytest.approx(
+		mean(zero_cells.hydraulic_conductivity, mesh), rel=1e-12
+	)
+	assert mean(two_phase.porosity, mesh) == pytest.approx(1.0 - PHI_S0 / 0.8, rel=1e-12)

@@ -24,6 +24,7 @@ holds what is new.
 │   ├── materials/cell/active/        # activation.py: shared activation schedule             [new]
 │   ├── materials/cell/active/hill/   # Hill law (R_u) + shared UFL functions                 [new]
 │   ├── materials/permeability/       # k(phi_l) laws on a common base class                  [new]
+│   ├── materials/saturated_mixture.py # J_min, Phi_l, phi_l, phi_s (mixture kinematics)      [new]
 │   ├── materials/volumetric/         # volumetric energy with a compaction point             [new]
 │   ├── materials/orientation/        # orientation diagnostics                               [new]
 │   ├── operators/residual_rows.py    # quadrature degree, test scale, normalization per row   [new]

@@ -28,7 +28,7 @@ import dolfin
 import dolfin_mech
 import fenicsoft.materials.orientation.spherical as spherical_mod
 
-from hill_playground.materials import permeability as perm
+from hill_playground.materials import saturated_mixture
 from hill_playground.materials.cell.active.hill import law as hill_law
 from hill_playground.materials.orientation import display
 from hill_playground.operators.cell import ContractileEvolution
@@ -92,7 +92,7 @@ def add_outputs(
 	scalar_fois: Dict[str, Any] = {
 		"jacobian": kin.J,
 		"cell_fraction": problem.phic_func,
-		"fluid_fraction": perm.porosity.eulerian_porosity(kin.J, problem.phi_s0, problem.phic_func),
+		"fluid_fraction": saturated_mixture.eulerian_porosity(kin.J, problem.phi_s0, problem.phic_func),
 		"permeability_ratio": problem.permeability.ratio,
 		"theta": problem.theta_func,
 		"phi": problem.phi_func,

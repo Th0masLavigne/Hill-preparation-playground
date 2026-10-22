@@ -83,6 +83,7 @@ from fenicsoft.operators.cell.rotation.orientation_change import OrientationChan
 from hill_playground import integration
 from hill_playground.io import xdmf_units
 from hill_playground.materials import permeability as perm
+from hill_playground.materials import saturated_mixture
 from hill_playground.materials.cell.active.activation import ActivePowerConfig
 from hill_playground.materials.cell.active.hill import law as hill_law
 from hill_playground.materials.cell.active.hill.functions import SeeVariant
@@ -277,7 +278,7 @@ class UserInputs:
 			value = getattr(self, name)
 			if value not in get_args(choices):
 				raise ValueError(f"Unknown {name} '{value}', expected one of {get_args(choices)}.")
-		solid_jacobian = perm.porosity.compaction_jacobian(self.phi_s0, self.phi_c_init)
+		solid_jacobian = saturated_mixture.compaction_jacobian(self.phi_s0, self.phi_c_init)
 		if solid_jacobian >= 1.0:
 			raise ValueError(f"J_min = phi_s0 + phi_c_init = {solid_jacobian} must be < 1.")
 		if self.use_force_length:
@@ -715,7 +716,7 @@ def build_materials(
 			kin,
 			compaction.Parameters(
 				kappa=coefficients.kappa,
-				solid_jacobian=perm.porosity.compaction_jacobian(problem.phi_s0, problem.phic_func),
+				solid_jacobian=saturated_mixture.compaction_jacobian(problem.phi_s0, problem.phic_func),
 			),
 			name="gel_volumetric",
 		)
@@ -996,7 +997,7 @@ def add_outputs(
 	scalar_fois: Dict[str, Any] = {
 		"jacobian": kin.J,
 		"cell_fraction": problem.phic_func,
-		"fluid_fraction": perm.porosity.eulerian_porosity(kin.J, problem.phi_s0, problem.phic_func),
+		"fluid_fraction": saturated_mixture.eulerian_porosity(kin.J, problem.phi_s0, problem.phic_func),
 		"permeability_ratio": problem.permeability.ratio,
 		"theta": problem.theta_func,
 		"phi": problem.phi_func,

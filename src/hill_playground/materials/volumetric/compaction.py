@@ -40,7 +40,8 @@ class Parameters(VolumetricPenaltyParameters):
 
 	Attributes:
 	    kappa: Drained bulk modulus at :math:`J = 1`, :math:`\kappa` (Pa, or :math:`\hat\kappa`).
-	    solid_jacobian: :math:`J_{\min} = \Phi_{s,0} + \Phi_c` (float or UFL), :math:`< 1`.
+	    solid_jacobian: :math:`J_{\min} = \Phi_{s,0} + \Phi_c` (float or UFL), :math:`< 1`; :math:`\Phi_{s,0}` for a
+	        two-phase mixture (``saturated_mixture.compaction_jacobian(phi_s0)``).
 	    x_floor: :math:`x_f`, start of the linear continuation of :math:`W` (Newton safeguard).
 	"""
 
