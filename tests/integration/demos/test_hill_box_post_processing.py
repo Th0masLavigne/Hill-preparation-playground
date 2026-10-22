@@ -112,7 +112,7 @@ def _write_results(folder: Path, frames: list[NDArray[np.float64]]) -> Path:
 
 
 def test_main_on_synthetic_results(tmp_path: Path) -> None:
-	"""Volume weights of the two tetrahedra (1/6 and 1/3), measures at both frames, three figures written."""
+	"""Tetrahedra of volumes 1/6 and 1/3 (weights 1/3 and 2/3), measures at both frames, three figures written."""
 	xdmf = _write_results(tmp_path, [np.array([[0.0, 0.0, 1.0], [1.0, 0.0, 0.0]]), np.array([[2.0, 0, 0], [1, 0, 0]])])
 	series = pp.ResultsSeries(xdmf)
 	assert series.times == [0.0, 3600.0]

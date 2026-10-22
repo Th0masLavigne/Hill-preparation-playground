@@ -65,7 +65,7 @@ def test_from_problem_uses_subsol_names() -> None:
 	],
 )
 def test_invalid_settings_raise(kwargs: dict[str, Any]) -> None:
-	"""Unknown row, negative/non-integer degree, non-positive normalization."""
+	"""Unknown row, negative/non-integer degree, non-positive normalization or test scale."""
 	with pytest.raises(ValueError):
 		ResidualRows(ROWS, **kwargs)
 

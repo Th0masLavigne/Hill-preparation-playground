@@ -181,7 +181,9 @@ class UserInputs:
 	    integrator_parameters: ``TimeIntegrator`` adaptive-``dt`` parameters.
 	    xdmf_write_period: Output decimation (``DecimatedTimeIntegrator``): ``int`` (substeps) or ``TimeInterval``
 	        (s), one value or one per step (default: every substep of the ramp, then every 840 s).
-	    xdmf_si_only: XDMF holds the SI fields and the dimensionless unknowns only (no :math:`\hat{\mathbf u}, \hat p`).
+	    xdmf_si_only: XDMF holds the SI FOIs and the unknowns already dimensionless
+	        (:math:`\theta, \varphi, \Phi_c, \tilde\phi_s, \varepsilon_a`);
+	        no :math:`\hat{\mathbf u}, \hat p` nor ``*_old``.
 	    stagnation_plateau_relative_error: Plateau-exit threshold.
 	    project_prefix: Output folder.
 	    stem_name: Output file stem.

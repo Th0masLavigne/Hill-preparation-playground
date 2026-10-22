@@ -37,7 +37,7 @@ def test_blocks_are_order_one(jacobians: dict[str, Any]) -> None:
 
 	Mass-led rows (``theta``, ``phi``, ``cell_fraction``) scale with :math:`(t_0/\Delta t)\,|\hat\Omega_e|`
 	(:math:`|\hat\Omega_e| \approx \hat h^3/6 \approx 0.02`, :math:`t_0/\Delta t \approx 0.2`: about 1e-3 here).
-	``eps_a`` is DG0 too, but its diagonal :math:`(k_e + k_p)/\mu_0\,|\hat\Omega_e|` is O(1).
+	``eps_a`` is DG0 too, but its diagonal, dominated by :math:`(k_e + k_p)/\mu_0\,|\hat\Omega_e| \approx 2.5`, is O(1).
 	"""
 	medians = js.block_diagonals(*jacobians["operator"])
 	assert 0.1 < medians["displacement"] < 10.0

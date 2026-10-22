@@ -41,7 +41,7 @@ class ContractileEvolution(operators.Operator):
 	        dimensionless coefficients :math:`\hat f_{max}, \hat k_e, \hat k_p, \hat b, \hat\eta_0`.
 
 	Attributes:
-	    rate: :math:`D_a` (1/s).
+	    rate: :math:`D_a` (1/s, or :math:`1/t_0` in solve time :math:`\hat t`).
 	    isometric_tension: :math:`T_0 = f_{max}\,\alpha\, f_{FL}(\lambda_a)` (Pa).
 	    tension_motor: :math:`T_0\, h(D_a)` (Pa).
 	    tension_ce: :math:`T_{CE} = T_0\, h(D_a) + \eta_0 D_a` (Pa); :math:`= T_e - T_p` at convergence.
@@ -81,6 +81,6 @@ class ContractileEvolution(operators.Operator):
 		r"""Update :math:`\Delta t` without recompilation.
 
 		Args:
-		    dt: Time step (s).
+		    dt: Time step (solve units: s, or :math:`t_0`).
 		"""
 		self.tv_dt.set_value(dt)
