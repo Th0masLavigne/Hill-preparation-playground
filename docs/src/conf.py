@@ -1,6 +1,7 @@
 # conf.py — Sphinx configuration for hill_playground.
 from importlib.metadata import version as get_version
 from pathlib import Path
+import re
 import sys 
 
 current_dir = Path(__file__).parent.resolve()
@@ -150,6 +151,38 @@ def autodoc_skip_member(app, what, name, obj, skip, options):
 			pass
 	return skip
 
+_MD_IMAGE = re.compile(r"(!\[[^\]]*\]\()([^)\s]+)(\))")
+
+
+def readme_for_sphinx(readme: Path, out_file: Path, src_dir: Path) -> Path:
+	"""Copy of ``readme`` whose relative image links under ``src_dir`` become source-absolute (``/_static/...``).
+
+	An ``.. include::`` resolves relative image paths against the including page (``api/<path>/index.rst``),
+	not against the README: links valid on GitLab / in VS Code would break in Sphinx.
+
+	Args:
+	    readme: README.md of the source folder.
+	    out_file: Copy to write (non-source suffix, so Sphinx does not parse it as a page).
+	    src_dir: Sphinx source directory (``docs/src``).
+
+	Returns:
+	    ``out_file``.
+	"""
+
+	def rewrite(match):
+		target = match.group(2)
+		if "://" in target or target.startswith("/"):
+			return match.group(0)
+		resolved = (readme.parent / target).resolve()
+		try:
+			return f"{match.group(1)}/{resolved.relative_to(src_dir.resolve()).as_posix()}{match.group(3)}"
+		except ValueError:
+			return match.group(0)
+
+	out_file.write_text(_MD_IMAGE.sub(rewrite, readme.read_text(encoding="utf-8")), encoding="utf-8")
+	return out_file
+
+
 def generate_simple_toc(app):
 	src_dir = Path(app.srcdir)
 	api_root = src_dir / "api"
@@ -206,12 +239,11 @@ def generate_simple_toc(app):
 				readme_file = actual_source_dir / "README.md"
 				
 				if readme_file.exists():
-					depth = len(current_rel_path.split('/')) + 3
-					ups = "../" * depth
+					# Copy next to index.rst, image links made source-absolute (see readme_for_sphinx)
+					readme_for_sphinx(readme_file, folder_path / "README.md.inc", src_dir)
 
 					f.write(".. raw:: html\n\n   <hr>\n\n")
-					# Include the README using the calculated relative path
-					f.write(f".. include:: {ups}{current_rel_path}/README.md\n")
+					f.write(".. include:: README.md.inc\n")
 					f.write("   :parser: myst_parser.sphinx_\n\n")
 					f.write(".. raw:: html\n\n   <hr>\n\n")
 				
