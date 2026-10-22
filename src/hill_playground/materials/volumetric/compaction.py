@@ -23,6 +23,7 @@ Newton safeguard: below :math:`x_f` (trial iterates with :math:`J \le J_{\min}`)
 	\frac{\mathrm d W^{vol}_S}{\mathrm d J} = \kappa (1 - J_{\min})\Big(1 - \frac{1}{\bar x}\Big)
 """
 
+import numbers
 from dataclasses import dataclass
 from functools import cached_property
 from typing import Any
@@ -40,13 +41,24 @@ class Parameters(VolumetricPenaltyParameters):
 
 	Attributes:
 	    kappa: Drained bulk modulus at :math:`J = 1`, :math:`\kappa` (Pa, or :math:`\hat\kappa`).
-	    solid_jacobian: :math:`J_{\min} = \Phi_{s,0} + \Phi_c` (float or UFL), :math:`< 1`; :math:`\Phi_{s,0}` for a
-	        two-phase mixture (``saturated_mixture.compaction_jacobian(phi_s0)``).
+	    solid_jacobian: :math:`J_{\min} = \Phi_{s,0} + \Phi_c` (float or UFL), :math:`< 1` (checked for a number or
+	        a ``dolfin.Constant``); :math:`\Phi_{s,0}` for a two-phase mixture
+	        (``saturated_mixture.compaction_jacobian(phi_s0)``).
 	    x_floor: :math:`x_f`, start of the linear continuation of :math:`W` (Newton safeguard).
 	"""
 
 	solid_jacobian: Any
 	x_floor: float = 1e-8
+
+	def __post_init__(self) -> None:
+		r"""Check :math:`J_{\min} < 1` when it is a number or a ``dolfin.Constant`` (a UFL field is not checked).
+
+		Raises:
+		    ValueError: :math:`J_{\min} \ge 1` (no fluid at :math:`J = 1`, :math:`x` undefined).
+		"""
+		jc = self.solid_jacobian
+		if isinstance(jc, (numbers.Real, dolfin.Constant)) and float(jc) >= 1.0:
+			raise ValueError(f"solid_jacobian = {float(jc)} >= 1: no fluid in the reference state.")
 
 	@classmethod
 	def from_young_poisson(  # type: ignore[override]

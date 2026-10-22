@@ -48,6 +48,16 @@ class PorousPermeabilityParameters(PermeabilityParameters):
 	phi_c: Any = 0.0
 	phi_c0: float = 0.0
 
+	def __post_init__(self) -> None:
+		r"""Check :math:`\phi_{\ell,0} = 1 - \Phi_{s,0} - \Phi_{c,0} > 0` (fluid in the reference state).
+
+		Raises:
+		    ValueError: :math:`\Phi_{s,0} + \Phi_{c,0} \ge 1`.
+		"""
+		j_min_0 = saturated_mixture.compaction_jacobian(float(self.phi_s0), self.phi_c0)
+		if j_min_0 >= 1.0:
+			raise ValueError(f"phi_s0 + phi_c0 = {j_min_0} >= 1: no fluid in the reference state (phi_l0 <= 0).")
+
 
 def pulled_back_conductivity(hydraulic_conductivity: Any, kinematics: Any) -> Any:
 	r""":math:`\mathbf K_L = (k/\eta)\, J \mathbf C^{-1}` (Darcy conductivity in the reference configuration).
@@ -107,7 +117,7 @@ T_Porous = TypeVar("T_Porous", bound=PorousPermeabilityParameters, covariant=Tru
 
 
 class PorousPermeability(Permeability[T_Porous]):
-	r"""Law :math:`k/k_0` written on :math:`(J, \Phi_c)` through the porosity."""
+	r"""Law :math:`k/k_0` on :math:`(J, \Phi_c)`, through :math:`\phi_\ell` or :math:`\Phi_\ell/\Phi_{\ell,0}`."""
 
 	@cached_property
 	def porosity(self) -> Any:

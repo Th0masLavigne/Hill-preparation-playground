@@ -6,7 +6,7 @@ r"""Compaction power law: permeability written on the Lagrangian fluid content :
 
 :math:`k = 0` at the compaction point :math:`J = J_{\min}`. Near it :math:`\dot J \sim -(J - J_{\min})^n`:
 :math:`n \ge 1` keeps :math:`J > J_{\min}` for all time (kinetic barrier; energetic one:
-:mod:`hill_playground.materials.volumetric.compaction`). Equals Holmes--Mow with :math:`M = 0`.
+:mod:`.volumetric.compaction`). Equals Holmes--Mow with :math:`M = 0`.
 """
 
 from dataclasses import dataclass
@@ -29,11 +29,12 @@ class Parameters(PorousPermeabilityParameters):
 	fluid_floor: float = 1e-6
 
 	def __post_init__(self) -> None:
-		r"""Check :math:`n \ge 1`.
+		r"""Check :math:`\phi_{\ell,0} > 0` (:class:`PorousPermeabilityParameters`) and :math:`n \ge 1`.
 
 		Raises:
-		    ValueError: ``exponent < 1`` (compaction reached in finite time).
+		    ValueError: :math:`\Phi_{s,0} + \Phi_{c,0} \ge 1`, or ``exponent < 1`` (compaction reached in finite time).
 		"""
+		PorousPermeabilityParameters.__post_init__(self)
 		if self.exponent < 1.0:
 			raise ValueError(f"exponent = {self.exponent} < 1: J = J_min would be reached in finite time.")
 

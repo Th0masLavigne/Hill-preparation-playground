@@ -92,3 +92,10 @@ def test_parameters_from_young_poisson_and_lame() -> None:
 	assert from_l.kappa == pytest.approx(from_e.kappa, rel=1e-12)
 	assert (from_e.solid_jacobian, from_e.x_floor) == (JC, 0.1)
 	assert (from_l.solid_jacobian, from_l.x_floor) == (JC, 1e-8)
+
+
+@pytest.mark.parametrize("solid_jacobian", [1.0, dolfin.Constant(1.2)])
+def test_parameters_reject_solid_jacobian_above_one(solid_jacobian: Any) -> None:
+	"""J_min >= 1 (number or Constant): refused."""
+	with pytest.raises(ValueError):
+		compaction.Parameters(kappa=KAPPA, solid_jacobian=solid_jacobian)
