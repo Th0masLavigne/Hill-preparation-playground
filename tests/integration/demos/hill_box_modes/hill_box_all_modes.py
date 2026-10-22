@@ -63,7 +63,6 @@ Outputs
 
 from __future__ import annotations
 
-import dataclasses
 import logging
 import time
 from dataclasses import dataclass, field
@@ -91,7 +90,7 @@ from hill_playground.materials.orientation import display
 from hill_playground.materials.volumetric import compaction
 from hill_playground.operators import ResidualRows
 from hill_playground.operators.cell import ContractileEvolution, SaturatedProliferation
-from hill_playground.scaling import CharacteristicScales
+from hill_playground.scaling import CharacteristicScales, nondimensionalize_step, nondimensionalize_write_period
 
 comm = dolfin.MPI.comm_world
 rank = dolfin.MPI.rank(comm)
@@ -167,7 +166,8 @@ class UserInputs:
 	    sol_tol: Newton tolerance, the same for every (dimensionless) unknown.
 	    solver_parameters: ``NonlinearSolver`` parameters (``sol_tol`` added at run time).
 	    integrator_parameters: ``TimeIntegrator`` adaptive-``dt`` parameters.
-	    xdmf_write_period: Output decimation (``DecimatedTimeIntegrator``), ``TimeInterval`` in s.
+	    xdmf_write_period: Output decimation (``DecimatedTimeIntegrator``): ``int`` (substeps) or ``TimeInterval``
+	        (s), one value or one per step.
 	    xdmf_si_only: Write only SI fields in the XDMF (no raw :math:`\hat{\mathbf u}, \hat p`, no ``*_old``).
 	    stagnation_plateau_relative_error: Plateau-exit threshold.
 	    project_prefix: Output folder.
@@ -344,7 +344,7 @@ class Coefficients:
 	r"""Coefficients entering the forms, in solve units (:meth:`CharacteristicScales.nondimensionalize_*`).
 
 	Stresses :math:`\mu, \kappa, f_{max}, k_e, k_p`; viscosity :math:`\eta_0`; rates :math:`b, r`;
-	times :math:`\tau` and the steps; :math:`k_0/\eta`, :math:`D_\phi`, :math:`h_\phi\rho_s`.
+	times :math:`\tau` and the steps; :math:`k_0/\eta`, :math:`D_\phi`, :math:`h_\phi\rho_0`.
 	SI when ``coefficients`` is the identity.
 	"""
 
@@ -377,18 +377,6 @@ class Coefficients:
 		"""
 		s, ui = scales, user_inputs
 
-		def as_time(step: io.Step) -> io.Step:
-			times = {"duration", "init_dt", "min_dt", "max_dt", "min_simu_seconds"}
-			values = {k: getattr(step, k) for k in times if getattr(step, k, None) is not None}
-			return dataclasses.replace(step, **{k: s.nondimensionalize_time(v) for k, v in values.items()})
-
-		def as_period(period: Any) -> Any:
-			if isinstance(period, integration.TimeInterval):
-				return integration.TimeInterval(s.nondimensionalize_time(period.seconds))
-			if isinstance(period, (list, tuple)):
-				return type(period)(as_period(p) for p in period)
-			return period
-
 		return cls(
 			mu=s.nondimensionalize_stress(ui.gel_shear_modulus),
 			kappa=s.nondimensionalize_stress(ui.gel_kappa),
@@ -404,8 +392,8 @@ class Coefficients:
 			hapt_coeff=s.nondimensionalize_diffusivity(ui.hapt_coeff * s.density),
 			rho_s=s.nondimensionalize_density(ui.rho_s),
 			prol_coeff=s.nondimensionalize_rate(ui.prol_coeff),
-			steps=tuple(as_time(step) for step in ui.steps),
-			xdmf_write_period=as_period(ui.xdmf_write_period),
+			steps=tuple(nondimensionalize_step(step, s) for step in ui.steps),
+			xdmf_write_period=nondimensionalize_write_period(ui.xdmf_write_period, s),
 		)
 
 

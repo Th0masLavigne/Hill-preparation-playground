@@ -3,7 +3,7 @@ r"""Hill box: SI inputs converted to the dimensionless coefficients of the weak 
 Scales (``UserInputs.scales``): :math:`L_0 = L_z` (drainage length), :math:`\mu_0 = \mu_{gel}`,
 :math:`t_0 = L_0^2\eta/(k\,\kappa_{gel})` (consolidation time over the thickness), :math:`\rho_0 = \rho_s`.
 Each coefficient is divided by the combination of scales of its unit
-(``CharacteristicScales.nondimensionalize_*``):
+(``CharacteristicScales.nondimensionalize_*``, ``scaling.time_steps`` for steps and write period):
 
 =====================================================  ===================================
 Coefficient                                            Dimensionless value
@@ -13,7 +13,7 @@ CE viscosity :math:`\eta_0` (Pa.s)                      :math:`\eta_0/(\mu_0 t_0
 rates :math:`b, r` (1/s)                                :math:`b\,t_0`
 times :math:`\tau`, steps, write period (s)             :math:`t/t_0`
 conductivity :math:`k_0/\eta` (m^2/(Pa.s))              :math:`(k_0/\eta)\,\mu_0 t_0/L_0^2`
-diffusivities :math:`D_\phi`, :math:`h_\phi\rho_s`      :math:`D\,t_0/L_0^2`
+diffusivities :math:`D_\phi`, :math:`h_\phi\rho_0`      :math:`D\,t_0/L_0^2`
 density :math:`\rho_s`                                  :math:`\rho_s/\rho_0`
 =====================================================  ===================================
 
@@ -23,14 +23,12 @@ exponents.
 
 from __future__ import annotations
 
-import dataclasses
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Tuple
 
 from fenicsoft import io
 
-from hill_playground import integration
-from hill_playground.scaling import CharacteristicScales
+from hill_playground.scaling import nondimensionalize_step, nondimensionalize_write_period
 
 if TYPE_CHECKING:
 	from hill_box_uniaxial import UserInputs
@@ -49,9 +47,10 @@ class Coefficients:
 	    eta_0: :math:`\hat\eta_0`.
 	    hill_b: :math:`\hat b`.
 	    remodel_tau: :math:`\hat\tau`.
-	    conductivity: :math:`\hat k_0/\hat\eta`.
+	    conductivity: :math:`\widehat{k_0/\eta} = (k_0/\eta)\,\mu_0 t_0/L_0^2`.
 	    cellular_diffusion: :math:`\hat D_\phi`.
-	    hapt_coeff: :math:`\hat h_\phi` (times :math:`\rho_0`, a diffusivity).
+	    hapt_coeff: :math:`h_\phi\rho_0\,t_0/L_0^2` (:math:`h_\phi\rho_0` is a diffusivity; the form uses
+	        :math:`\hat h_\phi\hat\rho_s = h_\phi\rho_s t_0/L_0^2`).
 	    rho_s: :math:`\hat\rho_s`.
 	    prol_coeff: :math:`\hat r`.
 	    steps: Steps in :math:`\hat t`.
@@ -99,22 +98,6 @@ class Coefficients:
 			hapt_coeff=s.nondimensionalize_diffusivity(ui.hapt_coeff * s.density),
 			rho_s=s.nondimensionalize_density(ui.rho_s),
 			prol_coeff=s.nondimensionalize_rate(ui.prol_coeff),
-			steps=tuple(_step_in_t_hat(step, s) for step in ui.steps),
-			xdmf_write_period=_period_in_t_hat(ui.xdmf_write_period, s),
+			steps=tuple(nondimensionalize_step(step, s) for step in ui.steps),
+			xdmf_write_period=nondimensionalize_write_period(ui.xdmf_write_period, s),
 		)
-
-
-def _step_in_t_hat(step: io.Step, scales: CharacteristicScales) -> io.Step:
-	"""Every time field of ``step`` divided by :math:`t_0`."""
-	fields = ("duration", "init_dt", "min_dt", "max_dt", "min_simu_seconds")
-	values = {k: getattr(step, k) for k in fields if getattr(step, k, None) is not None}
-	return dataclasses.replace(step, **{k: scales.nondimensionalize_time(v) for k, v in values.items()})
-
-
-def _period_in_t_hat(period: Any, scales: CharacteristicScales) -> Any:
-	"""``TimeInterval`` periods divided by :math:`t_0`; substep counts unchanged."""
-	if isinstance(period, integration.TimeInterval):
-		return integration.TimeInterval(scales.nondimensionalize_time(period.seconds))
-	if isinstance(period, (list, tuple)):
-		return type(period)(_period_in_t_hat(p, scales) for p in period)
-	return period

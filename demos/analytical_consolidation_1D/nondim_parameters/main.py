@@ -26,7 +26,7 @@ Equations (reference configuration, St Venant--Kirchhoff skeleton)
 	       + \mathbf K_L \nabla p \cdot \nabla \delta p \,\mathrm dV = 0
 
 with :math:`\mathbf K_L = k\, J\mathbf C^{-1}` the Darcy conductivity pulled back to the reference configuration
-(``hill_playground.materials.permeability.constant``) and :math:`k` the hydraulic conductivity :math:`k_{int}/\eta`.
+(``materials.permeability.constant``) and :math:`k` the hydraulic conductivity :math:`k_{int}/\eta`.
 The exact solution (small strains) is Terzaghi's,
 see ``terzaghi_analytics.py``.
 
@@ -34,7 +34,7 @@ Nondimensionalisation by the parameters: the recipe
 -----------------------------------------------------
 1. **Scales.** :math:`L_0 = L`, :math:`\mu_0 = M` (oedometric modulus), :math:`t_0 = L^2/c_v` with
    :math:`c_v = k M`: the dimensionless time is Terzaghi's time factor, :math:`\hat t = T`
-   (``UserInputs.scales``, a :class:`~hill_playground.scaling.CharacteristicScales`).
+   (``UserInputs.scales``, a :class:`.CharacteristicScales`).
 2. **Mesh.** :math:`\hat{\mathbf X} = \mathbf X/L_0`: the mesh coordinates are divided by :math:`L_0` once,
    after loading. Then :math:`\hat{\mathbf u} = \mathbf u/L_0` and :math:`\hat\nabla = L_0\nabla`, so
    :math:`\mathbf F`, :math:`J`, :math:`\mathbf E` are unchanged: the kinematics needs no change.
@@ -46,7 +46,7 @@ Nondimensionalisation by the parameters: the recipe
    :math:`L_0^d/t_0` gives the same integrals written with hats. Every ``scale_factor`` stays 1.
 6. **Outputs.** QOIs are redimensionalised in their expression (:math:`u = L_0\hat u`, :math:`p = \mu_0\hat p`);
    the solver time is :math:`\hat t` (``t0`` converts it); the XDMF geometry and time stamps are put back in
-   m and s after the run (``hill_playground.io.xdmf_units``). The XDMF fields stay dimensionless.
+   m and s after the run (``io.xdmf_units``). The XDMF fields stay dimensionless.
 
 Why: in SI, the rows of the Jacobian differ by many orders of magnitude (:math:`E \sim 10^4` Pa,
 :math:`k \sim 10^{-13}`, :math:`L \sim 10^{-4}`); in hats every coefficient is :math:`\mathcal O(1)`, so the
@@ -61,7 +61,7 @@ Run
 import logging
 import sys
 import time
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field
 from datetime import timedelta
 from pathlib import Path
 from typing import Any, Dict, Sequence, Tuple
@@ -75,7 +75,7 @@ from numpy.typing import NDArray
 
 from hill_playground.io import xdmf_units
 from hill_playground.materials import permeability
-from hill_playground.scaling import CharacteristicScales
+from hill_playground.scaling import CharacteristicScales, nondimensionalize_step
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # shared analytics and post-processing
 import post_process  # noqa: E402
@@ -191,21 +191,11 @@ class DimensionlessCoefficients:  # NONDIM
 		    The dimensionless coefficients.
 		"""
 		s = user_inputs.scales
-
-		def as_t_hat(step: io.Step) -> io.Step:
-			return replace(
-				step,
-				duration=s.nondimensionalize_time(step.duration),
-				init_dt=s.nondimensionalize_time(step.init_dt),
-				min_dt=s.nondimensionalize_time(step.min_dt),
-				max_dt=None if step.max_dt is None else s.nondimensionalize_time(step.max_dt),
-			)
-
 		return cls(
 			young=s.nondimensionalize_stress(user_inputs.young),
 			load=s.nondimensionalize_stress(user_inputs.load_magnitude),
 			conductivity=s.nondimensionalize_permeability_over_viscosity(user_inputs.hydraulic_conductivity),
-			steps=tuple(as_t_hat(step) for step in user_inputs.steps),
+			steps=tuple(nondimensionalize_step(step, s) for step in user_inputs.steps),
 		)
 
 
@@ -229,8 +219,8 @@ def main(user_inputs: UserInputs = UserInputs()) -> post_process.Errors:
 	material = materials.iso.kirchhoff.Constitutive(
 		kinematics=problem.kinematics,
 		parameters=materials.iso.kirchhoff.Parameters.from_young_poisson(
-			young=coefficients.young,
-			poisson=user_inputs.poisson,  # NONDIM: E_hat
+			young=coefficients.young,  # NONDIM: E_hat
+			poisson=user_inputs.poisson,
 		),
 		name="kirchhoff",
 	)

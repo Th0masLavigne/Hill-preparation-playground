@@ -1,6 +1,6 @@
 r"""Activation schedule :math:`\alpha(t)` of active cell laws (loading, not a material).
 
-Target: ``fenicsoft.materials.cell.active.activation``. Owned by each active law (composition).
+Owned by each active law (composition).
 
 Per step :math:`k`, :math:`\alpha` is either constant, a linear ramp in the step fraction
 :math:`t_{step} \in [0, 1]`, or a function of the global time :math:`t`:
@@ -29,7 +29,10 @@ class ActivePowerConfig:
 	    val: Constant :math:`\alpha_k`.
 	    val_ini: Ramp start :math:`\alpha_{ini}`.
 	    val_fin: Ramp end :math:`\alpha_{fin}`.
-	    func: :math:`g_k(t)`, global time in s.
+	    func: :math:`g_k(t)`, :math:`t` global time (solve units: s, or :math:`t_0` if scaled).
+
+	Note:
+	    Nondimensionalised time :math:`\hat t = t/t_0`: give ``func=lambda t_hat: g(t_hat * t0)`` for an SI law ``g``.
 	"""
 
 	k_step: int
@@ -86,7 +89,7 @@ class ActivationSchedule:
 
 	Attributes:
 	    p_act: :math:`\alpha`, UFL constant shared by every form using it.
-	    time: Global time :math:`t` of the last :meth:`update_time` (units of ``simulation_steps``).
+	    time: Global time :math:`t` of the last :meth:`update_time` (solve units, as ``simulation_steps``).
 	"""
 
 	def __init__(self, configs: Sequence[ActivePowerConfig], simulation_steps: Sequence[dmech.core.Step]) -> None:
