@@ -2,7 +2,8 @@ r"""Tiny transient diffusion :math:`\dot c - \Delta c = 0`, no-flux, :math:`c_0 
 
 One CG1 subsol and one FOI.
 
-:math:`c \to 1`: the relative change per step goes to 0, so the plateau exit triggers after a few steps.
+:math:`c \to 1`: the relative change per step decays as :math:`e^{-\pi^2 t}`; with ``dt = 1/40`` and the threshold
+``1e-3`` the plateau exit triggers around :math:`t \approx 0.6`.
 
 Run as a script (also under ``mpirun``): ``python integrator_case.py <out_stem> <root_only_logs 0|1>``.
 """

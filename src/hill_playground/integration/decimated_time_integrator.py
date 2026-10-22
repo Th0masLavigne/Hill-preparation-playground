@@ -6,7 +6,8 @@ hold). Here, only a subset is kept, according to a write period given per step (
 * ``int`` :math:`p`: keep substep :math:`k` iff :math:`(k - 1) \bmod p = 0`. For a ~constant ``dt``.
 * :class:`TimeInterval` :math:`\Delta`: keep :math:`t` iff :math:`t - t_{last} \ge \Delta`. For an adaptive ``dt``.
 
-The period state resets at each step. Always kept, whatever the period:
+Times (:math:`t`, ``dt``, :class:`TimeInterval`, ``min_simu_seconds``) are in solve units: s, or :math:`t_0` for
+a scaled solve :math:`\hat t = t/t_0`. The period state resets at each step. Always kept, whatever the period:
 
 * the last substep of a step (:math:`t = t_{fin}`),
 * the last substep of a plateau exit (below),
@@ -49,10 +50,10 @@ _RELATIVE_ERROR_ZERO_EPS = 1e-9
 
 @dataclass(frozen=True)
 class TimeInterval:
-	r"""Write period in simulated seconds: keep :math:`t` iff :math:`t - t_{last} \ge` ``seconds``.
+	r"""Write period in simulated time: keep :math:`t` iff :math:`t - t_{last} \ge` ``seconds``.
 
 	Attributes:
-	    seconds (float): Minimum simulated time between two kept frames (> 0).
+	    seconds (float): Minimum simulated time between two kept frames (> 0, solve units).
 	"""
 
 	seconds: float
@@ -121,7 +122,9 @@ class _DecimatedXDMFFile:
 	r"""Proxy of an XDMF writer that drops frames according to a per-step write period.
 
 	A call is forwarded iff ``force``, or :math:`t = t_{fin}` of the current step, or the period
-	allows it (module docstring). State resets when the active step changes.
+	allows it (module docstring), and never twice for the same :math:`t`. The period state (call count,
+	first frame of the step) resets when the active step changes; the last written :math:`t` does not
+	(initially 0: the wrapped file already holds :math:`t = 0`).
 	"""
 
 	def __init__(
@@ -142,7 +145,8 @@ class _DecimatedXDMFFile:
 			[write_period] * n_steps if isinstance(write_period, (int, TimeInterval)) else list(write_period)
 		)
 		self._call_count = 0
-		self._last_written_t: Optional[float] = None
+		self._step_written = False
+		self._last_written_t = 0.0  # the wrapped file already holds t = 0
 		self._last_step_index: Optional[int] = None
 
 	def _current_step_index(self) -> int:
@@ -157,17 +161,17 @@ class _DecimatedXDMFFile:
 		    force (bool): Write regardless of the period. Defaults to False.
 
 		Note:
-		    No-op if ``t`` equals the last written time (``force`` included): a forced write never
-		    duplicates a frame.
+		    No-op if ``t`` equals the last written time (``force`` included, also across a step change,
+		    e.g. a failure on the first substep of a step): a forced write never duplicates a frame.
 		"""
 		step_index = self._current_step_index()
 		if step_index != self._last_step_index:
 			self._call_count = 0
-			self._last_written_t = None
+			self._step_written = False
 			self._last_step_index = step_index
 		self._call_count += 1
 
-		if self._last_written_t is not None and abs(t - self._last_written_t) <= _STEP_END_ABS_TOL:
+		if abs(t - self._last_written_t) <= _STEP_END_ABS_TOL:
 			return
 
 		current_step = self._time_integrator.step
@@ -175,13 +179,14 @@ class _DecimatedXDMFFile:
 		period = self._periods_by_step[step_index]
 
 		if isinstance(period, TimeInterval):
-			should_write = self._last_written_t is None or (t - self._last_written_t) >= period.seconds
+			should_write = not self._step_written or (t - self._last_written_t) >= period.seconds
 		else:
 			should_write = should_write_at_call(self._call_count, period)
 
 		if force or is_last_substep_of_step or should_write:
 			self._xdmf_file.write(t)
 			self._last_written_t = t
+			self._step_written = True
 
 	def close(self) -> None:
 		"""Close the wrapped file."""
@@ -196,7 +201,7 @@ class DecimatedTimeIntegrator(dolfin_mech.core.TimeIntegrator):
 	Args:
 	    *args (Any): Forwarded to ``dolfin_mech.core.TimeIntegrator.__init__``.
 	    write_period (Union[_StepPeriod, Sequence[_StepPeriod]]): ``int`` (substeps) or
-	        :class:`TimeInterval` (simulated seconds); one value, or one per step of
+	        :class:`TimeInterval` (simulated time); one value, or one per step of
 	        ``problem.steps``. Defaults to 1.
 	    stagnation_plateau_relative_error (Union[float, Sequence[float]]): Plateau threshold
 	        :math:`\varepsilon` (:func:`is_subsol_stagnant`); one value, or one per subsol of
@@ -259,28 +264,28 @@ class DecimatedTimeIntegrator(dolfin_mech.core.TimeIntegrator):
 			stagnation_plateau_relative_error = relative_errors
 		self.stagnation_plateau_relative_error = stagnation_plateau_relative_error
 
-		if not self.write_sol:
-			return
-
 		if isinstance(write_period, (int, TimeInterval)):
-			if isinstance(write_period, int) and write_period <= 1:
-				return
-			self.xdmf_file_sol = _DecimatedXDMFFile(self.xdmf_file_sol, write_period, self)
-			return
+			if isinstance(write_period, int) and write_period < 1:
+				raise ValueError(f"write_period must be a positive integer, got {write_period}.")
+			periods: List[Any] = [write_period]
+		else:
+			periods = list(write_period)
+			n_steps = len(self.problem.steps)
+			if len(periods) != n_steps:
+				raise ValueError(
+					f"write_period, given as a per-step sequence, must have exactly one entry per "
+					f"registered load step (len(problem.steps)={n_steps}); got {len(periods)} entries."
+				)
+			if not all(isinstance(period, (int, TimeInterval)) for period in periods):
+				raise TypeError(f"Every per-step write_period entry must be an int or a TimeInterval; got {periods}.")
+			if any(isinstance(period, int) and period < 1 for period in periods):
+				raise ValueError(
+					f"Every per-step integer write_period entry must be a positive integer; got {periods}."
+				)
 
-		periods: List[Any] = list(write_period)
-		n_steps = len(self.problem.steps)
-		if len(periods) != n_steps:
-			raise ValueError(
-				f"write_period, given as a per-step sequence, must have exactly one entry per "
-				f"registered load step (len(problem.steps)={n_steps}); got {len(periods)} entries."
-			)
-		if not all(isinstance(period, (int, TimeInterval)) for period in periods):
-			raise TypeError(f"Every per-step write_period entry must be an int or a TimeInterval; got {periods}.")
-		if any(isinstance(period, int) and period < 1 for period in periods):
-			raise ValueError(f"Every per-step integer write_period entry must be a positive integer; got {periods}.")
-		if any(isinstance(period, TimeInterval) or period > 1 for period in periods):
-			self.xdmf_file_sol = _DecimatedXDMFFile(self.xdmf_file_sol, periods, self)
+		if self.write_sol and any(isinstance(period, TimeInterval) or period > 1 for period in periods):
+			single = isinstance(write_period, (int, TimeInterval))
+			self.xdmf_file_sol = _DecimatedXDMFFile(self.xdmf_file_sol, write_period if single else periods, self)
 
 	def _silence_logs(self) -> None:
 		"""Redirect this rank's ``.out``, ``.sta`` and ``.dat`` writers to ``os.devnull``."""
@@ -441,7 +446,7 @@ class DecimatedTimeIntegrator(dolfin_mech.core.TimeIntegrator):
 					if step_is_ending:
 						if global_stagnant and not global_end:
 							self.printer.print_str(
-								f"Step plateaued after {t - self.step.t_ini:.6g}s of simulated time "
+								f"Step plateaued after {t - self.step.t_ini:.6g} of simulated time "
 								f"(>= min_simu_seconds={min_simu_seconds:.6g}) -- exiting step early."
 							)
 						self.success = True

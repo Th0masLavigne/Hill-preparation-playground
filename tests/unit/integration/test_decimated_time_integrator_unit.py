@@ -650,6 +650,19 @@ def test_decimated_time_integrator_rejects_non_positive_per_step_entry(monkeypat
 		DecimatedTimeIntegrator(problem=problem, write_period=[1, 0])
 
 
+@pytest.mark.parametrize("write_sol", [True, False])
+def test_decimated_time_integrator_rejects_non_positive_scalar_period(
+	monkeypatch: pytest.MonkeyPatch, write_sol: bool
+) -> None:
+	"""A scalar ``write_period`` ``0`` raises ``ValueError``, with or without XDMF output."""
+	fake_file = _FakeXdmfFile()
+	_patch_base_time_integrator_init(monkeypatch, fake_file, write_sol=write_sol)
+	problem = _FakeProblem([_FakeStep(t_fin=1.0)])
+
+	with pytest.raises(ValueError, match="positive integer"):
+		DecimatedTimeIntegrator(problem=problem, write_period=0)
+
+
 def test_decimated_time_integrator_rejects_invalid_per_step_entry_type(monkeypatch: pytest.MonkeyPatch) -> None:
 	"""A per-step entry neither ``int`` nor :class:`TimeInterval` raises ``TypeError``."""
 	fake_file = _FakeXdmfFile()
@@ -764,6 +777,32 @@ def test_step_is_stagnant_treats_every_subsol_unmonitored_as_trivially_stagnant(
 	assert integrator._step_is_stagnant() is True  # type: ignore
 
 
+def test_periodic_xdmf_file_force_at_previous_step_end_after_step_change_is_a_no_op() -> None:
+	"""Failure on the first substep of a step: forcing :math:`t_{ini}` (= previous :math:`t_{fin}`) writes nothing."""
+	fake_file = _FakeXdmfFile()
+	step_a, step_b = _FakeStep(t_fin=2.0), _FakeStep(t_fin=5.0)
+	fake_integrator = _FakeTimeIntegrator([step_a, step_b])
+	proxy = _DecimatedXDMFFile(fake_file, write_period=[1, 3], time_integrator=fake_integrator)
+
+	proxy.write(1.0)
+	proxy.write(2.0)  # step A end.
+	fake_integrator.step = step_b
+	proxy.write(2.0, force=True)  # dt < dt_min in step B: last converged state = step A end, already written.
+
+	assert fake_file.written_times == [1.0, 2.0]
+
+
+def test_periodic_xdmf_file_force_at_initial_time_is_a_no_op() -> None:
+	"""The wrapped file already holds :math:`t = 0`: forcing it again writes nothing."""
+	fake_file = _FakeXdmfFile()
+	fake_integrator = _FakeTimeIntegrator([_FakeStep(t_fin=1.0)])
+	proxy = _DecimatedXDMFFile(fake_file, write_period=TimeInterval(0.5), time_integrator=fake_integrator)
+
+	proxy.write(0.0, force=True)
+
+	assert fake_file.written_times == []
+
+
 def test_integrate_zero_subsol_step_runs_inelastic_behaviors_and_wraps_the_writer(
 	monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -823,10 +862,10 @@ def test_integrate_transient_solver_failure_restores_state_and_recovers_on_retry
 
 
 def test_integrate_permanent_solver_failure_ends_the_step_unsuccessfully(monkeypatch: pytest.MonkeyPatch) -> None:
-	"""Failures until :math:`dt < dt_{min}`: ``integrate()`` returns ``False`` after writing the last converged frame.
+	"""Failures until :math:`dt < dt_{min}`: ``integrate()`` returns ``False``; the last converged frame is kept.
 
-	Here the initial state :math:`t = 0` ("Always kept" list of
-	:mod:`hill_playground.integration.decimated_time_integrator`).
+	Here the initial state :math:`t = 0`, already in the file: the forced write does not duplicate it
+	("Always kept" list of :mod:`hill_playground.integration.decimated_time_integrator`).
 	"""
 	fake_file = _FakeXdmfFile()
 	solver = _FakeSolver(outcomes=[(False, 5)])
@@ -839,7 +878,7 @@ def test_integrate_permanent_solver_failure_ends_the_step_unsuccessfully(monkeyp
 	assert integrator.integrate() is False
 	assert any("failed to move forward" in message for message in integrator.printer.messages)
 	assert isinstance(integrator.xdmf_file_sol, _DecimatedXDMFFile)
-	assert fake_file.written_times == [0.0]  # the guaranteed-last-frame forced write.
+	assert fake_file.written_times == []  # last converged frame = t = 0, already in the file: not rewritten.
 
 
 def test_integrate_skips_solution_and_qoi_output_when_both_are_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
