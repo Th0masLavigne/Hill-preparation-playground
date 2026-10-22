@@ -10,9 +10,11 @@ it) and prints, per mode:
 "Nondimensionalisation"). Run ``python jacobian_scaling.py`` for the table.
 
 Note:
-    With :math:`\hat h = h/L_0`, mass-led rows (``cell_fraction``, ``theta``, ``phi``, ``substrate_smoothed``,
-    :math:`\sim \hat h^3`) and stiffness-led rows (``displacement``, ``liquid_pressure``, :math:`\sim \hat h`)
-    differ by :math:`\hat h^2` (:math:`\sim 10^{-3}` here): a discretization ratio, not a scaling error.
+    With :math:`\hat h = h/L_0` (0.5 here), mass-led rows (``cell_fraction``, ``theta``, ``phi``:
+    :math:`\sim (t_0/\Delta t)\,|\hat\Omega_e|`, ``substrate_smoothed``: :math:`\sim |\hat\Omega_e|`, with
+    :math:`|\hat\Omega_e| \approx \hat h^3/6`) and stiffness-led rows (``displacement``, ``liquid_pressure``,
+    :math:`\sim \hat h`) differ by :math:`\sim (t_0/\Delta t)\,\hat h^2/6` (:math:`t_0 \approx 1` s,
+    :math:`\Delta t = 5` s: medians :math:`\sim 10^{-3}`): discretization and time step, not a scaling error.
 """
 
 from __future__ import annotations
