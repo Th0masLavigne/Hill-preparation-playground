@@ -36,8 +36,18 @@ from . import functions as hill
 def check_uniqueness(k_e: float, k_p: float, f_max: float, lmbda_opt: float, width: float) -> float:
 	r"""Check :math:`k_e + k_p > f_{max} \max_\lambda |f_{FL}'(\lambda)\,\lambda|`.
 
-	Sufficient (not necessary) condition for a unique CE equilibrium :math:`\lambda_a` (no descending-limb
-	instability), with :math:`f_{FL}(\lambda) = \exp(-((\lambda - \lambda_{opt})/W)^2)`. The max is sampled on
+	Sufficient (not necessary) condition for a unique isometric CE equilibrium :math:`\lambda_a`
+	(:math:`D_a = 0`, :math:`\alpha \le 1`, no descending-limb instability), with
+	:math:`f_{FL}(\lambda) = \exp(-((\lambda - \lambda_{opt})/W)^2)`:
+
+	.. math::
+		\frac{\partial R_a}{\partial\varepsilon_a} \ge k_e + k_p - f_{max} \max_\lambda |f_{FL}'(\lambda)\,\lambda| > 0,
+		\qquad \frac{\mathrm dT_p}{\mathrm d\varepsilon_a} = k_p \cosh 2\varepsilon_a \ge k_p,
+		\qquad -\frac{\mathrm dT_e}{\mathrm d\varepsilon_a} \ge k_e
+
+	The last bound holds for the ``"mooney"`` SEE at any :math:`I_{4e}`
+	(:math:`\frac{k_e}{2}(I_{4e} + I_{4e}^{-1})`), and for ``"tension_only"`` / ``"exponential"`` only while the
+	SEE is taut (:math:`I_{4e} \ge 1`); a slack non-Mooney SEE adds no stiffness. The max is sampled on
 	:math:`\lambda \in [0.05, 3]`. Any consistent stress unit (SI or :math:`\mu_0`).
 
 	Args:

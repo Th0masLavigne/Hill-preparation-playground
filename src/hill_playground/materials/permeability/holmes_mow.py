@@ -4,8 +4,10 @@ r"""Holmes--Mow permeability for large deformations of hydrated tissues (Holmes 
 	\frac{k}{k_0} = \Big(\frac{J - J_{\min}}{1 - J_{\min,0}}\Big)^{\kappa_{HM}} \exp\Big(\frac{M}{2}(J^2 - 1)\Big),
 	\qquad J_{\min} = \Phi_{s,0} + \Phi_c, \quad J_{\min,0} = \Phi_{s,0} + \Phi_{c,0}
 
-:math:`(J-J_{\min})/(1-J_{\min,0}) = \Phi_\ell/\Phi_{\ell,0}`: :math:`k = 0` exactly when :math:`\Phi_\ell = 0`
-for :math:`\kappa_{HM} > 0` (:math:`\kappa_{HM} = 0`: exponential stiffening only).
+:math:`(J-J_{\min})/(1-J_{\min,0}) = \Phi_\ell/\Phi_{\ell,0}`: :math:`k \to 0` when :math:`\Phi_\ell \to 0`
+for :math:`\kappa_{HM} > 0` (:math:`\kappa_{HM} = 0`: exponential stiffening only). In the code
+:math:`\Phi_\ell/\Phi_{\ell,0}` is floored at :math:`x_f` = ``fluid_floor``:
+:math:`k/k_0 \ge x_f^{\kappa_{HM}} e^{\frac{M}{2}(J^2-1)} > 0`.
 """
 
 from dataclasses import dataclass

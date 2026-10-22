@@ -4,7 +4,8 @@ r"""Compaction power law: permeability written on the Lagrangian fluid content :
 	\frac{k}{k_0} = \Big(\frac{\Phi_\ell}{\Phi_{\ell,0}}\Big)^n = \Big(\frac{J - J_{\min}}{1 - J_{\min,0}}\Big)^n,
 	\qquad J_{\min} = \Phi_{s,0} + \Phi_c, \qquad n \ge 1
 
-:math:`k = 0` at the compaction point :math:`J = J_{\min}`. Near it :math:`\dot J \sim -(J - J_{\min})^n`:
+:math:`k \to 0` at the compaction point :math:`J = J_{\min}` (in the code :math:`k/k_0 \ge x_f^n > 0`,
+:math:`x_f` = ``fluid_floor``). Near it :math:`\dot J \sim -(J - J_{\min})^n`:
 :math:`n \ge 1` keeps :math:`J > J_{\min}` for all time (kinetic barrier; energetic one:
 :mod:`.volumetric.compaction`). Equals Holmes--Mow with :math:`M = 0`.
 """
