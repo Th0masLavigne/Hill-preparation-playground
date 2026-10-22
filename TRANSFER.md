@@ -13,7 +13,7 @@ Legend: **new**: the file does not exist in fenicsoft. **change**: patch an exis
 |---|---|---|---|
 | 0 | Shared UFL guards (package root) `piecewise`, `floored`, `capped`, `macaulay`, `macaulay_negative` | new | – |
 | 1 | Integration: select XDMF fields, write logs on rank 0 only | copy | – |
-| 2 | Scaling: promote `CharacteristicScales` to `fenicsoft.scaling` | new | – |
+| 2 | Scaling: promote `CharacteristicScales` to `fenicsoft.scaling` | new | 1 |
 | 3 | IO: write XDMF geometry and time back in SI | new | – |
 | 4 | Active laws: shared activation schedule | new | – |
 | 5 | Hill chain law (self-contained) | new | 0, 4 |
@@ -46,6 +46,7 @@ Legend: **new**: the file does not exist in fenicsoft. **change**: patch an exis
 - `DecimatedTimeIntegrator.__init__(..., functions_to_write=None, root_only_logs=True)`.
 - `_silence_logs()`: on ranks other than 0, the printers write to `os.devnull`. Every logged value is already MPI-reduced, so nothing is lost.
 - `_reopen_xdmf()`: reopens the results XDMF on `functions_to_write` and rewrites the t = 0 frame, before the decimation proxy is built.
+- `_DecimatedXDMFFile`: the last written t is no longer reset at a step change (initially 0: the file already holds t = 0); only the period state is (call count, first frame of the step). Before, a solver failure on the first substep of a step forced a second frame at t_ini (= previous t_fin, or t = 0).
 - Cleaner long-term alternative: add `functions_to_write` to `dolfin_mech.core.TimeIntegrator` itself, which removes the rewrite of t = 0.
 - Module `Status` paragraph: remove it once merged.
 - Permanent fix on the fenicsoft side: no dolfin_mech change is expected, and fenicsoft only uses `DecimatedTimeIntegrator`. `NonlinearSolver` needs no change: the base `TimeIntegrator.__init__` sets `solver.printer = self.printer`, so silencing `self.printer` also silences the Newton lines. Only a `NonlinearSolver` used on its own with `print_out=<file>` would still write from every rank.
@@ -58,26 +59,27 @@ Legend: **new**: the file does not exist in fenicsoft. **change**: patch an exis
   - the plateau exit on a real problem, including the "before `min_simu_seconds`" and "not yet stagnant" branches.
 - `integrator_case.py` is a no-flux diffusion with c₀ = 1 + cos πx, so c → 1 and the plateau is reached around t ≈ 0.6. Avoid a Dirichlet BC with a single subsol: it does not act on the solution and the case becomes trivial (c ≡ 0).
 - The MPI test works with both MPICH and Open MPI. `--oversubscribe` and `--allow-run-as-root` are only added when `mpirun --version` says Open MPI, because MPICH's hydra rejects them. The parent's `OMPI_*`, `PMIX_*` and `PMI_*` variables are dropped for the child job, since dolfin has already initialised MPI in the parent.
-- `test_decimated_time_integrator_unit.py` is the fenicsoft test with only its import and module docstring changed. Do not copy it: keep fenicsoft's.
+- `test_decimated_time_integrator_unit.py` is the fenicsoft test with its import and module docstring changed, plus the duplicate-frame fix: `test_integrate_permanent_solver_failure_ends_the_step_unsuccessfully` now expects no write (t = 0 already in the file), and two new tests (`..._force_at_previous_step_end_after_step_change_is_a_no_op`, `..._force_at_initial_time_is_a_no_op`). Port these three changes into fenicsoft's file.
 
 **Done when** the 59 integration unit tests pass with 100 % coverage of the module, and an `mpirun -n 2` run of a demo gives a `.out` with the same line count as the serial run.
 
 ## 2. Scaling: promote `CharacteristicScales` to `fenicsoft.scaling`
 
 **Changes.**
-- New `src/fenicsoft/scaling/{__init__.py, characteristic_scales.py}`, from `hill_playground/scaling`. It is the demo-side `microtissue_pillar_spherical_scale/src/characteristic_scales.py`, plus:
+- New `src/fenicsoft/scaling/{__init__.py, characteristic_scales.py, time_steps.py}`, from `hill_playground/scaling`. It is the demo-side `microtissue_pillar_spherical_scale/src/characteristic_scales.py`, plus:
   - `identity()`;
   - conversions documented for floats and UFL expressions;
   - corrected docstring of `permeability_over_viscosity`: L₀²/(μ₀t₀) = (k/η)κ/μ₀, so K̂ = μ₀/κ;
   - raw-docstring math fixed (`1/\tau`, `k/\eta` were written with a double backslash).
+- `time_steps.py`: `nondimensionalize_step` (`io.Step` time fields, `min_simu_seconds` included) and `nondimensionalize_write_period` (`TimeInterval` / t₀), shared by the scaled demos. Depends on `integration.TimeInterval`.
 - The demo-side test `microtissue_pillar_spherical_scale/test/test_characteristic_scales.py:130` expects (k/η)(μ₀/κ) for `permeability_over_viscosity`; the code returns (k/η)(κ/μ₀) (correct). It fails whenever μ₀ ≠ κ: it goes with the demo below (the playground test is the corrected one).
 - The scaled pillar demo (`microtissue_pillar_spherical_scale`, wrong row factors: see issue 11) is to be deleted from fenicsoft (still on the reference branch). The pillar case will be recoded in the playground on top of issues 2 and 11, once the Hill box is validated.
 
-**Tests.** `tests/unit/scaling/test_characteristic_scales.py` (100 % coverage).
+**Tests.** `tests/unit/scaling/test_characteristic_scales.py` (100 % coverage), `tests/unit/scaling/test_time_steps.py`.
 
 ## 3. IO: write XDMF geometry and time back in SI
 
-**Changes.** New `src/fenicsoft/io/xdmf_units.py`. `redimensionalize_results(xdmf, length, time)` multiplies `Mesh/*/mesh/geometry` by L₀ and `<Time Value>` by t₀. It is idempotent step by step through the HDF5 attributes `geometry_scale` and `time_scale` (the XDMF is replaced atomically), so an interrupted call never scales twice. Both attributes are recorded even when the scale is 1; `is_redimensionalized(h5)` is True once both are set. New `src/fenicsoft/io/xdmf_reading.py`: `read_time_stamps(xdmf)` returns the `<Time Value>` entries as floats (use it in tests rather than matching the formatted text), and `TIME_VALUE` is the pattern shared with `xdmf_units`. Call it on rank 0 after `integrate()` whenever the mesh was scaled. Export `redimensionalize_results`, `is_redimensionalized` and `read_time_stamps` from `fenicsoft.io`. New direct dependency of `src`: `h5py` (already in the image; add it to the `dependencies` of `pyproject.toml`).
+**Changes.** New `src/fenicsoft/io/xdmf_units.py`. `redimensionalize_results(xdmf, length, time)` multiplies `Mesh/*/mesh/geometry` by L₀ and `<Time Value>` by t₀. It is idempotent stage by stage through the HDF5 attributes `geometry_scale` and `time_scale`, each written right after its stage (the XDMF is replaced atomically): a second call skips the stamped stages and resumes an interrupted one; only an interruption inside a stage, before its stamp, makes the next call apply that stage again. Both attributes are recorded even when the scale is 1; `is_redimensionalized(h5)` is True once both are set. New `src/fenicsoft/io/xdmf_reading.py`: `read_time_stamps(xdmf)` returns the `<Time Value>` entries as floats (use it in tests rather than matching the formatted text), and `TIME_VALUE` is the pattern shared with `xdmf_units`. Call it on rank 0 after `integrate()` whenever the mesh was scaled. Export `redimensionalize_results`, `is_redimensionalized` and `read_time_stamps` from `fenicsoft.io`. New direct dependency of `src`: `h5py` (already in the image; add it to the `dependencies` of `pyproject.toml`).
 
 **Tests.** `tests/unit/io/test_xdmf_units.py`, `tests/unit/io/test_xdmf_reading.py`.
 
@@ -128,14 +130,14 @@ It is not a constitutive law. Active laws use it by composition, so no law depen
 - New module `src/fenicsoft/materials/saturated_mixture.py`: J_min = Φ_s0 + Φ_c, Φ_ℓ = J − J_min, φ_ℓ = 1 − J_min/J, φ_s = Φ_s0/J. Mixture kinematics shared by the permeability laws and the compaction energy (issue 9), not a law. Φ_c = 0 by default (here and in `PorousPermeabilityParameters`): two-phase mixture, solid + liquid. Reuse candidate: φ_s = φ_s0/J re-coded in `operators/cell/haptotaxis/saturated.py`. Add it to `materials/__init__.py`.
 - New package `src/fenicsoft/materials/permeability/`:
 - `base.py`: `pulled_back_conductivity` K_L = (k/η) J C⁻¹; `PermeabilityParameters(MaterialParameters)` (k₀/η) and `PorousPermeabilityParameters` (+ Φ_s0 uniform, Φ_c, Φ_c0); `Permeability` (abstract `_ratio()` = k/k₀ read through the cached `ratio`, then `hydraulic_conductivity` and `tensor`) and `PorousPermeability` (+ `porosity` φ_ℓ, `porosity_0` φ_ℓ0, `fluid_ratio` Φ_ℓ/Φ_ℓ0).
-- One module per law, with its `Parameters` (own fields only) and `Permeability` (only `_ratio`): `constant`, `kozeny_carman`, `holmes_mow`, `compaction_power` (n ≥ 1 enforced).
+- One module per law, with its `Parameters` (own fields only) and `Permeability` (only `_ratio`): `constant`, `kozeny_carman`, `holmes_mow` (κ_HM ≥ 0 and M ≥ 0 enforced), `compaction_power` (n ≥ 1 enforced).
 - Afterwards, the pillar demos can replace their `permeability.py` (gel/pillar field) by these laws times a domain field.
 
 **Tests.** `tests/unit/materials/test_saturated_mixture.py`, `tests/unit/materials/permeability/test_permeability_laws.py`.
 
 ## 9. Volumetric energy with a compaction point
 
-**Changes.** New `src/fenicsoft/materials/volumetric/compaction.py`: `CompactionVolumetricPenalty` (Ehlers), W = κ(1−J_min)²[x − ln x − 1], with its own `Parameters(kappa, solid_jacobian, x_floor)`. Below x_floor, W is continued linearly in x, so S = 2∂W/∂C holds everywhere and S stays finite (checked by finite differences in the test).
+**Changes.** New `src/fenicsoft/materials/volumetric/compaction.py`: `CompactionVolumetricPenalty` (Ehlers), W = κ(1−J_min)²[x − ln x − 1], with its own `Parameters(kappa, solid_jacobian, x_floor)` (J_min < 1 checked when `solid_jacobian` is a number or a `dolfin.Constant`). Below x_floor, W is continued linearly in x, so S = 2∂W/∂C holds everywhere and S stays finite (checked by finite differences in the test).
 
 **Tests.** `tests/unit/materials/volumetric/test_compaction.py`.
 
@@ -197,14 +199,16 @@ equations.tex Table tab:sf omitted s_row, the scale of the row's test function: 
 **Changes.**
 - `demos/hill_box/{hill_box_uniaxial.py, hill_box_scaling.py, hill_box_outputs.py, post_processing.py, README.md}` → fenicsoft `demos/smooth_muscle_cells/porous_hydrogel/hill_box/`.
 - `demos/analytical_consolidation_1D/{nondim_parameters, nondim_operator, terzaghi_analytics.py, post_process.py, README.md}` → fenicsoft `demos/analytical_consolidation_1D/` (next to `single_step/`, `initialising_step/`).
-- `tests/integration/demos/test_hill_box_scaling.py` → `demos/.../hill_box/test/` with a `sys.path` conftest, as in `microtissue_pillar_spherical_scale/test/` (fenicsoft has no `tests/integration/demos/`). `testpaths = ["tests"]` does not collect it: run it explicitly (`pytest demos/.../hill_box/test`), or decide another location before the merge request.
+  - **Name clash**: fenicsoft already has `terzaghi_analytics.py` and `post_process.py` there, with a different content and API (`single_step/` and `initialising_step/` import `post_process`). Either merge (keep fenicsoft's names used by the SI demos, add `TerzaghiCase`, `read_qois`, `compute_errors`, `plot_results`), or rename the playground ones (e.g. `terzaghi_case.py`, `post_process_nondim.py`) before the copy.
+- The demo is nondimensionalised **by the parameters only** (`hill_box_scaling.Coefficients`, every `scale_factor` 1, solve in t̂). The three-mode version (`nondimensionalization` = `none`, `operator`, `parameters`) is the test reference `tests/integration/demos/hill_box_modes/hill_box_all_modes.py`, with `jacobian_scaling.py`.
+- `tests/integration/demos/{test_hill_box_scaling.py, test_hill_box_inputs.py, test_hill_box_post_processing.py, hill_box_modes/}` → `demos/.../hill_box/test/` with a `sys.path` conftest, as in `microtissue_pillar_spherical_scale/test/` (fenicsoft has no `tests/integration/demos/`). `testpaths = ["tests"]` does not collect it: run it explicitly (`pytest demos/.../hill_box/test`), or decide another location before the merge request.
 - Replace the `hill_playground.*` imports by `fenicsoft.*`.
-- `UserInputs` options: `nondimensionalization` (`none`, `operator`, `parameters`), `permeability_law`, `volumetric_law`, `xdmf_si_only`, `quadrature_degrees`.
+- `UserInputs` options (demo): `permeability_law`, `volumetric_law`, `see_variant`, `cell_transport`, `remodelling`, `xdmf_si_only`, `quadrature_degrees`; `hill_box_all_modes.UserInputs` adds `nondimensionalization`.
 - Outputs:
   - `displacement_si` and `pressure_si` are scaled copies of the unknowns on their own CG spaces (vector scaling). A global `dolfin.project` on CG2 cost about 5 s per output, 15 % of the run.
   - The other FOIs use `update_type="local_solver"`, a cell-wise projection on the DG spaces, instead of `"project"`.
   - All output updates went from 17.1 s to 0.3 s on the size/2 box.
-- Rows through `ResidualRows` (issue 11): `build_residual_rows()` gives each operator `rows.measure(dV, row)` and `rows.scale_factor(row, v)`.
+- Rows through `ResidualRows` (issue 11): in the demo, `build_residual_rows()` gives each operator `rows.measure(dV, row)` (quadrature degree per row only). In `hill_box_all_modes.py` it also gives `rows.scale_factor(row, v)`:
   - `TermValues` holds the value factors (gel L₀², fluid μ₀L₀², volume L₀³, Darcy μ₀L₀, cell flux L₀).
   - `row_test_scales()` holds s_row (L₀ for `displacement`, μ₀ for `liquid_pressure`) and `row_normalizations()` holds 𝒩_row (`"operator"` mode only).
   - Row names are the subsols: `displacement`, `liquid_pressure`, `cell_fraction`, `substrate_smoothed`, `theta`, `phi`, `eps_a`. The cell flux Q_c is in both `liquid_pressure` and `cell_fraction`.
@@ -214,7 +218,7 @@ equations.tex Table tab:sf omitted s_row, the scale of the row's test function: 
 - Conditioning: `tests/integration/demos/hill_box_modes/jacobian_scaling.py` (with the 3-mode reference `hill_box_all_modes.py`) assembles J at the first step for the 3 modes (κ₂ by dense SVD, median |J_ii| per row, printed as a table). The mass rows (`cell_fraction`, `theta`, `phi`, `substrate_smoothed`, ~1e-3) and the stiffness rows (`displacement`, `liquid_pressure`, ~2) differ by ĥ²: discretization, not scaling. Test `tests/integration/demos/test_hill_box_scaling.py` (about 80 s): `operator` J = `parameters` J (≤ 1e-10), interior diagonal blocks O(1), κ₂: none 1.7e20, operator 4.3e4, parameters 4.3e4.
 - Cost profile (size/2, warm JIT cache): MUMPS solve ≈ 78 %, assembly ≈ 21 %, outputs < 1 %. Turning off `cell_transport` and `remodelling` cuts the solve to 5.2 s per iteration (−37 %). size/4: about 210 s per solve and about 5 GB.
 
-**Done when** the three `nondimensionalization` modes give identical QOIs (measured: 3e-15) and identical Jacobians (`operator` vs `parameters`), and an `mpirun` run gives a readable `.out`.
+**Done when** the three `nondimensionalization` modes of `hill_box_all_modes.py` give identical QOIs (measured: 3e-15) and identical Jacobians (`operator` vs `parameters`), and an `mpirun` run gives a readable `.out`.
 
 ## 15. Follow-ups
 
