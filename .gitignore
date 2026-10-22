@@ -153,3 +153,11 @@ docs/src/api/
 # Hill playground
 # --------------------------------------------------------------------
 .devcontainer/secrets.env
+
+# TikZ sources of the docstring figures: only .tex and .svg are tracked (LaTeX by-products ignored)
+docs/src/_static/resources/*.pdf
+docs/src/_static/resources/*.synctex.gz
+docs/src/_static/resources/*.aux
+docs/src/_static/resources/*.log
+docs/src/_static/resources/*.fdb_latexmk
+docs/src/_static/resources/*.fls
