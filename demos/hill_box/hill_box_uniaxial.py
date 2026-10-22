@@ -55,7 +55,7 @@ flux, :math:`\mathrm{sat} = \langle 1 - \Phi_c/\Phi_{c,max}\rangle_+` and :math:
 In :math:`R_a`, the cell is an elastic element (SEE, tension :math:`T_e`) in series with a contractile
 element (CE, stretch :math:`\lambda_a = e^{\varepsilon_a}`, rate :math:`D_a = \dot\varepsilon_a`) itself in
 parallel with a passive element (PEE, tension :math:`T_p`); :math:`f_{FL}` is the Gaussian force--length law
-and :math:`h` the Hill force--velocity law (``hill_playground.materials.cell.active.hill``).
+and :math:`h` the Hill force--velocity law (``materials.cell.active.hill``).
 
 Nondimensionalisation (by the parameters)
 -----------------------------------------
@@ -68,9 +68,9 @@ the solver time is :math:`\hat t = t/t_0`. The weak form is written as in SI. Ou
 Options
 -------
 * ``permeability_law``: ``"constant"``, ``"kozeny_carman"``, ``"holmes_mow"``, ``"compaction_power"``
-  (``hill_playground.materials.permeability``);
+  (``materials.permeability``);
 * ``volumetric_law``: ``"quadratic"`` :math:`\frac{\kappa}{2}(J-1)^2` or ``"compaction"``
-  (barrier at :math:`J_{\min} = \Phi_{s,0} + \Phi_c`, ``hill_playground.materials.volumetric.compaction``);
+  (barrier at :math:`J_{\min} = \Phi_{s,0} + \Phi_c`, ``materials.volumetric.compaction``);
 * ``cell_transport``, ``remodelling``: solve :math:`(\Phi_c, \tilde\phi_s)` and :math:`(\theta, \varphi)`;
 * ``quadrature_degrees``: quadrature degree per residual row (row = subsol of the test function).
 
@@ -179,7 +179,8 @@ class UserInputs:
 	    sol_tol: Newton tolerance, the same for every (dimensionless) unknown.
 	    solver_parameters: ``NonlinearSolver`` parameters (``sol_tol`` added at run time).
 	    integrator_parameters: ``TimeIntegrator`` adaptive-``dt`` parameters.
-	    xdmf_write_period: Output decimation (``DecimatedTimeIntegrator``), ``TimeInterval`` in s.
+	    xdmf_write_period: Output decimation (``DecimatedTimeIntegrator``): ``int`` (substeps) or ``TimeInterval``
+	        (s), one value or one per step (default: every substep of the ramp, then every 840 s).
 	    xdmf_si_only: XDMF holds the SI fields and the dimensionless unknowns only (no :math:`\hat{\mathbf u}, \hat p`).
 	    stagnation_plateau_relative_error: Plateau-exit threshold.
 	    project_prefix: Output folder.
@@ -779,7 +780,7 @@ def solve_problem(
 	user_inputs: UserInputs,
 	coefficients: Coefficients,
 ) -> bool:
-	"""Newton + adaptive time stepping (playground ``DecimatedTimeIntegrator``: selected fields, rank-0 logs).
+	"""Newton + adaptive time stepping (``integration.DecimatedTimeIntegrator``: selected fields, rank-0 logs).
 
 	Args:
 	    problem: Assembled problem.

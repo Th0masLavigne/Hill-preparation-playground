@@ -1,7 +1,7 @@
-r"""UFL building blocks of the cell Hill chain SEE -- (CE :math:`\parallel` damper :math:`\parallel` PEE).
+r"""UFL building blocks of the cell Hill chain SEE -- (CE :math:`\parallel` PEE).
 
-Series elastic (SEE), contractile (CE) and parallel elastic (PEE) elements. Pure functions shared by the
-stress law (:math:`R_u`) and the CE evolution operator (:math:`R_a`).
+Series elastic (SEE), contractile (CE: motor and optional damper) and parallel elastic (PEE) elements.
+Pure functions shared by the stress law (:math:`R_u`) and the CE evolution operator (:math:`R_a`).
 
 Rheological scheme (fibre direction :math:`\mathbf{f}_0`):
 

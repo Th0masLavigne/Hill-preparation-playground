@@ -27,14 +27,14 @@ Equations (reference configuration, St Venant--Kirchhoff skeleton)
 	       + \mathbf K_L \nabla p \cdot \nabla \delta p \,\mathrm dV = 0
 
 with :math:`\mathbf K_L = k\, J\mathbf C^{-1}` the Darcy conductivity pulled back to the reference configuration
-(``hill_playground.materials.permeability.constant``) and :math:`k` the hydraulic conductivity :math:`k_{int}/\eta`.
+(``materials.permeability.constant``) and :math:`k` the hydraulic conductivity :math:`k_{int}/\eta`.
 The exact solution (small strains) is Terzaghi's,
 see ``terzaghi_analytics.py``.
 
 Nondimensionalisation by the operators: the recipe
 ----------------------------------------------------
 1. **Scales.** :math:`L_0 = L`, :math:`\mu_0 = M` (oedometric modulus), :math:`t_0 = L^2/c_v` with
-   :math:`c_v = k M` (``UserInputs.scales``, a :class:`~hill_playground.scaling.CharacteristicScales`).
+   :math:`c_v = k M` (``UserInputs.scales``, a :class:`.CharacteristicScales`).
 2. **Mesh.** :math:`\hat{\mathbf X} = \mathbf X/L_0` (coordinates divided once, after loading). Then
    :math:`\hat{\mathbf u} = \mathbf u/L_0` and :math:`\hat\nabla = L_0\nabla`: :math:`\mathbf F`, :math:`J`,
    :math:`\mathbf E` are unchanged, the kinematics needs no change.
@@ -57,7 +57,7 @@ Nondimensionalisation by the operators: the recipe
    The resulting system is the one of ``nondim_parameters`` (dimensionless coefficients), but the
    coefficients keep their SI values and the solver time stays in s.
 6. **Outputs.** QOIs are redimensionalised in their expression (:math:`u = L_0\hat u`, :math:`p = \mu_0\hat p`);
-   the XDMF geometry is put back in m after the run (``hill_playground.io.xdmf_units``); the XDMF fields stay
+   the XDMF geometry is put back in m after the run (``io.xdmf_units``); the XDMF fields stay
    dimensionless.
 
 Why: in SI, the rows of the Jacobian differ by many orders of magnitude (:math:`E \sim 10^4` Pa,

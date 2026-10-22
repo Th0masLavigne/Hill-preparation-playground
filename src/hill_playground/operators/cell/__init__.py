@@ -1,4 +1,4 @@
-"""Cell operators (target: ``fenicsoft.operators.cell``)."""
+"""Cell operators."""
 
 from . import hill, proliferation
 from .hill import ContractileEvolution

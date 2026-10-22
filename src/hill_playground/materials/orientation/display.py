@@ -1,6 +1,6 @@
 r"""Orientation diagnostics for ParaView: current fibre, tilt out of a plane, angle to an axis, order parameters.
 
-Complements ``fenicsoft.materials.orientation.spherical`` (``canonical_theta_phi_degrees``,
+Complements ``materials.orientation.spherical`` (``canonical_theta_phi_degrees``,
 ``wrapped_theta_degrees``), which describe the *reference* angles :math:`(\theta, \varphi)`.
 Everything here is head/tail symmetric (:math:`\mathbf f \to -\mathbf f` invariant) and written
 with ``atan2`` (no ``acos`` / ``asin`` domain issue at :math:`|\cdot| = 1`):
@@ -41,7 +41,7 @@ def current_direction(kinematics: Any, f0: Any) -> Any:
 	    f0: Unit reference direction (UFL vector).
 
 	Returns:
-	    UFL unit vector (``fenicsoft.materials.orientation.generic.from_vector``).
+	    UFL unit vector (``materials.orientation.generic.from_vector``).
 	"""
 	return from_vector(kinematics.F * f0)
 

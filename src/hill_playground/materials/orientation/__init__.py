@@ -1,4 +1,4 @@
-"""Fibre-orientation diagnostics (target: ``fenicsoft.materials.orientation``)."""
+"""Fibre-orientation diagnostics."""
 
 from . import display
 

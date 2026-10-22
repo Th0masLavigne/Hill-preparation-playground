@@ -1,4 +1,4 @@
-"""Cell proliferation (target: ``fenicsoft.operators.cell.proliferation``)."""
+"""Cell proliferation."""
 
 from .saturated import SaturatedProliferation
 

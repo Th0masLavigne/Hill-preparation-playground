@@ -1,7 +1,6 @@
-"""Hill-chain smooth muscle cell model, staged for fenicsoft.
+"""Hill-chain smooth muscle cell model.
 
-Sub-packages mirror ``fenicsoft`` one-to-one, so that
-``hill_playground/<path>`` moves to ``fenicsoft/<path>`` without renaming.
+Sub-packages follow the layout of the destination package one-to-one: ``<path>`` keeps its name.
 
 Author:
 	Thomas Lavigne (LMS, Polytechnique)

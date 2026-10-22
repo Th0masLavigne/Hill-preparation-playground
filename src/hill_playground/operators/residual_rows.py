@@ -18,8 +18,6 @@ integrals only, also in a summed residual (rank 1) and its Jacobian (rank 2).
     Do not mix degrees inside a *scalar* functional (rank 0, e.g. an ``"assembly"`` QOI): the legacy
     FFC returns a wrong value (low-degree integrand counted twice). Residuals and Jacobians are exact
     (``tests/environment/test_env.py``).
-
-Target: ``fenicsoft.operators.residual_rows``.
 """
 
 import numbers

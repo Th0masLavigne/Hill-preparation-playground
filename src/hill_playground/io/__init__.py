@@ -1,4 +1,4 @@
-"""Input/output helpers (target: ``fenicsoft.io``)."""
+"""Input/output helpers."""
 
 from . import xdmf_reading, xdmf_units
 from .xdmf_reading import read_time_stamps

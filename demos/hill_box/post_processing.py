@@ -52,7 +52,7 @@ with the QOI file (columns ``t`` and ``time_si``); frames not yet flushed to the
 
 Usage::
 
-	python3 post_processing.py [--results path/to/results.xdmf] [--output-dir dir] [--bins 36]
+	python3 post_processing.py [--results path/to/results.xdmf] [--output-dir dir] [--bins 36] [--sphere-bins 30]
 """
 
 from __future__ import annotations
@@ -158,7 +158,7 @@ class ResultsSeries:
 		return None if values is None else values.astype(np.float64).reshape(values.shape[0], -1)
 
 	def is_redimensionalized(self) -> bool:
-		"""True once ``hill_playground.io.xdmf_units`` has put the geometry and times back in SI."""
+		"""True once ``io.xdmf_units`` has put the geometry and times back in SI."""
 		reference = self._reference(self._grids[0].find("Geometry"))
 		return reference is not None and xdmf_units.is_redimensionalized(self.xdmf_path.parent / reference[0])
 
@@ -447,7 +447,7 @@ def plot_histograms(
 						r"angle $\psi$ to the director (deg)",
 					)[col]
 				)
-			ax.legend(fontsize=8, frameon=False, loc="upper right" if col != 1 else "upper right")
+			ax.legend(fontsize=8, frameon=False, loc="upper right")
 	fig.suptitle("Cell orientation: first vs last frame (volume-weighted)", fontsize=12)
 	fig.tight_layout()
 	fig.savefig(output, dpi=150)  # type: ignore
@@ -603,7 +603,7 @@ def main(argv: Optional[Sequence[str]] = None) -> Dict[str, Path]:
 	    Figure name -> path.
 
 	Raises:
-	    ValueError: Fewer than one complete frame, or a direction field missing.
+	    ValueError: No frame holds both direction fields.
 	"""
 	parser = argparse.ArgumentParser(description="Orientation post-processing of the Hill box.")
 	parser.add_argument("--results", type=Path, default=DEFAULT_RESULTS, help="Results .xdmf.")

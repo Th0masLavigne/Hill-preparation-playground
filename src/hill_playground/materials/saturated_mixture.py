@@ -1,7 +1,5 @@
 r"""Kinematic relations of the saturated mixture (substrate, optional cells, liquid), shared by several laws.
 
-Target: ``fenicsoft.materials.saturated_mixture``.
-
 With :math:`\Phi_{s,0}` the substrate and :math:`\Phi_c` the cell volume per unit reference volume
 (incompressible constituents):
 

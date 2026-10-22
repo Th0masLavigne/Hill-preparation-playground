@@ -1,4 +1,4 @@
-"""Active cell stress laws (target: ``fenicsoft.materials.cell.active``)."""
+"""Active cell stress laws."""
 
 from . import activation, hill
 

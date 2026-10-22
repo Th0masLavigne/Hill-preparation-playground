@@ -1,4 +1,4 @@
-"""Volumetric energies of the drained skeleton (target: ``fenicsoft.materials.volumetric``)."""
+"""Volumetric energies of the drained skeleton."""
 
 from . import compaction
 

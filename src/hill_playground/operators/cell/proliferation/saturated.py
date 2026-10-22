@@ -15,7 +15,7 @@ from ....ufl_functions import macaulay
 
 
 class SaturatedProliferation(_SaturatedProliferation):
-	r"""``fenicsoft`` ``SaturatedProliferation`` with :math:`\mathrm{sat} = \langle 1 - \Phi_c/\Phi_{c,max} \rangle_+`.
+	r"""Parent ``SaturatedProliferation`` with :math:`\mathrm{sat} = \langle 1 - \Phi_c/\Phi_{c,max} \rangle_+`.
 
 	Args:
 	    phi_c: :math:`\Phi_c`.

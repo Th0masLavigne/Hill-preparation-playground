@@ -1,4 +1,4 @@
-"""Constitutive laws (target: ``fenicsoft.materials``)."""
+"""Constitutive laws."""
 
 from . import cell, orientation, permeability, saturated_mixture, volumetric
 

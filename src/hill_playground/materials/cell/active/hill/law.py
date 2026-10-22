@@ -9,10 +9,10 @@ momentum balance:
 	\qquad (\Phi_c, \text{ not } \Phi_c / J)
 
 The CE and the PEE act on :math:`\varepsilon_a = \ln\lambda_a` through :math:`R_a`
-(:class:`hill_playground.operators.cell.hill.ContractileEvolution`).
+(:class:`.ContractileEvolution`).
 
-Derives from the fenicsoft base classes only (``MaterialParameters``, ``ConstitutiveLaw``); :math:`\alpha(t)`
-comes from an :class:`~hill_playground.materials.cell.active.activation.ActivationSchedule` (composition).
+Derives from the base classes ``MaterialParameters`` and ``ConstitutiveLaw`` only; :math:`\alpha(t)`
+comes from an :class:`.ActivationSchedule` (composition).
 ``p_act`` is the ``dolfin.Constant`` shared with ``OrientationChange`` and ``ContractileEvolution``, refreshed
 by ``HyperElasticity`` via ``set_k_step``/``update_time``.
 
@@ -70,7 +70,7 @@ class Parameters(MaterialParameters):
 	r"""Hill-chain parameters (SI).
 
 	Attributes:
-	    phi_c: :math:`\Phi_c`, reference cell fraction (``Constant`` or ``Function``).
+	    phi_c: :math:`\Phi_c`, cell volume per unit reference volume (``Constant``, ``Function`` or unknown).
 	    f0: Unit reference fibre direction :math:`\mathbf f_0` (UFL vector).
 	    activation_configs: :math:`\alpha(t)`, one :class:`ActivePowerConfig` per step.
 	    simulation_steps: ``problem.steps``.
@@ -175,7 +175,7 @@ class Constitutive(ConstitutiveLaw[Parameters]):
 
 	@property
 	def current_time(self) -> float:
-		"""Global time of the last ``update_time`` (solve units)."""
+		"""Global time of the last ``update_time`` (solve units: s, or :math:`t_0` if scaled)."""
 		return self._activation.time
 
 	@cached_property
@@ -205,14 +205,14 @@ class Constitutive(ConstitutiveLaw[Parameters]):
 		return hill.pee_tension(self._parameters.eps_a, self._parameters.k_p)
 
 	@cached_property
-	def ener(self) -> dolfin.Form:
+	def ener(self) -> Any:
 		r""":math:`\Phi_c (\Psi_e + \Psi_p)` per unit reference mixture volume."""
 		p = self._parameters
 		psi_e = hill.see_energy(self.inv4e, p.k_e, p.see_variant, p.k_2e)
 		return p.phi_c * (psi_e + hill.pee_energy(p.eps_a, p.k_p))
 
 	@cached_property
-	def pk2(self) -> dolfin.Form:
+	def pk2(self) -> Any:
 		r"""Second Piola stress of the chain at fixed :math:`\varepsilon_a`.
 
 		.. math::
@@ -222,11 +222,11 @@ class Constitutive(ConstitutiveLaw[Parameters]):
 		return p.phi_c * self.tension_see / self.inv4 * dolfin.outer(p.f0, p.f0)
 
 	@cached_property
-	def pk1(self) -> dolfin.Form:
+	def pk1(self) -> Any:
 		r""":math:`\mathbf P_h = \mathbf F \mathbf S_h`."""
 		return self._kinematics.F * self.pk2
 
 	@cached_property
-	def cauchy(self) -> dolfin.Form:
+	def cauchy(self) -> Any:
 		r""":math:`\boldsymbol\sigma_h = \mathbf P_h \mathbf F^T / J`."""
 		return self.pk1 * self._kinematics.F.T / self._kinematics.J

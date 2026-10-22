@@ -10,19 +10,18 @@ proliferate and reorient.
 
 Unknowns: displacement $\mathbf u$, liquid pressure $p$, CE log-stretch $\varepsilon_a$, and optionally
 the cell fraction $\Phi_c$ with the smoothed substrate fraction $\tilde\phi_s$ (`cell_transport`) and the
-cell orientation angles $\theta, \varphi$ (`remodelling`). The full set of residuals is in the module
-docstring of `hill_box_uniaxial.py`.
+cell orientation angles $\theta, \varphi$ (`remodelling`). Residuals: module docstring of `hill_box_uniaxial.py`.
 
 | Item | Where |
 | --- | --- |
-| Hill law ($R_u$), activation $\alpha(t)$ | `hill_playground.materials.cell.active.hill`, `...active.activation` |
-| CE evolution ($R_a$) | `hill_playground.operators.cell.hill.ContractileEvolution` |
-| Clipped proliferation | `hill_playground.operators.cell.SaturatedProliferation` |
-| Scales ($L_0, \mu_0, t_0$), conversions | `hill_playground.scaling.CharacteristicScales` |
-| $k(\phi_\ell)$, $\mathbf K_L = (k/\eta) J \mathbf C^{-1}$ | `hill_playground.materials.permeability` |
-| Compaction volumetric energy | `hill_playground.materials.volumetric.compaction` |
-| Orientation diagnostics | `hill_playground.materials.orientation.display` |
-| Uniqueness check of the CE equilibrium | `hill_playground.materials.cell.active.hill.law.check_uniqueness` |
+| Hill law ($R_u$), activation $\alpha(t)$ | `materials.cell.active.hill`, `materials.cell.active.activation` |
+| CE evolution ($R_a$) | `operators.cell.hill.ContractileEvolution` |
+| Clipped proliferation | `operators.cell.SaturatedProliferation` |
+| Scales ($L_0, \mu_0, t_0$), conversions | `scaling.CharacteristicScales` |
+| $k(\phi_\ell)$, $\mathbf K_L = (k/\eta) J \mathbf C^{-1}$ | `materials.permeability` |
+| Compaction volumetric energy | `materials.volumetric.compaction` |
+| Orientation diagnostics | `materials.orientation.display` |
+| Uniqueness check of the CE equilibrium | `materials.cell.active.hill.check_uniqueness` |
 
 | Demo file | Content |
 | --- | --- |
@@ -31,76 +30,51 @@ docstring of `hill_box_uniaxial.py`.
 | `hill_box_outputs.py` | SI fields (XDMF) and QOIs (`.dat`) |
 | `post_processing.py` | orientation figures from the results |
 
-Inputs and outputs are SI. `UserInputs` options:
-
-The solve is dimensionless, by the parameters: mesh $\hat{\mathbf X} = \mathbf X/L_0$ (so plain `Kinematics`
-is exact), $\hat p = p/\mu_0$, coefficients converted by `hill_box_scaling.Coefficients`, time $\hat t = t/t_0$
-(QOI `time_si` gives seconds). After the run the XDMF geometry and time stamps are put back in m and s
-(`hill_playground.io.xdmf_units`). The two methods (parameters, operators) are explained step by step on
-Terzaghi's consolidation in `demos/analytical_consolidation_1D/`.
+## Options (`UserInputs`, SI)
 
 - `permeability_law`: `"constant"` | `"kozeny_carman"` | `"holmes_mow"` | `"compaction_power"`.
 - `volumetric_law`: `"quadratic"` | `"compaction"` ($J > J_{\min} = \Phi_{s,0} + \Phi_c$).
 - `cell_transport` ($\Phi_c$, $\tilde\phi_s$), `remodelling` ($\theta$, $\varphi$).
+- `quadrature_degrees`: degree per residual row (row = subsol of the test function, `operators.ResidualRows`),
+  e.g. `{"displacement": 3, "liquid_pressure": 2}`; other rows keep `quadrature_degree` (4).
+
+The solve is dimensionless (by the parameters): $\hat{\mathbf X} = \mathbf X/L_0$, $\hat p = p/\mu_0$,
+$\hat t = t/t_0$, coefficients from `hill_box_scaling.Coefficients`. Inputs and outputs stay SI; the XDMF
+geometry and time stamps are put back in m and s after the run (`io.xdmf_units`). Method explained on
+Terzaghi in `demos/analytical_consolidation_1D/`.
+
+## Run
 
 ```bash
 cd demos/hill_box
 python3 hill_box_uniaxial.py              # or: mpirun -np 4 python3 hill_box_uniaxial.py
+python3 post_processing.py                # [--results <xdmf>] [--output-dir <dir>] [--bins 36] [--sphere-bins 30]
 ```
 
-Outputs in `outputs_hill_box_uniaxial/results/`, all SI (`hill_box_outputs.py`):
+If MUMPS runs out of memory (fine mesh), the solver reports "Linear solver failed" and $\Delta t$ is cut
+until `min_dt`: check the `.out` file and the memory given to Docker.
 
-- point data: `displacement_si`, `pressure_si` (SI copies of the unknowns, on their CG spaces);
-- cell data: `jacobian`, `fluid_fraction`, `permeability_ratio`, `theta`, `phi`,
-  `theta_deg`/`phi_deg` (canonical), `theta_wrapped_deg` (in-plane axis), `tilt_xy_deg` and
-  `tilt_xy_current_deg` (0 = fibre in the $xy$ plane), `angle_x_deg` and `angle_x_current_deg`
-  (0 = along the held axis), `lambda_*`, `tension_*`, `fibre`, `fibre_initial`, `fibre_current`,
-  `cell_cauchy`, `total_cauchy`;
-- QOIs: `time_si`, `cellular_activation`, probes, `mean_*`, `order_x`, `order_z`
-  ($\langle \tfrac32 f_i^2 - \tfrac12\rangle$; `order_z` $\to -\tfrac12$ = planar orientation),
-  `mean_tilt_xy_deg`.
+## Outputs (`outputs_hill_box_uniaxial/`, SI)
 
-With `xdmf_si_only=True` (default) the XDMF holds only SI fields: the dimensionless unknowns
-(`theta`, `phi`, `cell_fraction`, `substrate_smoothed`, `eps_a`) and the FOIs above; the raw
-`displacement`/`liquid_pressure` (dimensionless) and the `*_old` copies are not written.
+`results/` (`hill_box_outputs.py`):
 
-Orientation post-processing (numpy, h5py, matplotlib; no dolfin, also on a run in progress):
+- point data: `displacement_si`, `pressure_si`;
+- cell data: `jacobian`, `fluid_fraction`, `permeability_ratio`, `theta`, `phi`, `theta_deg`/`phi_deg`,
+  `theta_wrapped_deg`, `tilt_xy_deg`, `angle_x_deg` (and `_current` variants), `lambda_*`, `tension_*`,
+  `fibre`, `fibre_initial`, `fibre_current`, `cell_cauchy`, `total_cauchy`;
+- QOIs: `time_si`, `cellular_activation`, probes, `mean_*`, `order_x`, `order_z`, `mean_tilt_xy_deg`.
 
-```bash
-python3 post_processing.py    # [--results <xdmf>] [--output-dir <dir>] [--bins 36] [--sphere-bins 30]
-```
+With `xdmf_si_only=True` (default) the raw $\hat{\mathbf u}$, $\hat p$ and the `*_old` copies are not written.
 
-It writes to `outputs_hill_box_uniaxial/post_processing/`, for the reference fibre $\mathbf f_0$ (remodelling
-only) and the current fibre $\mathbf f$ (remodelling + deformation), with volume-weighted averages:
+`post_processing/` (numpy, h5py, matplotlib; also on a run in progress), for $\mathbf f_0$ and
+$\mathbf f = \mathbf F\mathbf f_0/\|\mathbf F\mathbf f_0\|$:
 
-- `orientation_histograms.png`: first vs last frame, in-plane angle to $x$, tilt out of $xy$, angle to the
-  director, with the isotropic density for reference;
-- `orientation_sphere.png`: equal-area projection of the fibre axes seen from $+z$ (centre: along $z$, rim:
-  in the $xy$ plane), density relative to the isotropic one;
-- `orientation_time.png`: order $S$, $Q_{xx}$, $Q_{zz}$ and mean tilt over the frames, QOIs `order_x`,
-  `order_z`, `mean_tilt_xy_deg` overlaid as a check.
+- `orientation_histograms.png`: first vs last frame, angle to $x$, tilt out of $xy$, angle to the director;
+- `orientation_sphere.png`: equal-area projection seen from $+z$, density relative to isotropic;
+- `orientation_time.png`: $S$, $Q_{xx}$, $Q_{zz}$, mean tilt over the frames, with the QOIs as a check.
 
-The console table gives the state of the order tensor $\mathbf Q = \langle \tfrac32 \mathbf f\otimes\mathbf f -
-\tfrac12 \mathbf I\rangle$ (isotropic / prolate / oblate / biaxial), $S$, the biaxiality and the director.
+## Orders of magnitude
 
-ParaView: colour by `tilt_xy_current_deg` (threshold < 15° to see in-plane cells), glyphs of
-`fibre_current` scaled by `tension_see`. The geometry is in m, so *Warp By Vector* uses
-`displacement_si`.
-
-Quadrature per row (row = subsol of the test function, `hill_playground.operators.ResidualRows`): `quadrature_degrees={"displacement": 3, "liquid_pressure": 2, "cell_fraction": 2,
-"substrate_smoothed": 2, "theta": 2, "phi": 2, "eps_a": 2}` overrides `quadrature_degree` (4) row by row
-(integral metadata `dV(degree=q)`). Measured on the size/2 box: assembly 1.83 → 1.26 s per Newton iteration
-(−31 %), QOIs within 3e-4 of the degree-4 run; the `displacement` row (P2 gel, Hill and fluid stresses) carries
-most of the assembly cost. Default: empty (degree 4 everywhere). Keys are checked (typo → error); rows of
-switched-off unknowns are ignored.
-
-Mesh refinement: the cost is the direct (MUMPS) solve. Measured here (2 cores): `mesh_max_size`
-$L_z/2$ → 8 s per Newton iteration, $L_z/4$ → 210 s and ~5 GB, Newton still converging in 4
-iterations at $\Delta t = 10$ s. If MUMPS runs out of memory, the solver reports
-"Linear solver failed", the step is treated as diverged and $\Delta t$ is cut until `min_dt`:
-check the `.out` file and the memory given to Docker.
-
-Expected orders of magnitude (one cell held at $\lambda = 1$, $\alpha = 1$, default parameters):
-$\lambda_a = 0.922$, $T_e = 16.3$ kPa, CE relaxation time $\tau_a \approx 1.7$ s.
-In the box the gel shortens freely across $y, z$, so expect $\lambda_a$ between 0.92 and 0.63
-(free cell) depending on the fibre direction.
+One cell held at $\lambda = 1$, $\alpha = 1$, default parameters: $\lambda_a = 0.922$, $T_e = 16.3$ kPa,
+CE relaxation time $\tau_a \approx 1.7$ s. In the box, expect $\lambda_a$ between 0.92 and 0.63 (free cell)
+depending on the fibre direction.

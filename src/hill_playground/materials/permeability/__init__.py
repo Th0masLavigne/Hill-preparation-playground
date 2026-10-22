@@ -1,10 +1,8 @@
 r"""Hydraulic conductivity laws :math:`k(\phi_\ell)/\eta` and their pull-back :math:`\mathbf K_L`.
 
-Target: ``fenicsoft.materials.permeability``.
-
 :math:`\mathbf K_L = (k/\eta) J\mathbf C^{-1}`. Each law module defines ``Parameters`` and ``Permeability`` and
 writes only :math:`k/k_0` (``_ratio``); :mod:`.base` gives :math:`k/\eta` and :math:`\mathbf K_L`,
-:mod:`hill_playground.materials.saturated_mixture` the kinematic relations.
+:mod:`.saturated_mixture` the kinematic relations.
 
 ======================  =====================================================================================
 Module                  :math:`k/k_0`

@@ -1,7 +1,5 @@
 r"""Scalar UFL guards shared by the constitutive laws and the operators.
 
-Target: ``fenicsoft.ufl_functions``.
-
 .. math::
 	\mathrm{piecewise}(x, x_0, f_\le, f_>) = \begin{cases} f_\le & x \le x_0 \\ f_> & x > x_0 \end{cases}
 

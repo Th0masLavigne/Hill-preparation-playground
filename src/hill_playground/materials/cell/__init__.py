@@ -1,4 +1,4 @@
-"""Cell constitutive laws (target: ``fenicsoft.materials.cell``)."""
+"""Cell constitutive laws."""
 
 from . import active
 
