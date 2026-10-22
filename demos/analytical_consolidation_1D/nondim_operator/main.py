@@ -22,7 +22,7 @@ Equations (reference configuration, St Venant--Kirchhoff skeleton)
 -------------------------------------------------------------------
 .. math::
 	R_u &= \int_{\Omega_0} \big(\mathbf S - J p\, \mathbf C^{-1}\big) : \delta\mathbf E \,\mathrm dV
-	       - \int_{x=0} p_0\, J\mathbf F^{-T}\mathbf N\cdot\delta\mathbf u \,\mathrm dS = 0 \\
+	       + \int_{x=0} p_0\, J\mathbf F^{-T}\mathbf N\cdot\delta\mathbf u \,\mathrm dS = 0 \\
 	R_p &= \int_{\Omega_0} \frac{J - J^n}{\Delta t}\,\delta p
 	       + \mathbf K_L \nabla p \cdot \nabla \delta p \,\mathrm dV = 0
 

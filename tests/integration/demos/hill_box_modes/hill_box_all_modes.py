@@ -758,7 +758,7 @@ def build_step_operators(
 	    user_inputs: Configuration.
 	    hill_material: Hill law (owner of ``p_act``).
 	    coefficients: Coefficients in solve units.
-	    rows: Quadrature degree and normalization per row.
+	    rows: Quadrature degree, test scale and normalization per row.
 	    values: Value-preserving factor per term.
 
 	Returns:

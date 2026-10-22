@@ -71,6 +71,7 @@ class TerzaghiInputs:
 	    n_steps: Number of (fixed) time steps.
 	    n_probes: Pressure probes along :math:`x`.
 	    sol_tol: Newton relative tolerance.
+	    probe_x: Probe abscissae :math:`x_i = i L/(n-1)` (m), set from ``length`` and ``n_probes``.
 	"""
 
 	length: float = 50e-6
