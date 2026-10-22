@@ -15,7 +15,8 @@ Rectangle :math:`[0, L] \times [0, W]` (plane strain), saturated with an incompr
 	:width: 90%
 	:align: center
 
-Initial state: :math:`\mathbf u = \mathbf 0` and :math:`p = p_0` everywhere (undrained response to the load).
+Initial state: :math:`\mathbf u = \mathbf 0` and :math:`p = p_0` (undrained response to the load), except on the
+drained face where :math:`p = 0` from :math:`t = 0` (step-0 BC applied to the initial vector).
 
 Equations (reference configuration, St Venant--Kirchhoff skeleton)
 -------------------------------------------------------------------
