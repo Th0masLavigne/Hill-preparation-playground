@@ -6,23 +6,7 @@ Active poro-elastic gel slab $875 \times 375 \times 50\ \mu\text{m}$ seeded with
 the cells contract, the gel shortens across $x$ and expels liquid; the cells may also migrate,
 proliferate and reorient.
 
-```text
-                     TOP (z = L_z)
-             +---------------------------+
-            /|      BACK (y = L_y)      /|
-           / |                         / |
-          +---------------------------+  |
- LEFT     |  |                        |  |     RIGHT
- x = 0    |  +------------------------|--+     x = L_x
- u = 0    | /                         | /      u = 0
-          |/       FRONT (y = 0)      |/
-          +---------------------------+
-                   BOTTOM (z = 0)
-   z  y
-   | /        LEFT, RIGHT              : u = 0, impermeable
-   |/___ x    FRONT, BACK, TOP, BOTTOM : p = 0 (drained), traction-free
-              everywhere               : no cell flux
-```
+![Gel slab clamped and impermeable on LEFT and RIGHT, drained and traction-free elsewhere](../../docs/src/_static/resources/hill_box_bcs.svg)
 
 Unknowns: displacement $\mathbf u$, liquid pressure $p$, CE log-stretch $\varepsilon_a$, and optionally
 the cell fraction $\Phi_c$ with the smoothed substrate fraction $\tilde\phi_s$ (`cell_transport`) and the

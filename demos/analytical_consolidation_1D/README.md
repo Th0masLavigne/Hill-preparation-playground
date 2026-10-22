@@ -7,15 +7,7 @@ $k = 1.8\cdot10^{-13}$ m²/(Pa·s), load $p_0 = 100$ Pa), so that a diff with th
 nondimensionalisation adds. One difference: Darcy uses the pulled-back conductivity
 $\mathbf K_L = k\,J\mathbf C^{-1}$ (`hill_playground.materials.permeability.constant`) instead of a constant $k\mathbf I$. In each `main.py`, every such line is tagged `# NONDIM`.
 
-```text
-          u_y = 0, no flux
-        +-----------------------------------+
- p0 --> |                                   | u_x = 0
- p = 0  |            gel  (E, nu, k)        | no flux
-        +-----------------------------------+
-          u_y = 0, no flux
- x = 0                                  x = L
-```
+![Plane-strain gel rectangle loaded by p0 at x = 0 (drained), u_x = 0 at x = L, rollers on y = 0 and y = W](../../docs/src/_static/resources/terzaghi_plane_strain.svg)
 
 | Folder | Method | Steps |
 | --- | --- | --- |
