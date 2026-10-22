@@ -7,7 +7,7 @@ r"""Residual :math:`R_a` of the contractile element, implicit force form.
 	       + \underbrace{\eta_0 D_a}_{\text{damper}}
 
 with :math:`T_0 = f_{max}\alpha f_{FL}` the isometric tension, :math:`h` the force--velocity law,
-:math:`T_p` the PEE and :math:`T_e` the SEE tensions (``hill_playground.materials.cell.active.hill``).
+:math:`T_p` the PEE and :math:`T_e` the SEE tensions (:mod:`.active.hill.functions`).
 :math:`T_{CE}` needs :math:`D_a`, hence :math:`\Delta t`: it lives here, not in the law.
 Unknown :math:`\varepsilon_a = \ln\lambda_a` (DG0); exponential-map rate (backward Euler on
 :math:`\varepsilon_a`, so :math:`\lambda_a > 0` for any step):
@@ -15,7 +15,7 @@ Unknown :math:`\varepsilon_a = \ln\lambda_a` (DG0); exponential-map rate (backwa
 .. math::
 	D_a = \frac{\varepsilon_a - \varepsilon_a^n}{\Delta t}
 
-No division by :math:`T_0`: valid for :math:`\alpha = 0` (then :math:`T_e = T_p`).
+No division by :math:`T_0`: valid for :math:`\alpha = 0` (then :math:`T_e = T_p + \eta_0 D_a`).
 """
 
 from typing import Any, Optional
@@ -36,8 +36,9 @@ class ContractileEvolution(operators.Operator):
 	        parameters and the shared ``p_act`` (:math:`\alpha`).
 	    test: DG0 test function of the :math:`\varepsilon_a` subsol.
 	    dx: Gel measure.
-	    scale_factor: Multiplies the residual; :math:`1/\mu_0` for the dimensionless row
-	        :math:`\tilde R_a = R_a / (\mu_0 L_0^3)` on a mesh rescaled by :math:`L_0`, else 1.
+	    scale_factor: Multiplies the residual. :math:`1/\mu_0` for :math:`\tilde R_a = R_a/(\mu_0 L_0^3)` on a
+	        mesh rescaled by :math:`L_0` with tensions in Pa (``scale_factor`` method); 1 in SI or with
+	        dimensionless coefficients :math:`\hat f_{max}, \hat k_e, \hat k_p, \hat b, \hat\eta_0`.
 
 	Attributes:
 	    rate: :math:`D_a` (1/s).

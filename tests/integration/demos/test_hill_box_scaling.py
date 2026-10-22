@@ -33,7 +33,11 @@ def test_operator_equals_parameters(jacobians: dict[str, Any]) -> None:
 
 
 def test_blocks_are_order_one(jacobians: dict[str, Any]) -> None:
-	"""Mechanics and pressure rows O(1); DG0 rows scale with the cell volume (about 2e-3 here)."""
+	r"""Stiffness-led rows (``displacement``, ``liquid_pressure``) and ``eps_a`` O(1); mass-led rows smaller.
+
+	Mass-led rows (``theta``, ``phi``, ``cell_fraction``) scale with the cell volume :math:`\sim\hat h^3`
+	(about 1e-3 here). ``eps_a`` is DG0 too, but its diagonal :math:`(k_e + k_p)/\mu_0\,|\hat\Omega_e|` is O(1).
+	"""
 	medians = js.block_diagonals(*jacobians["operator"])
 	assert 0.1 < medians["displacement"] < 10.0
 	assert 0.1 < medians["liquid_pressure"] < 10.0

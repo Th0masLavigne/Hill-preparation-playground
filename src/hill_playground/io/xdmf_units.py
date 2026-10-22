@@ -8,10 +8,12 @@ units. After the run, on rank 0:
 	\mathbf X \leftarrow L_0\, \hat{\mathbf X} \quad (\texttt{Mesh/*/mesh/geometry}), \qquad
 	t \leftarrow t_0\, \hat t \quad (\texttt{<Time Value>})
 
-Fields are untouched (export the SI ones, e.g. ``displacement_si``). Idempotent, step by step: the HDF5
-root gets ``geometry_scale`` :math:`= L_0` (set with the geometry) and ``time_scale`` :math:`= t_0` (set
-right after the XDMF is replaced), both recorded even when equal to 1. A second call, even after an
-interrupted first one, never scales twice; :func:`is_redimensionalized` is True once both are set.
+Fields are untouched (export the SI ones, e.g. ``displacement_si``). Idempotent, stage by stage: the HDF5
+root gets ``geometry_scale`` :math:`= L_0` right after the geometry is scaled and ``time_scale`` :math:`= t_0`
+right after the XDMF is replaced (atomically), both recorded even when one of them equals 1. A second call
+skips every stamped stage, so it resumes an interrupted first call; only an interruption inside a stage, before
+its stamp is written, makes the next call apply that stage again. :func:`is_redimensionalized` is True once both
+are set. :math:`L_0 = t_0 = 1`: nothing to do, files untouched and no stamp written.
 """
 
 import os
