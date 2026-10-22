@@ -9,7 +9,8 @@ DG0 :math:`\varepsilon_a`, :math:`\mathbf f_0 = \mathbf e_x`, uniform :math:`\Ph
 
 Two kinematic set-ups, both homogeneous:
 
-* ``"isometric"``: :math:`u_x = (\lambda-1)x`, :math:`u_y = u_z = 0` on every face (:math:`\mathbf F` imposed);
+* ``"isometric"``: :math:`u_x = (\lambda-1)x` on the :math:`x` faces, :math:`u_y = 0` on the :math:`y` faces,
+  :math:`u_z = 0` on the :math:`z` faces; every node lies on these faces, so :math:`\mathbf F` is imposed;
 * ``"free"``: symmetry planes :math:`u_x(0,\cdot)=u_y(\cdot,0,\cdot)=u_z(\cdot,\cdot,0)=0`, other faces traction-free.
 
 .. image:: /_static/resources/hill_one_element_bcs.svg
@@ -352,7 +353,8 @@ def plot(model: HillChain0D, runs: dict[str, tuple[OneElementRun, pd.DataFrame]]
 	ax_st.set(ylabel="stretch", title=r"Free faces: gel stretches $\lambda$ (along $f_0$), $\lambda_t$")
 	ax_err.set(
 		ylabel="max FE - 0D difference",
-		title=rf"Error: max $|\Delta\varepsilon_a|, |\Delta\lambda|, |\Delta T_e|/T, |\Delta P_{{xx}}|/T$ "
+		title=rf"Error: max $|\Delta\varepsilon_a|, |\Delta\lambda|, |\Delta\lambda_t|, "
+		rf"|\Delta T_e|/T, |\Delta P_{{xx}}|/T$ "
 		f"(floor {floor:.0e})",
 	)
 	ax_err.title.set_fontsize(10)

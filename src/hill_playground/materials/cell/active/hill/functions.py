@@ -183,7 +183,8 @@ def force_velocity(rate: Any, hill_a: Any, hill_b: Any, f_ecc: Any) -> Any:
 		b_e = \frac{(f_{ecc}-1)\,b}{1+A}
 
 	:math:`h(0) = 1`, :math:`h'(0) = (1+A)/b` on both sides, :math:`h` strictly increasing,
-	:math:`h \ge 0` on :math:`D_a \ge -b/A` (below, the hyperbola is extrapolated: :math:`h < 0`).
+	:math:`h \ge 0` on :math:`D_a \ge -b/A` for :math:`A > 0` (below, the hyperbola is extrapolated: :math:`h < 0`;
+	:math:`-1 < A \le 0`: :math:`h > 0` for every :math:`D_a`).
 	Each branch is evaluated on its half-line (Macaulay brackets: no division by zero in the unused one):
 
 	.. math::

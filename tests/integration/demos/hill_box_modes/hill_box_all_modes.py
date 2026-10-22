@@ -1091,7 +1091,7 @@ def solve_problem(
 	    coefficients: Write period in solve units.
 
 	Returns:
-	    True if every step converged.
+	    True if every step completed (at :math:`t_{fin}` or by plateau exit).
 	"""
 	written = None
 	if user_inputs.xdmf_si_only:

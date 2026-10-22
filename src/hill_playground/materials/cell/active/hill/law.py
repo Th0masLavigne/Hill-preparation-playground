@@ -95,7 +95,7 @@ class Parameters(MaterialParameters):
 	    inv4_floor: Lower bound of :math:`I_4` (Newton safeguard).
 	    default_force_length: :math:`f_{FL}` when ``use_force_length`` is False.
 	    hill_a: Hill curvature :math:`A = a / T_0` (-).
-	    hill_b: Hill rate constant :math:`b` (1/s); :math:`v_{max} = b / A`.
+	    hill_b: Hill rate constant :math:`b` (1/s); :math:`v_{max} = b / A` (:math:`A > 0`).
 	    f_ecc: Eccentric saturation :math:`f_{ecc}` (-).
 	    eta_0: Optional CE damper :math:`\eta_0` (Pa.s); 0 removes the branch.
 	    see_variant: SEE law, one of :data:`functions.SeeVariant`.
