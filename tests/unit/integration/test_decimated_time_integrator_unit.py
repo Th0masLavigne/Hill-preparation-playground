@@ -12,7 +12,7 @@ import dolfin_mech
 import pytest
 
 from hill_playground.integration.decimated_time_integrator import (
-	_RELATIVE_ERROR_ZERO_EPS,  # type: ignore
+	_DEFAULT_PLATEAU_RELATIVE_ERROR,  # type: ignore
 	DecimatedTimeIntegrator,
 	TimeInterval,
 	_DecimatedXDMFFile,  # type: ignore
@@ -696,17 +696,17 @@ def test_decimated_time_integrator_rejects_non_positive_stagnation_plateau_relat
 		DecimatedTimeIntegrator(problem=problem, stagnation_plateau_relative_error=0.0)
 
 
-def test_decimated_time_integrator_default_stagnation_plateau_relative_error_is_the_near_zero_epsilon(
+def test_decimated_time_integrator_default_stagnation_plateau_relative_error_is_the_default_threshold(
 	monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-	r"""Default :math:`\varepsilon` is ``_RELATIVE_ERROR_ZERO_EPS`` (1e-9): stagnant only once ~unchanged."""
+	r"""Default :math:`\varepsilon` is ``_DEFAULT_PLATEAU_RELATIVE_ERROR`` (1e-9): stagnant only once ~unchanged."""
 	fake_file = _FakeXdmfFile()
 	_patch_base_time_integrator_init(monkeypatch, fake_file)
 	problem = _FakeProblem([_FakeStep(t_fin=1.0)])
 
 	integrator = DecimatedTimeIntegrator(problem=problem)
 
-	assert integrator.stagnation_plateau_relative_error == _RELATIVE_ERROR_ZERO_EPS
+	assert integrator.stagnation_plateau_relative_error == _DEFAULT_PLATEAU_RELATIVE_ERROR
 
 
 def test_decimated_time_integrator_accepts_per_subsol_stagnation_plateau_relative_error_sequence(
@@ -1002,10 +1002,16 @@ def test_is_subsol_stagnant_false_when_error_above_threshold() -> None:
 	assert is_subsol_stagnant(delta_norm=0.01, scale_norm=1.0, min_relative_error=1e-6) is False
 
 
-def test_is_subsol_stagnant_uses_the_near_zero_epsilon_by_default() -> None:
-	r"""Default :math:`\varepsilon` = ``_RELATIVE_ERROR_ZERO_EPS`` (1e-9): 1e-6 not stagnant, 1e-10 stagnant."""
+def test_is_subsol_stagnant_uses_the_default_threshold() -> None:
+	r"""Default :math:`\varepsilon` = ``_DEFAULT_PLATEAU_RELATIVE_ERROR`` (1e-9): 1e-6 not stagnant, 1e-10 stagnant."""
 	assert is_subsol_stagnant(delta_norm=1e-6, scale_norm=1.0) is False
 	assert is_subsol_stagnant(delta_norm=1e-10, scale_norm=1.0) is True
+
+
+def test_is_subsol_stagnant_zero_scale() -> None:
+	"""Zero scale (subsol identically 0): stagnant if unchanged, not stagnant if it moves (``compute_error``)."""
+	assert is_subsol_stagnant(delta_norm=0.0, scale_norm=0.0) is True
+	assert is_subsol_stagnant(delta_norm=1e-3, scale_norm=0.0, min_relative_error=1e-2) is False
 
 
 def test_is_subsol_stagnant_rejects_non_positive_min_relative_error() -> None:

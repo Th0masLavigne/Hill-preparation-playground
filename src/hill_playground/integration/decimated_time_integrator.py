@@ -9,6 +9,7 @@ hold). Here, only a subset is kept, according to a write period given per step (
 Times (:math:`t`, ``dt``, :class:`TimeInterval`, ``min_simu_seconds``) are in solve units: s, or :math:`t_0` for
 a scaled solve :math:`\hat t = t/t_0`. The period state resets at each step. Always kept, whatever the period:
 
+* the first converged substep of a step (``int``: :math:`k = 1`; :class:`TimeInterval`: first frame of the step),
 * the last substep of a step (:math:`t = t_{fin}`),
 * the last substep of a plateau exit (below),
 * the last converged substep before a solver failure (:math:`dt < dt_{min}`).
@@ -45,7 +46,8 @@ from mpi4py import MPI
 
 _STEP_END_ABS_TOL = 1e-9
 
-_RELATIVE_ERROR_ZERO_EPS = 1e-9
+_DEFAULT_PLATEAU_RELATIVE_ERROR = 1e-9
+"""Default plateau threshold :math:`\varepsilon` (also the zero tolerance of ``compute_error``)."""
 
 
 @dataclass(frozen=True)
@@ -94,13 +96,13 @@ def should_write_at_call(call_index: int, period: int) -> bool:
 def is_subsol_stagnant(
 	delta_norm: float,
 	scale_norm: float,
-	min_relative_error: float = _RELATIVE_ERROR_ZERO_EPS,
+	min_relative_error: float = _DEFAULT_PLATEAU_RELATIVE_ERROR,
 ) -> bool:
 	r"""Stagnation test of one subsol over one substep: :math:`e < \varepsilon`.
 
 	With :math:`e = \lVert u - u_{old} \rVert / \max(\lVert u \rVert, \lVert u_{old} \rVert)`
-	(``dolfin_mech.core.compute_error``). The norms come from
-	:meth:`DecimatedTimeIntegrator._step_is_stagnant`.
+	(``dolfin_mech.core.compute_error``; scale :math:`< 10^{-9}`: :math:`e = 0` if the change is also
+	:math:`< 10^{-9}`, else :math:`e = 1`). The norms come from :meth:`DecimatedTimeIntegrator._step_is_stagnant`.
 
 	Args:
 	    delta_norm (float): :math:`\lVert u - u_{old} \rVert_2`.
@@ -220,7 +222,7 @@ class DecimatedTimeIntegrator(dolfin_mech.core.TimeIntegrator):
 		self,
 		*args: Any,
 		write_period: Union[_StepPeriod, Sequence[_StepPeriod]] = 1,
-		stagnation_plateau_relative_error: Union[float, Sequence[float]] = _RELATIVE_ERROR_ZERO_EPS,
+		stagnation_plateau_relative_error: Union[float, Sequence[float]] = _DEFAULT_PLATEAU_RELATIVE_ERROR,
 		functions_to_write: Optional[Sequence[Any]] = None,
 		root_only_logs: bool = True,
 		**kwargs: Any,
