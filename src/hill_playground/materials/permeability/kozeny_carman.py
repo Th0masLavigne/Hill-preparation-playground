@@ -14,6 +14,18 @@ from ...ufl_functions import floored
 from .base import PorousPermeability, PorousPermeabilityParameters
 
 
+def _carman(phi: Any) -> Any:
+	r""":math:`\phi^3/(1-\phi)^2`.
+
+	Args:
+	    phi: Porosity :math:`\phi`.
+
+	Returns:
+	    Scalar (UFL or float).
+	"""
+	return phi**3 / (1.0 - phi) ** 2
+
+
 @dataclass(slots=True, frozen=True)
 class Parameters(PorousPermeabilityParameters):
 	r"""Parameters (plus ``conductivity_0``, ``phi_s0``, ``phi_c``, ``phi_c0``).
@@ -31,5 +43,4 @@ class Permeability(PorousPermeability[Parameters]):
 	def _ratio(self) -> Any:
 		r""":math:`k/k_0`."""
 		phi = floored(self.porosity, self._parameters.porosity_floor)
-		phi_0 = self.porosity_0
-		return (phi**3 / (1.0 - phi) ** 2) / (phi_0**3 / (1.0 - phi_0) ** 2)
+		return _carman(phi) / _carman(self.porosity_0)

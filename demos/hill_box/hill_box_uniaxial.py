@@ -302,8 +302,9 @@ class UserInputs:
 			value = getattr(self, name)
 			if value not in get_args(choices):
 				raise ValueError(f"Unknown {name} '{value}', expected one of {get_args(choices)}.")
-		if self.phi_s0 + self.phi_c_init >= 1.0:
-			raise ValueError(f"phi_s0 + phi_c_init = {self.phi_s0 + self.phi_c_init} must be < 1.")
+		solid_jacobian = perm.porosity.compaction_jacobian(self.phi_s0, self.phi_c_init)
+		if solid_jacobian >= 1.0:
+			raise ValueError(f"J_min = phi_s0 + phi_c_init = {solid_jacobian} must be < 1.")
 		if self.use_force_length:
 			hill_law.check_uniqueness(self.k_e, self.k_p, self.f_max, self.lmbda_opt, self.width_fl)
 

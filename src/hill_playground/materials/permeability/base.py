@@ -105,7 +105,7 @@ class PorousPermeability(Permeability[T_Porous]):
 	def porosity_0(self) -> float:
 		r""":math:`\phi_{\ell,0} = \Phi_{\ell,0} = 1 - \Phi_{s,0} - \Phi_{c,0}` (at :math:`J = 1`)."""
 		p = self._parameters
-		return 1.0 - float(p.phi_s0) - p.phi_c0
+		return porosity.eulerian_porosity(1.0, float(p.phi_s0), p.phi_c0)
 
 	@cached_property
 	def fluid_ratio(self) -> Any:
