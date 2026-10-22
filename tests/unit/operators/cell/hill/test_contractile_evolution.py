@@ -1,6 +1,6 @@
 """Unit tests of the R_a operator.
 
-R_a = f_max alpha f_FL(lambda_a) h(D_a) + eta_0 D_a + T_p - T_e, on one cell, u = 0 (lambda = 1),
+R_a = T_CE + T_p - T_e, T_CE = f_max alpha f_FL(lambda_a) h(D_a) + eta_0 D_a, on one cell, u = 0 (lambda = 1),
 f0 = e_x, alpha = 1, nominal parameters. Reference states (scalar solves of R_a = 0, D_a = 0):
 isometric cell (lambda_a = 0.92218, T_e = 16.27 kPa) and free cell without SEE (lambda_a = 0.62564).
 """
@@ -107,3 +107,22 @@ def test_scale_factor_multiplies_residual(hill_setup: Any) -> None:
 	)
 	op.set_dt(1.0)
 	assert math.isclose(dolfin.assemble(op.res_form).get_local()[0], ref / 1700.0, rel_tol=1e-12)
+
+
+def test_ce_tension_is_motor_plus_damper(make_hill_setup: Any) -> None:
+	"""T_CE = T_0 h(D_a) + eta_0 D_a, with D_a = ln(0.95)/dt."""
+	eta_0, dt = 500.0, 2.0
+	setup = make_hill_setup(eta_0=eta_0)
+	setup.eps_a.vector()[:] = math.log(0.95)
+	op = _operator(setup, dt)
+	expected = setup.mean(op.tension_motor) + eta_0 * math.log(0.95) / dt
+	assert math.isclose(setup.mean(op.tension_ce), expected, rel_tol=1e-12)
+
+
+def test_ce_tension_balances_springs_at_convergence(make_hill_setup: Any) -> None:
+	"""R_a = 0: T_CE = T_e - T_p (series equilibrium), damper active."""
+	setup = make_hill_setup(eta_0=500.0)
+	op = _operator(setup, 1.0)
+	_solve(setup, op)
+	balance = setup.mean(setup.law.tension_see) - setup.mean(setup.law.tension_pee)
+	assert math.isclose(setup.mean(op.tension_ce), balance, rel_tol=1e-8)

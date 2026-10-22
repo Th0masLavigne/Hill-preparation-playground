@@ -32,13 +32,10 @@ def test_contracted_ce_pulls(hill_setup: Any) -> None:
 	assert math.isclose(hill_setup.mean(hill_setup.law.tension_pee), K_P / 4.0 * (0.81 - 1.0 / 0.81), rel_tol=1e-10)
 
 
-def test_ce_stretch_and_tension(hill_setup: Any) -> None:
-	"""lambda_a = exp(eps_a) and T_CE = T_e - T_p (series equilibrium)."""
+def test_ce_stretch(hill_setup: Any) -> None:
+	"""lambda_a = exp(eps_a)."""
 	hill_setup.eps_a.vector()[:] = math.log(0.9)
-	law = hill_setup.law
-	assert math.isclose(hill_setup.mean(law.lmbda_a), 0.9, rel_tol=1e-12)
-	expected = hill_setup.mean(law.tension_see) - hill_setup.mean(law.tension_pee)
-	assert math.isclose(hill_setup.mean(law.tension_ce), expected, rel_tol=1e-12)
+	assert math.isclose(hill_setup.mean(hill_setup.law.lmbda_a), 0.9, rel_tol=1e-12)
 
 
 def test_cauchy_along_current_fibre(hill_setup: Any) -> None:

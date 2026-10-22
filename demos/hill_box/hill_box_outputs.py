@@ -60,7 +60,7 @@ def add_outputs(
 	    user_inputs: Configuration.
 	    gel_material: Composite gel law.
 	    hill_material: Hill law.
-	    contractile: :math:`R_a` operator (provides :math:`T_0`).
+	    contractile: :math:`R_a` operator (provides :math:`T_0` and :math:`T_{CE}`).
 	    scales: :math:`L_0, \mu_0, t_0` (``UserInputs.scales``).
 	"""
 	kin = problem.kinematics
@@ -108,7 +108,7 @@ def add_outputs(
 		"lambda_e": dolfin.sqrt(hill_material.inv4e),
 		"tension_see": s.redimensionalize_stress(hill_material.tension_see),
 		"tension_pee": s.redimensionalize_stress(hill_material.tension_pee),
-		"tension_ce": s.redimensionalize_stress(hill_material.tension_ce),
+		"tension_ce": s.redimensionalize_stress(contractile.tension_ce),
 		"tension_isometric": s.redimensionalize_stress(contractile.isometric_tension),
 	}
 	subsol_names = {subsol.name for subsol in problem.subsols}

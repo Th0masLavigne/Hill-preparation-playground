@@ -205,11 +205,6 @@ class Constitutive(ConstitutiveLaw[Parameters]):
 		return hill.pee_tension(self._parameters.eps_a, self._parameters.k_p)
 
 	@cached_property
-	def tension_ce(self) -> Any:
-		r""":math:`T_{CE} = T_e - T_p` (series equilibrium; :math:`= T_0 h(D_a) + \eta_0 D_a` at convergence)."""
-		return self.tension_see - self.tension_pee
-
-	@cached_property
 	def ener(self) -> dolfin.Form:
 		r""":math:`\Phi_c (\Psi_e + \Psi_p)` per unit reference mixture volume."""
 		p = self._parameters

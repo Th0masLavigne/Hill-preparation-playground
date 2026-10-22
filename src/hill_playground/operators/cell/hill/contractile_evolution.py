@@ -1,11 +1,14 @@
 r"""Residual :math:`R_a` of the contractile element, implicit force form.
 
 .. math::
-	R_a = \int_{\Omega_0^{gel}} \Big[ f_{max}\,\alpha\, f_{FL}(\lambda_a)\, h(D_a) + \eta_0 D_a
-	      + T_p(\lambda_a) - T_e\big(I_4 / \lambda_a^2\big) \Big]\, \delta\varepsilon \, \mathrm{d}V
+	R_a = \int_{\Omega_0^{gel}} \Big[ T_{CE} + T_p(\lambda_a) - T_e\big(I_4 / \lambda_a^2\big) \Big]
+	      \delta\varepsilon \, \mathrm{d}V, \qquad
+	T_{CE} = \underbrace{f_{max}\,\alpha\, f_{FL}(\lambda_a)\, h(D_a)}_{\text{motor}}
+	       + \underbrace{\eta_0 D_a}_{\text{damper}}
 
 with :math:`T_0 = f_{max}\alpha f_{FL}` the isometric tension, :math:`h` the force--velocity law,
 :math:`T_p` the PEE and :math:`T_e` the SEE tensions (``hill_playground.materials.cell.active.hill``).
+:math:`T_{CE}` needs :math:`D_a`, hence :math:`\Delta t`: it lives here, not in the law.
 Unknown :math:`\varepsilon_a = \ln\lambda_a` (DG0); exponential-map rate (backward Euler on
 :math:`\varepsilon_a`, so :math:`\lambda_a > 0` for any step):
 
@@ -39,7 +42,8 @@ class ContractileEvolution(operators.Operator):
 	Attributes:
 	    rate: :math:`D_a` (1/s).
 	    isometric_tension: :math:`T_0 = f_{max}\,\alpha\, f_{FL}(\lambda_a)` (Pa).
-	    tension_motor: :math:`T_0\, h(D_a) + \eta_0 D_a` (Pa).
+	    tension_motor: :math:`T_0\, h(D_a)` (Pa).
+	    tension_ce: :math:`T_{CE} = T_0\, h(D_a) + \eta_0 D_a` (Pa); :math:`= T_e - T_p` at convergence.
 	    tv_dt: Time-step constant, updated by :meth:`set_dt`.
 	    res_form: Residual form.
 	"""
@@ -67,11 +71,10 @@ class ContractileEvolution(operators.Operator):
 		else:
 			f_fl = dolfin.Constant(p.default_force_length)
 		self.isometric_tension = p.f_max * law.p_act * f_fl
-		self.tension_motor = (
-			self.isometric_tension * hill.force_velocity(self.rate, p.hill_a, p.hill_b, p.f_ecc) + p.eta_0 * self.rate
-		)
+		self.tension_motor = self.isometric_tension * hill.force_velocity(self.rate, p.hill_a, p.hill_b, p.f_ecc)
+		self.tension_ce = self.tension_motor + p.eta_0 * self.rate
 
-		self.res_form = scale_factor * (self.tension_motor + law.tension_pee - law.tension_see) * test * self.measure
+		self.res_form = scale_factor * (self.tension_ce + law.tension_pee - law.tension_see) * test * self.measure
 
 	def set_dt(self, dt: float) -> None:
 		r"""Update :math:`\Delta t` without recompilation.
