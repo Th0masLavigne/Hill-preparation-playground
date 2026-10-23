@@ -15,5 +15,5 @@ def pytest_terminal_summary(terminalreporter: Any) -> None:
 	"""Max FE vs 0D differences per case, and where the figure is."""
 	if ERRORS_CSV.exists():
 		terminalreporter.section("Hill one element: FE vs 0D reference (max differences)")
-		terminalreporter.write_line(pd.read_csv(ERRORS_CSV).to_string(index=False, float_format="%.2e"))
+		terminalreporter.write_line(pd.read_csv(ERRORS_CSV).to_string(index=False, float_format="{:.2e}".format))
 		terminalreporter.write_line(f"figure: {ERRORS_CSV.parent / 'hill_one_element.png'}")

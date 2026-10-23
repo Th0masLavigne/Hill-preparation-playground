@@ -1108,7 +1108,8 @@ def handover_functions(problem: dolfin_mech.problems.Problem) -> Dict[str, dolfi
 	"""
 	subsols = {subsol.name: subsol.func for subsol in problem.subsols}
 	frozen = {"theta": problem.theta_func, "phi": problem.phi_func, "cell_fraction": problem.phic_func}
-	return {name: subsols.get(name, frozen.get(name)) for name in HANDOVER}  # type: ignore
+	fields = {**frozen, **subsols}
+	return {name: fields[name] for name in HANDOVER}
 
 
 def handover_scales(user_inputs: UserInputs) -> Dict[str, float]:

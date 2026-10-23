@@ -472,7 +472,7 @@ def plot_sphere(
 	centres = 0.5 * (edges[1:] + edges[:-1])
 	outside = (centres[None, :] ** 2 + centres[:, None] ** 2) > 1.0
 	bin_area = (edges[1] - edges[0]) ** 2
-	norm = LogNorm(vmin=0.1, vmax=10.0)
+	norm = LogNorm(vmin=0.1, vmax=10.0)  # type: ignore  # matplotlib < 3.8: no stubs, decorated signature
 	fig, axes = plt.subplots(len(DIRECTIONS), len(frames), figsize=(4.2 * len(frames) + 1.2, 8.4), squeeze=False)
 	image = None
 	circle = np.linspace(0.0, 2.0 * np.pi, 361)
@@ -480,7 +480,9 @@ def plot_sphere(
 		for col, (key, (time, directions, measures)) in enumerate(frames.items()):
 			ax = axes[row, col]
 			xy = lambert_upper_hemisphere(directions[label])
-			counts, _, _ = np.histogram2d(xy[:, 1], xy[:, 0], bins=[edges, edges], weights=weights)
+			counts, _, _ = np.histogram2d(
+				xy[:, 1], xy[:, 0], bins=bins, range=[[-1.0, 1.0], [-1.0, 1.0]], weights=weights
+			)
 			ratio = np.ma.masked_where(outside, np.maximum(counts, 1e-3 * bin_area / np.pi) * np.pi / bin_area)
 			image = ax.pcolormesh(edges, edges, ratio, cmap=DENSITY_CMAP, norm=norm, shading="flat")
 			ax.plot(np.cos(circle), np.sin(circle), color="#55544f", linewidth=1.0)

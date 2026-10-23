@@ -56,7 +56,10 @@
 					"/home/fenics_user/dolfin_mech",
 					"${containerWorkspaceFolder}/src",
 					"${containerWorkspaceFolder}/demos/hill_box",
+					"${containerWorkspaceFolder}/demos/hill_cylinder_free",
+					"${containerWorkspaceFolder}/demos/hill_microtissue_pillars",
 					"${containerWorkspaceFolder}/tests/unit/integration",
+					"${containerWorkspaceFolder}/tests/integration/demos/hill_box_modes",
 					"${containerWorkspaceFolder}/tests/integration/analytical_consolidation_1D",
 					"${containerWorkspaceFolder}/tests/integration/materials/cell/active/hill"
 				],
@@ -65,7 +68,10 @@
 					"/home/fenics_user/dolfin_mech",
 					"${containerWorkspaceFolder}/src",
 					"${containerWorkspaceFolder}/demos/hill_box",
+					"${containerWorkspaceFolder}/demos/hill_cylinder_free",
+					"${containerWorkspaceFolder}/demos/hill_microtissue_pillars",
 					"${containerWorkspaceFolder}/tests/unit/integration",
+					"${containerWorkspaceFolder}/tests/integration/demos/hill_box_modes",
 					"${containerWorkspaceFolder}/tests/integration/analytical_consolidation_1D",
 					"${containerWorkspaceFolder}/tests/integration/materials/cell/active/hill"
 				],

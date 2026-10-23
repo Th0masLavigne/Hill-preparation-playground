@@ -166,8 +166,8 @@ def run(settings: OneElementRun, out_dir: Path) -> pd.DataFrame:
 	pk1 = material.pk1
 	averages = {
 		"eps_a": eps.subfunc,
-		"lambda": kin.F[0, 0],
-		"lambda_t": kin.F[1, 1],
+		"lambda": kin.F[0, 0],  # type: ignore  # ufl_legacy: __getitem__ added at runtime
+		"lambda_t": kin.F[1, 1],  # type: ignore
 		"pk1_xx": pk1[0, 0],
 		"pk1_yy": pk1[1, 1],
 		"tension_see": hill.tension_see,
@@ -191,9 +191,9 @@ def run(settings: OneElementRun, out_dir: Path) -> pd.DataFrame:
 			problem=problem, parameters={"sol_tol": [1e-10, 1e-10], "n_iter_max": 20}
 		),
 		parameters={"n_iter_for_accel": 0, "n_iter_for_decel": 100},
-		print_out=base,
-		print_sta=base,
-		write_qois=base + "-qois",
+		print_out=base,  # type: ignore  # dolfin_mech: str = file basename (untyped, default True)
+		print_sta=base,  # type: ignore
+		write_qois=base + "-qois",  # type: ignore
 		write_sol=False,
 	)
 	if not integrator.integrate():

@@ -22,7 +22,7 @@ def test_scale_factor_is_test_scale_times_value_over_normalization() -> None:
 def test_measure_degree_overrides_default_for_its_row_only() -> None:
 	"""Residual (rank 1): degree 2 on its row only, default elsewhere; the summed residual stays additive."""
 	mesh = dolfin.UnitCubeMesh(2, 2, 2)
-	x = dolfin.SpatialCoordinate(mesh)[0]
+	x = dolfin.SpatialCoordinate(mesh)[0]  # type: ignore  # ufl_legacy: __getitem__ added at runtime
 	test = dolfin.TestFunction(dolfin.FunctionSpace(mesh, "CG", 2))
 	dv = dolfin.Measure("dx", domain=mesh, metadata={"quadrature_degree": 8})
 	rows = ResidualRows(ROWS, quadrature_degrees={"eps_a": 2})

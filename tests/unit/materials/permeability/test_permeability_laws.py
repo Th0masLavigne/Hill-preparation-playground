@@ -13,7 +13,7 @@ PHI_S0, PHI_C0, K0 = 0.25, 0.05, 2.0
 
 
 def _laws(kin: Kinematics, phi_c: float = PHI_C0) -> dict[str, Any]:
-	common = dict(conductivity_0=K0, phi_s0=PHI_S0, phi_c=dolfin.Constant(phi_c), phi_c0=PHI_C0)
+	common: dict[str, Any] = dict(conductivity_0=K0, phi_s0=PHI_S0, phi_c=dolfin.Constant(phi_c), phi_c0=PHI_C0)
 	return {
 		"kozeny_carman": kozeny_carman.Permeability(kin, kozeny_carman.Parameters(**common)),
 		"holmes_mow": holmes_mow.Permeability(kin, holmes_mow.Parameters(**common, exponent=2.0, stiffening=0.5)),

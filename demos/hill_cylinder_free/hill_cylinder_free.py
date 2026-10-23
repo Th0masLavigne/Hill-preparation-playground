@@ -118,6 +118,7 @@ from fenicsoft.mesh_geometries.mesh_geometries import GmshKeys, MeshOptions
 from fenicsoft.operators.cell.rotation.orientation_change import OrientationChange
 from hill_cylinder_outputs import add_outputs
 from hill_cylinder_scaling import Coefficients
+from numpy.typing import NDArray
 
 from hill_playground import integration
 from hill_playground.io import xdmf_units
@@ -744,7 +745,7 @@ def build_step_operators(
 	return ops, contractile
 
 
-def nearest_vertex(mesh: dolfin.Mesh, point: Sequence[float]) -> np.ndarray:
+def nearest_vertex(mesh: dolfin.Mesh, point: Sequence[float]) -> NDArray[np.float64]:
 	"""Mesh vertex nearest to ``point``, over every MPI rank.
 
 	Args:
@@ -763,7 +764,7 @@ def nearest_vertex(mesh: dolfin.Mesh, point: Sequence[float]) -> np.ndarray:
 
 def add_isostatic_supports(
 	problem: dolfin_mech.problems.Problem, user_inputs: UserInputs, k_step: int
-) -> Dict[str, np.ndarray]:
+) -> Dict[str, NDArray[np.float64]]:
 	r"""Block the components of ``user_inputs.supports`` at the nearest vertices (pointwise BCs).
 
 	Args:
@@ -810,6 +811,7 @@ def set_weak_form_and_bcs(
 	gel_material, hill_material = build_materials(problem, user_inputs, coefficients)
 	shared_ops, contractile = build_step_operators(problem, user_inputs, hill_material, coefficients, rows)
 
+	supports: Dict[str, NDArray[np.float64]] = {}
 	for step_idx in range(len(problem.steps)):
 		problem.add_operator(
 			fenicsoft.operators.hyper_elasticity.pk1.HyperElasticity(
@@ -832,7 +834,7 @@ def set_weak_form_and_bcs(
 	if rank == 0:
 		for name, vertex in supports.items():
 			logging.getLogger(__name__).info(
-				f"Support {name} at {user_inputs.scales.redimensionalize_length(vertex)} m."
+				f"Support {name} at {[user_inputs.scales.redimensionalize_length(float(x)) for x in vertex]} m."
 			)
 
 	add_outputs(problem, user_inputs, gel_material, hill_material, contractile, user_inputs.scales)

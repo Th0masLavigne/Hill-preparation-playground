@@ -16,7 +16,7 @@ def fixture_tagged() -> tuple[dolfin.Mesh, dolfin.MeshFunction]:
 	domains = dolfin.MeshFunction("size_t", mesh, 3, OUTSIDE)
 	for cell in dolfin.cells(mesh):
 		if cell.midpoint().x() < 0.5:
-			domains[cell] = INSIDE
+			domains.set_value(cell.index(), INSIDE)
 	return mesh, domains
 
 

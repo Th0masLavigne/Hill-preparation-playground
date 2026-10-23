@@ -391,7 +391,7 @@ def errors(inputs: TerzaghiInputs, table: pd.DataFrame, t_factor_min: float = 0.
 	t_min = t_factor_min * inputs.length**2 / inputs.consolidation_coefficient
 	kept = table[table["t"] >= t_min]
 	err_p = max(
-		float(np.linalg.norm(row[p_cols].to_numpy(dtype=float) - analytical_pressure(inputs, x, row["t"])))
+		float(np.linalg.norm(row[p_cols].to_numpy(dtype=float) - analytical_pressure(inputs, x, float(row["t"]))))
 		for _, row in kept.iterrows()
 	) / (inputs.load * math.sqrt(inputs.n_probes))
 	u_inf = inputs.load * inputs.length / inputs.oedometric_modulus

@@ -34,7 +34,7 @@ def tables() -> dict[str, pd.DataFrame]:
 	pd.DataFrame(rows).to_csv(OUTPUT / "errors.csv", index=False)
 	tz.plot(INPUTS, results, OUTPUT / "terzaghi_nondim.png")
 	print("\nTerzaghi relative errors vs analytical (figure: %s)" % (OUTPUT / "terzaghi_nondim.png"))
-	print(pd.DataFrame(rows).to_string(index=False, float_format="%.3e"))
+	print(pd.DataFrame(rows).to_string(index=False, float_format="{:.3e}".format))
 	return results
 
 
