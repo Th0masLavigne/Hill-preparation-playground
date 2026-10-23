@@ -1,7 +1,7 @@
 r"""Post-processing of the free-floating cylinder: orientation of the cells.
 
 Reads the results XDMF/HDF5 pair and the QOI file written by :mod:`hill_cylinder_free` (``numpy``,
-``h5py``, ``matplotlib`` only, no ``dolfin``) and analyses two unit directions per cell (DG0 fields):
+``h5py``, ``matplotlib`` only) and analyses two unit directions per cell (DG0 fields):
 
 * reference fibre ``fibre``: :math:`\mathbf f_0(\theta, \varphi)`, changed by remodelling only;
 * current fibre ``fibre_current``: :math:`\mathbf f = \mathbf F\mathbf f_0/\|\mathbf F\mathbf f_0\|`, which also
@@ -95,7 +95,7 @@ _EPS = 1e-12
 
 
 class ResultsSeries:
-	"""Time series of a ``dolfin.XDMFFile`` results pair (``.xdmf`` + ``.h5``), read without ``dolfin``.
+	"""Time series of a ``dolfin.XDMFFile`` results pair (``.xdmf`` + ``.h5``).
 
 	Args:
 	    xdmf_path: Results ``.xdmf``; its HDF5 file is the one named in the ``DataItem`` entries.
