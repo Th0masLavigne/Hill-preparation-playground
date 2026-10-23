@@ -47,11 +47,13 @@ def test_scales_geometry_and_times_once(tmp_path: Path) -> None:
 	assert read_time_stamps(xdmf) == pytest.approx([0.0, 1.0], rel=1e-12, abs=1e-15)
 
 
-def test_identity_does_nothing(tmp_path: Path) -> None:
-	"""L0 = t0 = 1: files untouched."""
+def test_identity_does_nothing(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+	"""L0 = t0 = 1: files untouched, no stamp, and a warning says so."""
 	xdmf = tmp_path / "res.xdmf"
 	_write(xdmf)
-	assert not xdmf_units.redimensionalize_results(xdmf, length=1.0, time=1.0)
+	with caplog.at_level("WARNING", logger=xdmf_units.__name__):
+		assert not xdmf_units.redimensionalize_results(xdmf, length=1.0, time=1.0)
+	assert "no stamp written" in caplog.text
 	assert not xdmf_units.is_redimensionalized(xdmf.with_suffix(".h5"))
 	assert _geometry_max(xdmf) == pytest.approx(1.0, rel=1e-12)
 	assert read_time_stamps(xdmf) == pytest.approx([0.0, 0.5], rel=1e-12, abs=1e-15)

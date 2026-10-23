@@ -13,9 +13,11 @@ root gets ``geometry_scale`` :math:`= L_0` right after the geometry is scaled an
 right after the XDMF is replaced (atomically), both recorded even when one of them equals 1. A second call
 skips every stamped stage, so it resumes an interrupted first call; only an interruption inside a stage, before
 its stamp is written, makes the next call apply that stage again. :func:`is_redimensionalized` is True once both
-are set. :math:`L_0 = t_0 = 1`: nothing to do, files untouched and no stamp written.
+are set. :math:`L_0 = t_0 = 1`: nothing to do, files untouched and no stamp written (a warning says so:
+:func:`is_redimensionalized` stays False, as for a run in progress; the demo must not rely on it then).
 """
 
+import logging
 import os
 from pathlib import Path
 from typing import Any
@@ -26,6 +28,8 @@ from .xdmf_reading import TIME_VALUE
 
 _GEOMETRY_STAMP = "geometry_scale"
 _TIME_STAMP = "time_scale"
+
+logger = logging.getLogger(__name__)
 
 
 def is_redimensionalized(h5_path: Path) -> bool:
@@ -77,8 +81,15 @@ def redimensionalize_results(xdmf_path: Path, length: float, time: float = 1.0) 
 
 	Returns:
 	    True if the files were changed, False if already done or :math:`L_0 = t_0 = 1` (files untouched).
+
+	Note:
+	    :math:`L_0 = t_0 = 1` logs a warning: no stamp is written, so :func:`is_redimensionalized` stays False.
 	"""
 	if length == 1.0 and time == 1.0:
+		logger.warning(
+			f"{xdmf_path}: L0 = t0 = 1, nothing to redimensionalize and no stamp written: "
+			"is_redimensionalized() stays False (SI run indistinguishable from a run in progress)."
+		)
 		return False
 	xdmf_path = Path(xdmf_path)
 	changed = False
