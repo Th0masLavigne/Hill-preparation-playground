@@ -152,13 +152,17 @@ def autodoc_skip_member(app, what, name, obj, skip, options):
 	return skip
 
 _MD_IMAGE = re.compile(r"(!\[[^\]]*\]\()([^)\s]+)(\))")
+_HTML_IMAGE = re.compile(r'<p align="center">\s*<img src="([^"]+)" alt="([^"]*)" width="([^"]+)">\s*</p>')
+"""Centred README image (GitLab / VS Code); turned into a MyST ``{image}`` directive for Sphinx."""
 
 
 def readme_for_sphinx(readme: Path, out_file: Path, src_dir: Path) -> Path:
 	"""Copy of ``readme`` whose relative image links under ``src_dir`` become source-absolute (``/_static/...``).
 
 	An ``.. include::`` resolves relative image paths against the including page (``api/<path>/index.rst``),
-	not against the README: links valid on GitLab / in VS Code would break in Sphinx.
+	not against the README: links valid on GitLab / in VS Code would break in Sphinx. A centred HTML image
+	(``<p align="center"><img src=... alt=... width=...></p>``, rendered by GitLab and VS Code) becomes a MyST
+	``{image}`` directive with the same width, centred, so that Sphinx copies the file.
 
 	Args:
 	    readme: README.md of the source folder.
@@ -169,17 +173,24 @@ def readme_for_sphinx(readme: Path, out_file: Path, src_dir: Path) -> Path:
 	    ``out_file``.
 	"""
 
-	def rewrite(match):
-		target = match.group(2)
+	def absolute(target):
 		if "://" in target or target.startswith("/"):
-			return match.group(0)
+			return target
 		resolved = (readme.parent / target).resolve()
 		try:
-			return f"{match.group(1)}/{resolved.relative_to(src_dir.resolve()).as_posix()}{match.group(3)}"
+			return "/" + resolved.relative_to(src_dir.resolve()).as_posix()
 		except ValueError:
-			return match.group(0)
+			return target
 
-	out_file.write_text(_MD_IMAGE.sub(rewrite, readme.read_text(encoding="utf-8")), encoding="utf-8")
+	def rewrite(match):
+		return f"{match.group(1)}{absolute(match.group(2))}{match.group(3)}"
+
+	def directive(match):
+		src, alt, width = match.groups()
+		return f"```{{image}} {absolute(src)}\n:alt: {alt}\n:width: {width}\n:align: center\n```"
+
+	text = _HTML_IMAGE.sub(directive, readme.read_text(encoding="utf-8"))
+	out_file.write_text(_MD_IMAGE.sub(rewrite, text), encoding="utf-8")
 	return out_file
 
 

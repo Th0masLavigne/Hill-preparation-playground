@@ -21,7 +21,7 @@ gel and the annulus :math:`r_p < r < r_l` under the lid, on the top face of the 
 
 .. image:: /_static/resources/hill_microtissue_pillars_bcs.svg
 	:alt: Top view of the three gel patches and twelve pillars, and section of one pillar with its lid on the gel
-	:width: 95%
+	:width: 100%
 	:align: center
 
 * :math:`\mathbf u = \mathbf 0` on the pillar bases (``region.clamped``: all twelve in stage A);

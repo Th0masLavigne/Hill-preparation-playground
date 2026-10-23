@@ -6,7 +6,9 @@ $\nu = 0.4$, $k = 1.8\cdot10^{-13}$ m²/(Pa·s), load $p_0 = 1$ Pa). Every line 
 Terzaghi demo is tagged `# NONDIM`. Darcy uses the pulled-back conductivity $\mathbf K_L = k\,J\mathbf C^{-1}$
 (`materials.permeability.constant`).
 
-![Plane-strain gel rectangle loaded by p0 at x = 0 (drained), u_x = 0 at x = L, rollers on y = 0 and y = W](../../docs/src/_static/resources/terzaghi_plane_strain.svg)
+<p align="center">
+  <img src="../../docs/src/_static/resources/terzaghi_plane_strain.svg" alt="Plane-strain gel rectangle loaded by p0 at x = 0 (drained), u_x = 0 at x = L, rollers on y = 0 and y = W" width="90%">
+</p>
 
 | Folder | Method | Steps |
 | --- | --- | --- |

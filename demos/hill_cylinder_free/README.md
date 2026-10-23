@@ -5,7 +5,9 @@ isotropic orientation, floating in the medium: no clamp, drained ($p = 0$) and t
 Under the activation $\alpha(t)$ (ramp 0 → 1, then hold) the cells contract, the gel shrinks in every direction and
 expels liquid; the cells may also migrate, proliferate and reorient.
 
-![Cylinder drained and traction-free on its whole boundary, held at three bottom points](../../docs/src/_static/resources/hill_cylinder_free_bcs.svg)
+<p align="center">
+  <img src="../../docs/src/_static/resources/hill_cylinder_free_bcs.svg" alt="Cylinder drained and traction-free on its whole boundary, held at three bottom points" width="80%">
+</p>
 
 Unknowns $\mathbf u, p, \varepsilon_a$, and optionally $\Phi_c, \tilde\phi_s$ (`cell_transport`) and $\theta, \varphi$
 (`remodelling`); residuals and options: module docstring of `hill_cylinder_free.py`.

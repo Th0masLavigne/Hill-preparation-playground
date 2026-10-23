@@ -11,7 +11,7 @@ Rectangle :math:`[0, L] \times [0, W]` (plane strain), saturated with an incompr
 
 .. image:: /_static/resources/terzaghi_plane_strain.svg
 	:alt: Plane-strain gel rectangle loaded by p0 at x = 0 (drained), u_x = 0 at x = L, rollers on y = 0 and y = W
-	:width: 90%
+	:width: 100%
 	:align: center
 
 Initial state: :math:`\mathbf u = \mathbf 0` and :math:`p = p_0` everywhere (undrained response to the load).

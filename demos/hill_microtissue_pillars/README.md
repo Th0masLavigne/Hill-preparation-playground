@@ -7,7 +7,9 @@ radius $r_p$) and carries a lid of radius $r_l$ **on top of the gel**, $z \in [T
 pillars hold the gel (biaxial). Stage B: the side patches are released, the core patch stays on its four pillars
 (uniaxial).
 
-![Top view of the three gel patches and twelve pillars, and section of one pillar with its lid on the gel](../../docs/src/_static/resources/hill_microtissue_pillars_bcs.svg)
+<p align="center">
+  <img src="../../docs/src/_static/resources/hill_microtissue_pillars_bcs.svg" alt="Top view of the three gel patches and twelve pillars, and section of one pillar with its lid on the gel" width="95%">
+</p>
 
 Gel: unknowns $\mathbf u, p, \varepsilon_a$, optionally $\Phi_c, \tilde\phi_s$ (`cell_transport`) and
 $\theta, \varphi$ (`remodelling`), Hill chain, poromechanics and cell transport. Pillars (`equations.tex`,

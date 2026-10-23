@@ -14,7 +14,7 @@ Cylinder :math:`\Omega_0 = \{x^2 + y^2 \le R^2,\ 0 \le z \le H\}`, all gel (defa
 
 .. image:: /_static/resources/hill_cylinder_free_bcs.svg
 	:alt: Cylinder drained and traction-free on its whole boundary, held at three bottom points
-	:width: 70%
+	:width: 85%
 	:align: center
 
 * :math:`p = 0` on WALL, TOP, BOTTOM (drained), traction-free, no cell flux.
@@ -744,7 +744,7 @@ def build_step_operators(
 	return ops, contractile
 
 
-def nearest_vertex(mesh: dolfin.Mesh, point: Sequence[float]) -> np.ndarray:  # type:ignore
+def nearest_vertex(mesh: dolfin.Mesh, point: Sequence[float]) -> np.ndarray:
 	"""Mesh vertex nearest to ``point``, over every MPI rank.
 
 	Args:
@@ -763,7 +763,7 @@ def nearest_vertex(mesh: dolfin.Mesh, point: Sequence[float]) -> np.ndarray:  # 
 
 def add_isostatic_supports(
 	problem: dolfin_mech.problems.Problem, user_inputs: UserInputs, k_step: int
-) -> Dict[str, np.ndarray]:  # type:ignore
+) -> Dict[str, np.ndarray]:
 	r"""Block the components of ``user_inputs.supports`` at the nearest vertices (pointwise BCs).
 
 	Args:
@@ -830,9 +830,9 @@ def set_weak_form_and_bcs(
 			)
 
 	if rank == 0:
-		for name, vertex in supports.items():  # type:ignore
+		for name, vertex in supports.items():
 			logging.getLogger(__name__).info(
-				f"Support {name} at {user_inputs.scales.redimensionalize_length(vertex)} m."  # type:ignore
+				f"Support {name} at {user_inputs.scales.redimensionalize_length(vertex)} m."
 			)
 
 	add_outputs(problem, user_inputs, gel_material, hill_material, contractile, user_inputs.scales)

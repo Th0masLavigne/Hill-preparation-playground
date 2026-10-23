@@ -15,7 +15,7 @@ Box :math:`\Omega_0 = [0, L_x] \times [0, L_y] \times [0, L_z]`, all gel (defaul
 
 .. image:: /_static/resources/hill_box_bcs.svg
 	:alt: Gel slab clamped and impermeable on LEFT and RIGHT, drained and traction-free elsewhere
-	:width: 90%
+	:width: 100%
 	:align: center
 
 Unknowns
