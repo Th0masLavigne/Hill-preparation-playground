@@ -53,13 +53,14 @@ Legend: **new**: the file does not exist in fenicsoft. **change**: patch an exis
 - Cleaner long-term alternative: add `functions_to_write` to `dolfin_mech.core.TimeIntegrator` itself, which removes the rewrite of t = 0.
 - `_relative_error` removed: `is_subsol_stagnant` calls `dolfin_mech.core.compute_error` (same rule: scale within 1e-9 of 0 gives e = 0 if the change is too, else 1; checked in `dolfin_mech_devel_lavigne@master`). The default threshold is renamed `_DEFAULT_PLATEAU_RELATIVE_ERROR` (was `_RELATIVE_ERROR_ZERO_EPS`).
 - `write_period` is validated even with `write_sol=False` (fenicsoft returned before the checks).
+- A single integer `write_period < 1` (e.g. 0) now raises `ValueError`; fenicsoft (`isinstance(write_period, int) and write_period <= 1: return`) silently treated it as "no throttling".
 - Plateau log message: no `s` after the elapsed time (solve units: s, or t₀ for a scaled solve).
 - Permanent fix on the fenicsoft side: no dolfin_mech change is expected, and fenicsoft only uses `DecimatedTimeIntegrator`. `NonlinearSolver` needs no change: the base `TimeIntegrator.__init__` sets `solver.printer = self.printer`, so silencing `self.printer` also silences the Newton lines. Only a `NonlinearSolver` used on its own with `print_out=<file>` would still write from every rank.
 
 **Tests.**
 - `tests/unit/integration/test_decimated_time_integrator.py` and `integrator_case.py` → fenicsoft `tests/unit/io/`. They cover:
   - the selected fields and the base list;
-  - the `mpirun -n 2` logs being identical to the serial ones (`.out` and `.sta` as text, `.dat` numerically to 1e-10);
+  - the `mpirun -n 2` logs being identical to the serial ones (`.out` as text with every number masked, since timings differ; `.sta` as raw text; `.dat` numerically to 1e-10);
   - a silenced rank, both after a run and at construction (rank faked to 1);
   - the plateau exit on a real problem, including the "before `min_simu_seconds`" and "not yet stagnant" branches.
 - `integrator_case.py` is a no-flux diffusion with c₀ = 1 + cos πx, so c → 1 and the plateau is reached around t ≈ 0.6. Avoid a Dirichlet BC with a single subsol: it does not act on the solution and the case becomes trivial (c ≡ 0).
@@ -76,7 +77,7 @@ Legend: **new**: the file does not exist in fenicsoft. **change**: patch an exis
   - conversions documented for floats and UFL expressions;
   - corrected docstring of `permeability_over_viscosity`: L₀²/(μ₀t₀) = (k/η)κ/μ₀, so K̂ = μ₀/κ;
   - raw-docstring math fixed (`1/\tau`, `k/\eta` were written with a double backslash).
-- `time_steps.py`: `nondimensionalize_step` (`io.Step` time fields, `min_simu_seconds` included) and `nondimensionalize_write_period` (`TimeInterval` / t₀), shared by the scaled demos; both return Python `float` (see §15, `set_dt` with a NumPy scalar). Depends on `integration.TimeInterval`.
+- `time_steps.py`: `nondimensionalize_step` (`fenicsoft.io.Step` time fields, `min_simu_seconds` included) and `nondimensionalize_write_period` (`TimeInterval` / t₀), shared by the scaled demos; both return Python `float` (see §15, `set_dt` with a NumPy scalar). Depends on `integration.TimeInterval`.
 - The demo-side test `microtissue_pillar_spherical_scale/test/test_characteristic_scales.py:130` expects (k/η)(μ₀/κ) for `permeability_over_viscosity`; the code returns (k/η)(κ/μ₀) (correct). It fails whenever μ₀ ≠ κ: it goes with the demo below (the playground test is the corrected one).
 - The scaled pillar demo (`microtissue_pillar_spherical_scale`, wrong row factors: see issue 11) is to be deleted from fenicsoft (still on the reference branch). The pillar case will be recoded in the playground on top of issues 2 and 11, once the Hill box is validated.
 
@@ -110,7 +111,7 @@ It is not a constitutive law. Active laws use it by composition, so no law depen
   - `Parameters(MaterialParameters)` and `Constitutive(ConstitutiveLaw)`, with S_h = Φ_c T_e/I₄ f₀⊗f₀;
   - activation through `ActivationSchedule`, exposed as `current_activation` and `current_time`;
   - no import of `iso` or `aniso`;
-  - `check_uniqueness`: sufficient condition of a unique isometric CE equilibrium, k_e + k_p > f_max max|f_FL′λ| (Mooney SEE, or any SEE while taut).
+  - `check_uniqueness`: sufficient condition of a unique isometric CE equilibrium, k_e + k_p > f_max max|f_FL′λ| (Mooney SEE, or any SEE while taut). The max is sampled in u = (λ − λ_opt)/W ∈ [max(−4, −λ_opt/W), 4], so it holds for any W (a fixed window λ ∈ [0.05, 3] missed it for W ≳ 2).
 
 **Tests.** `tests/unit/materials/cell/active/hill/test_{functions,law}_cell_hill.py` and the fixtures in `tests/conftest.py` (`HillSetup`, `make_setup`).
 
@@ -128,7 +129,7 @@ It is not a constitutive law. Active laws use it by composition, so no law depen
 
 **Tests.** fenicsoft already has `tests/unit/operators/cell/proliferation/test_saturated_prol.py`: merge, do not overwrite.
 - Add the playground cases (identical below Φ_c,max, zero source above), comparing with the analytical value r Φ_c (1 − Φ_c/Φ_c,max) instead of the old fenicsoft class (after the merge it is the same class).
-- `test_saturated_proliferation_construction` builds the operator with a `MagicMock` `phi_c`: `dolfin.gt` rejects it once the clip is in. Replace the mock by a `dolfin.Function` or remove that test (the assembly tests cover it).
+- `test_saturated_proliferation_construction` builds the operator with a `MagicMock` `phi_c`: UFL `conditional` (`macaulay` → `floored` → `piecewise`, `dolfin.le`) rejects it once the clip is in. Replace the mock by a `dolfin.Function` or remove that test (the assembly tests cover it).
 
 ## 8. Permeability laws $k(\phi_\ell)$
 
@@ -136,7 +137,7 @@ It is not a constitutive law. Active laws use it by composition, so no law depen
 - New module `src/fenicsoft/materials/saturated_mixture.py`: J_min = Φ_s0 + Φ_c, Φ_ℓ = J − J_min, φ_ℓ = 1 − J_min/J, φ_s = Φ_s0/J. Mixture kinematics shared by the permeability laws and the compaction energy (issue 9), not a law. Φ_c = 0 by default (here and in `PorousPermeabilityParameters`): two-phase mixture, solid + liquid. Reuse candidate: φ_s = φ_s0/J re-coded in `operators/cell/haptotaxis/saturated.py`. Add it to `materials/__init__.py`.
 - New package `src/fenicsoft/materials/permeability/`:
 - `base.py`: `pulled_back_conductivity` K_L = (k/η) J C⁻¹; `PermeabilityParameters(MaterialParameters)` (k₀/η) and `PorousPermeabilityParameters` (+ Φ_s0 uniform, Φ_c, Φ_c0); `Permeability` (abstract `_ratio()` = k/k₀ read through the cached `ratio`, then `hydraulic_conductivity` and `tensor`) and `PorousPermeability` (+ `porosity` φ_ℓ, `porosity_0` φ_ℓ0, `fluid_ratio` Φ_ℓ/Φ_ℓ0).
-- One module per law, with its `Parameters` (own fields only) and `Permeability` (only `_ratio`): `constant`, `kozeny_carman`, `holmes_mow` (κ_HM ≥ 0 and M ≥ 0 enforced), `compaction_power` (n ≥ 1 enforced).
+- One module per law, with its `Parameters` (own fields only) and `Permeability` (only `_ratio`): `constant`, `kozeny_carman` (0 < Φ_s0 + Φ_c0 enforced: φ_ℓ0 = 1 divides by 0), `holmes_mow` (κ_HM ≥ 0 and M ≥ 0 enforced), `compaction_power` (n ≥ 1 enforced).
 - Afterwards, the pillar demos can replace their `permeability.py` (gel/pillar field) by these laws times a domain field.
 
 **Tests.** `tests/unit/materials/test_saturated_mixture.py`, `tests/unit/materials/permeability/test_permeability_laws.py`.
@@ -183,7 +184,8 @@ equations.tex Table tab:sf omitted s_row, the scale of the row's test function: 
 
 **Changes.** `tests/integration/materials/cell/active/hill/{hill_0d_reference.py, hill_one_element.py, test_hill_one_element.py, conftest.py}`: a one-element FE run of gel + Hill, compared with an independent 0D backward-Euler reference (scipy). Four cases: isometric λ = 1 and λ = 1.04, traction-free faces, and traction-free faces through `ResidualRows` with other per-row degrees (`displacement`: 1, `eps_a`: 0) and row normalizations (μ, f_max).
 - Fixed 2026-10-18: the normalizations were passed in the `test_scales` slot of `ResidualRows.from_problem` (rows multiplied instead of divided; the solution is the same, so the test still passed). They are now passed by keyword; re-run the test.
-- The operators take their measure and `scale_factor` from `ResidualRows`. In the homogeneous one-element state every integrand is constant per cell, so the `rows` case must equal both the 0D reference and the default free run to round-off.
+- The operators take their measure and `scale_factor` from `ResidualRows`. In the homogeneous one-element state every integrand is constant per cell, so the `rows` case must equal both the 0D reference and the default free run to round-off. Since the solution cannot reveal a mis-wiring, `run` also returns `attrs["wiring"]` (scale factor and quadrature degree of each operator), checked by `test_rows_are_wired_to_the_operators`.
+- The 0D reference takes α(t_n) from the FE table; `test_activation_follows_the_ramp` checks that column against min(t/t_ramp, 1).
 - The figure `hill_one_element.png` and `errors.csv` are written to `outputs_hill_one_element/`. The figure shows λ_a, T_e, the free-face gel stretches and the error history, FE (markers) against 0D (lines); the `rows` case is dashed with `x` markers (it coincides with the free case). The error history (`error_history`) is the per-step max over ε_a, λ, λ_t, T_e/T and P_xx/T, the norms of `errors`.
 - The error table is printed in the pytest summary.
 
@@ -221,7 +223,7 @@ equations.tex Table tab:sf omitted s_row, the scale of the row's test function: 
   - The `quadrature_degrees` keys are checked against `UNKNOWNS` (a typo raises an error); rows of switched-off unknowns are ignored. Default: empty, i.e. `quadrature_degree` everywhere.
   - Measured on the size/2 box: `{"displacement": 3}` and the other rows at 2 bring assembly from 1.83 to 1.26 s per iteration, with QOIs within 3e-4.
   - Checked after the refactor: same QOIs as before (difference 0.0), the 3 modes identical (3e-15), and the same holds with per-row degrees (`operator` vs `none` with rows: 2.5e-15).
-- Conditioning: `tests/integration/demos/hill_box_modes/jacobian_scaling.py` (with the 3-mode reference `hill_box_all_modes.py`) assembles J at the first step for the 3 modes (κ₂ by dense SVD, median |J_ii| per row, printed as a table). The mass rows (`cell_fraction`, `theta`, `phi`, `substrate_smoothed`, ~1e-3) and the stiffness rows (`displacement`, `liquid_pressure`, ~2) differ by about (t₀/Δt) ĥ²/6 (ĥ = h/L₀ = 0.5, t₀ ≈ 1 s, Δt = 5 s): discretization and time step, not scaling. Test `tests/integration/demos/test_hill_box_scaling.py` (about 80 s): `operator` J = `parameters` J (≤ 1e-10), interior diagonal blocks O(1), κ₂: none 1.7e20, operator 4.3e4, parameters 4.3e4.
+- Conditioning: `tests/integration/demos/hill_box_modes/jacobian_scaling.py` (with the 3-mode reference `hill_box_all_modes.py`) assembles J at the first step for the 3 modes (κ₂ by dense SVD, median |J_ii| per row, printed as a table). The mass rows (`cell_fraction`, `theta`, `phi`, ~1e-3; `substrate_smoothed`, ~|Ω̂_e| ≈ 0.02, no t₀/Δt factor) and the stiffness rows (`displacement`, `liquid_pressure`, ~2) differ by about (t₀/Δt) ĥ²/6 (ĥ = h/L₀ = 0.5, t₀ ≈ 1 s, Δt = 5 s): discretization and time step, not scaling. Test `tests/integration/demos/test_hill_box_scaling.py` (about 80 s): `operator` J = `parameters` J (≤ 1e-10), interior diagonal blocks O(1), κ₂: none 1.7e20, operator 4.3e4, parameters 4.3e4.
 - Cost profile (size/2, warm JIT cache): MUMPS solve ≈ 78 %, assembly ≈ 21 %, outputs < 1 %. Turning off `cell_transport` and `remodelling` cuts the solve to 5.2 s per iteration (−37 %). size/4: about 210 s per solve and about 5 GB.
 
 **Done when** the three `nondimensionalization` modes of `hill_box_all_modes.py` give identical QOIs (measured: 3e-15) and identical Jacobians (`operator` vs `parameters`), and an `mpirun` run gives a readable `.out`.
@@ -245,7 +247,7 @@ equations.tex Table tab:sf omitted s_row, the scale of the row's test function: 
 ## 16. Subdomain indicators (gel/pillar data fields)
 
 **Changes.** New `src/fenicsoft/materials/domain_fields.py`:
-- `cell_indicator(mesh, domains, tags)`: χ_T, 1 on the tagged cells (DG0), from `io.build_indicator_meshfunction`. Piecewise data a = a_out + (a_in − a_out) χ_T (Φ_s0, conductivity, solid stress).
+- `cell_indicator(mesh, domains, tags)`: χ_T, 1 on the tagged cells (DG0), from `io.build_indicator_meshfunction`. Only owned dofs are written (ghost cells, `ghost_mode != "none"`, have dofs past the local vector). Piecewise data a = a_out + (a_in − a_out) χ_T (Φ_s0, conductivity, solid stress).
 - `interior_vertex_indicator(mesh, domains, tags)`: χ_T^int, 1 at the vertices whose cells are all tagged (CG1), 0 on the interface; one assembly of ∫(1 − χ_T)φ_v, exact across MPI partitions (the vertex loop of the fenicsoft demo looked at the local cells only: a partition boundary could put a gel cell out of sight).
 - Replaces the side files of `demos/smooth_muscle_cells/porous_hydrogel/microtissue_pillar_spherical{,_scale}`: `domain_fields.build_domain_split_dg0_field` (→ `cell_indicator`), `permeability.py` (→ `materials.permeability.constant` on the pillar measure), `cell_fraction_porous.build_initial_phi_s0_field` / `build_initial_phi_c_field` (→ the two indicators), `validate_gel_saturation` (→ `GelInputs.__post_init__`, `saturated_mixture.compaction_jacobian`), `PillarInteriorIdentity` (→ frozen rate, issue 18).
 
