@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from ...ufl_functions import floored
+from .. import saturated_mixture
 from .base import PorousPermeability, PorousPermeabilityParameters
 
 
@@ -36,6 +37,17 @@ class Parameters(PorousPermeabilityParameters):
 	"""
 
 	porosity_floor: float = 1e-6
+
+	def __post_init__(self) -> None:
+		r"""Check :math:`0 < J_{\min,0} = \Phi_{s,0} + \Phi_{c,0} < 1` (:math:`\phi_{\ell,0} = 1`: division by 0).
+
+		Raises:
+		    ValueError: :math:`J_{\min,0} \ge 1` (base class) or :math:`J_{\min,0} \le 0`.
+		"""
+		PorousPermeabilityParameters.__post_init__(self)
+		j_min_0 = saturated_mixture.compaction_jacobian(float(self.phi_s0), self.phi_c0)
+		if j_min_0 <= 0.0:
+			raise ValueError(f"phi_s0 + phi_c0 = {j_min_0} <= 0: Kozeny-Carman needs a solid phase (phi_l0 < 1).")
 
 
 class Permeability(PorousPermeability[Parameters]):

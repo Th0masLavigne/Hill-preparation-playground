@@ -112,10 +112,11 @@ def _write_results(folder: Path, frames: list[NDArray[np.float64]]) -> Path:
 
 
 def test_main_on_synthetic_results(tmp_path: Path) -> None:
-	"""Tetrahedra of volumes 1/6 and 1/3 (weights 1/3 and 2/3), measures at both frames, three figures written."""
+	"""Tetrahedra of volumes 1/6 and 1/3 (weights 1/3 and 2/3), two frames: the three figures are written."""
 	xdmf = _write_results(tmp_path, [np.array([[0.0, 0.0, 1.0], [1.0, 0.0, 0.0]]), np.array([[2.0, 0, 0], [1, 0, 0]])])
 	series = pp.ResultsSeries(xdmf)
 	assert series.times == [0.0, 3600.0]
 	assert series.cell_weights() == pytest.approx([1.0 / 3.0, 2.0 / 3.0], rel=1e-12)
 	paths = pp.main(["--results", str(xdmf), "--output-dir", str(tmp_path / "figures")])
+	assert set(paths) == {"histograms", "sphere", "time"}
 	assert all(path.stat().st_size > 0 for path in paths.values())

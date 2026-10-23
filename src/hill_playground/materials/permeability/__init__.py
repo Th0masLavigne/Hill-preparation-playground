@@ -13,8 +13,9 @@ Module                  :math:`k/k_0`
 ``compaction_power``    :math:`\Big(\dfrac{J-J_{\min}}{1-J_{\min,0}}\Big)^{n}`, :math:`n \ge 1`
 ======================  =====================================================================================
 
-with :math:`J_{\min} = \Phi_{s,0} + \Phi_c` and :math:`\phi_\ell = 1 - J_{\min}/J`. Two-phase mixture (solid + liquid):
-leave ``phi_c`` and ``phi_c0`` at 0 (default), then :math:`J_{\min} = \Phi_{s,0}`.
+with :math:`J_{\min} = \Phi_{s,0} + \Phi_c`, :math:`J_{\min,0} = \Phi_{s,0} + \Phi_{c,0}` and
+:math:`\phi_\ell = 1 - J_{\min}/J`. Two-phase mixture (solid + liquid): leave ``phi_c`` and ``phi_c0`` at 0
+(default), then :math:`J_{\min} = \Phi_{s,0}`.
 """
 
 from . import base, compaction_power, constant, holmes_mow, kozeny_carman

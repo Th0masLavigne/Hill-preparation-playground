@@ -12,11 +12,11 @@ pillars hold the gel (biaxial). Stage B: the side patches are released, the core
 </p>
 
 Gel: unknowns $\mathbf u, p, \varepsilon_a$, optionally $\Phi_c, \tilde\phi_s$ (`cell_transport`) and
-$\theta, \varphi$ (`remodelling`), Hill chain, poromechanics and cell transport. Pillars (`equations.tex`,
-$\Omega_0^{pil}$): stiff Neo-Hooke + quadratic volumetric, permeability $r_k k_0$ (constant), cell-free:
+$\theta, \varphi$ (`remodelling`), Hill chain, poromechanics and cell transport. Pillars
+($\Omega_0^{pil}$): stiff Neo-Hooke + quadratic volumetric, permeability $r_k k_0$ (constant), cell-free:
 $\Phi_c$ and $\varepsilon_a$ frozen by their rate term, $\int_{\Omega^{pil}} (x - x^n)/\Delta t\,\delta x$, so
-$\lambda_a = 1$, $\Phi_c = 0$ (up to the $P_1$ interface vertices) and no cell flux crosses the interface
-(`equations.tex`, Remark `rem:pillar-pin`); $R_s$ takes the gel $\Phi_{s,0}$ in the pillars too (no substrate jump,
+$\lambda_a = 1$, $\Phi_c = 0$ (up to the $P_1$ interface vertices) and no cell flux crosses the interface;
+$R_s$ takes the gel $\Phi_{s,0}$ in the pillars too (no substrate jump,
 hence no haptotactic pull towards the pillars).
 Residuals and options: module docstring of `pillars_biaxial.py`.
 

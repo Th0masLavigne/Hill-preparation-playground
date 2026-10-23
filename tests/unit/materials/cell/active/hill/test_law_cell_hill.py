@@ -120,6 +120,15 @@ def test_uniqueness_violated_without_see() -> None:
 		hill_law.check_uniqueness(0.0, K_P, 20e3, 1.05, 0.3)
 
 
+def test_uniqueness_wide_gaussian() -> None:
+	r"""W = 2.5, :math:`\lambda_{opt} = 1`: :math:`\max|f_{FL}'\lambda| = 1.042` at :math:`\lambda \approx 3.3`.
+
+	Missed by a :math:`\lambda \le 3` sampling window.
+	"""
+	with pytest.raises(ValueError, match="not unique"):
+		hill_law.check_uniqueness(1.03, 0.0, 1.0, 1.0, 2.5)
+
+
 def test_uniqueness_passive_cell() -> None:
 	"""f_max = 0 (no active tension): always unique, infinite margin."""
 	assert hill_law.check_uniqueness(K_E, K_P, 0.0, 1.05, 0.3) == math.inf

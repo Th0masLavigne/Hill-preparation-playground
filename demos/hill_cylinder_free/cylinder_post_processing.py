@@ -52,7 +52,8 @@ with the QOI file (columns ``t`` and ``time_si``); frames not yet flushed to the
 
 Usage::
 
-	python3 post_processing.py [--results path/to/results.xdmf] [--output-dir dir] [--bins 36] [--sphere-bins 30]
+	python3 cylinder_post_processing.py [--results path/to/results.xdmf] [--output-dir dir] [--bins 36] \
+		[--sphere-bins 30]
 """
 
 from __future__ import annotations
@@ -610,7 +611,8 @@ def main(argv: Optional[Sequence[str]] = None) -> Dict[str, Path]:
 	    Figure name -> path.
 
 	Raises:
-	    ValueError: No frame holds both direction fields.
+	    FileNotFoundError: No results file.
+	    ValueError: Unreadable results, or no frame holds both direction fields.
 	"""
 	parser = argparse.ArgumentParser(description="Orientation post-processing of the free cylinder.")
 	parser.add_argument("--results", type=Path, default=DEFAULT_RESULTS, help="Results .xdmf.")

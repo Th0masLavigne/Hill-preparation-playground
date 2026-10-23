@@ -38,7 +38,7 @@ class ContractileEvolution(operators.Operator):
 	        :math:`\mathbf{f}_0`, :math:`\varepsilon_a`, :math:`\varepsilon_a^n`, the chain
 	        parameters and the shared ``p_act`` (:math:`\alpha`).
 	    test: DG0 test function of the :math:`\varepsilon_a` subsol.
-	    dx: Gel measure.
+	    dx: Gel measure (required: ``None`` fails the assert, as in fenicsoft operators).
 	    scale_factor: Multiplies the residual. :math:`1/\mu_0` for :math:`\tilde R_a = R_a/(\mu_0 L_0^3)` on a
 	        mesh rescaled by :math:`L_0` with tensions in Pa and times in s (``scale_factor`` method); 1 in SI or with
 	        dimensionless coefficients :math:`\hat f_{max}, \hat k_e, \hat k_p, \hat b, \hat\eta_0`.

@@ -31,13 +31,18 @@ def cell_indicator(
 
 	Returns:
 	    DG0 function.
+
+	Note:
+	    Only owned cells are written (ghost dofs, numbered after the owned ones, are set by ``apply``).
 	"""
 	space = dolfin.FunctionSpace(mesh, "DG", 0)
 	indicator = dolfin.Function(space, name=name)
 	inside = build_indicator_meshfunction(mesh, domains_mf, tags).array().astype(np.float64)
 	cells = np.arange(mesh.num_cells(), dtype=np.uintp)
 	values = indicator.vector().get_local()
-	values[space.dofmap().entity_dofs(mesh, mesh.topology().dim(), cells)] = inside
+	dofs = np.asarray(space.dofmap().entity_dofs(mesh, mesh.topology().dim(), cells))
+	owned = dofs < values.size  # ghost cells (ghost_mode != "none") have dofs past the local vector
+	values[dofs[owned]] = inside[owned]
 	indicator.vector().set_local(values)
 	indicator.vector().apply("insert")
 	return indicator

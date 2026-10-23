@@ -1,8 +1,8 @@
-# conf.py — Sphinx configuration for hill_playground.
+"""Sphinx configuration for hill_playground."""
+import re
+import sys
 from importlib.metadata import version as get_version
 from pathlib import Path
-import re
-import sys 
 
 current_dir = Path(__file__).parent.resolve()
 project_root = current_dir.parent.parent
@@ -70,7 +70,7 @@ autodoc_typehints = "signature"
 python_use_unqualified_type_names = True
 
 # -----------------------------------------------------------------------------
-# Napoleon Configuration 
+# Napoleon Configuration
 # -----------------------------------------------------------------------------
 napoleon_google_docstring = True
 napoleon_numpy_docstring = False
@@ -82,7 +82,7 @@ napoleon_use_param = False
 napoleon_use_rtype = True
 
 # -----------------------------------------------------------------------------
-# AutoAPI Configuration 
+# AutoAPI Configuration
 # -----------------------------------------------------------------------------
 autoapi_type = "python"
 autoapi_dirs = [
@@ -91,10 +91,8 @@ autoapi_dirs = [
 	str(project_root / "demos")
 ]
 autoapi_ignore = [
-	"*tests/integration/analytical_consolidation_1D/debug_ressources/*",
 	"*conf.py*", "*setup.py*", "*/docs/*", "*/.pytest_cache/*",
 	"*/__pycache__/*", "*/.ruff_cache/*",
-	"tests/test_env.py",
 	"*conftest.py",
 ]
 autoapi_root = "api"
@@ -112,7 +110,7 @@ autoapi_options = [
 	# "undoc-members",
 	"private-members",  # documented _names (e.g. _DecimatedXDMFFile); undocumented ones stay hidden
 	"show-inheritance",
-	"imported-members",  
+	"imported-members",
 ]
 
 # -----------------------------------------------------------------------------
@@ -143,6 +141,7 @@ intersphinx_mapping = {
 # Custom Scripts
 # -----------------------------------------------------------------------------
 def autodoc_skip_member(app, what, name, obj, skip, options):
+	"""Skip nested objects (qualified names with a dot) at module level."""
 	if what == "module":
 		try:
 			if hasattr(obj, "__qualname__") and "." in obj.__qualname__:
@@ -195,10 +194,11 @@ def readme_for_sphinx(readme: Path, out_file: Path, src_dir: Path) -> Path:
 
 
 def generate_simple_toc(app):
+	"""Write ``api_toc.md`` and one ``index.rst`` per API folder (with its README if any)."""
 	src_dir = Path(app.srcdir)
 	api_root = src_dir / "api"
 	toc_file = src_dir / "api_toc.md"
-	
+
 	if not api_root.exists():
 		return
 
@@ -212,9 +212,7 @@ def generate_simple_toc(app):
 	]
 
 	def ensure_index_exists(folder_path, title, current_rel_path):
-		"""
-		Recursively creates index.rst files and includes READMEs if found in source.
-		"""
+		"""Recursively create index.rst files and include READMEs found in the source."""
 		idx_path = folder_path / "index.rst"
 		seen_names = set()
 		children = []
@@ -233,14 +231,14 @@ def generate_simple_toc(app):
 			if item.suffix == ".rst" and item.name != "index.rst":
 				raw_stem = item.stem
 				leaf_name = raw_stem.split('.')[-1]
-				
+
 				# Prevent directory/file collision
 				if leaf_name in seen_names:
 					continue
-				
+
 				clean_label = leaf_name.replace('_', ' ').title()
 				children.append(f"{clean_label} <{raw_stem}>")
-		
+
 		# Write the index file
 		if children:
 			with idx_path.open("w", encoding="utf-8") as f:
@@ -248,7 +246,7 @@ def generate_simple_toc(app):
 
 				actual_source_dir = project_root / current_rel_path
 				readme_file = actual_source_dir / "README.md"
-				
+
 				if readme_file.exists():
 					# Copy next to index.rst, image links made source-absolute (see readme_for_sphinx)
 					readme_for_sphinx(readme_file, folder_path / "README.md.inc", src_dir)
@@ -257,7 +255,7 @@ def generate_simple_toc(app):
 					f.write(".. include:: README.md.inc\n")
 					f.write("   :parser: myst_parser.sphinx_\n\n")
 					f.write(".. raw:: html\n\n   <hr>\n\n")
-				
+
 				f.write(".. contents::\n   :local:\n\n")
 				f.write(".. toctree::\n   :maxdepth: 2\n   :titlesonly:\n\n")
 				for child in sorted(set(children)):
@@ -281,21 +279,21 @@ def generate_simple_toc(app):
 
 
 def skip_globals(app, what, name, obj, skip, options):
-	"""
-	Skipping undocumented module-level variables (global data) prevents things like
-	'comm', 'rank', and 'parent_dir' from appearing in the docs; documented constants are kept.
+	"""Skip undocumented module-level variables (global data).
+
+	This keeps 'comm', 'rank' and 'parent_dir' out of the docs; documented constants are kept.
 	"""
 	# 'data' refers to top-level variables in a module
 	if what == "data" and not getattr(obj, "docstring", ""):
 		return True
-	
+
 	return skip
 
 def setup(app):
+	"""Register the TOC generator, the skip rules and the stylesheet."""
 	app.connect("builder-inited", generate_simple_toc)
 	app.connect("autodoc-skip-member", autodoc_skip_member)
-	
+
 	app.connect("autoapi-skip-member", skip_globals)
 
-	if "custom.css" not in app.registry.css_files:
-		app.add_css_file("custom.css")
+	app.add_css_file("custom.css")  # docs/src/_static/custom.css, copied from fenicsoft

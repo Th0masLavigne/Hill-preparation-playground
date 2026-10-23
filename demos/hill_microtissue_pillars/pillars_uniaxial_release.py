@@ -43,7 +43,7 @@ class UserInputs(stage_a.UserInputs):
 	r"""Stage B configuration, SI units: stage A inputs with one hold step and the stage B outputs.
 
 	Attributes:
-	    steps: Hold (s); first step 1 s ≈ :math:`t_0` (sudden release).
+	    steps: Hold (s); first time step ``init_dt`` = 1 s ≈ :math:`t_0` (sudden release).
 	    activation_configs: :math:`\alpha = 1`.
 	    xdmf_write_period: One period for the single step.
 	    project_prefix: Output folder (its ``mesh`` folder holds the cut).

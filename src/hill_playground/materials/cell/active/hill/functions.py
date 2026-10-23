@@ -25,7 +25,7 @@ fibre stretch :math:`\lambda = \lambda_e\lambda_a`), hence
 	\lambda_a = e^{\varepsilon_a}, \qquad I_{4e} = I_4\, e^{-2\varepsilon_a}, \qquad
 	D_a = \dot\varepsilon_a .
 
-Units: tensions in Pa, rates in 1/s.
+Units: tensions in Pa, rates in 1/s (or :math:`\mu_0` and :math:`1/t_0` in a scaled solve).
 """
 
 from typing import Any, Literal, get_args

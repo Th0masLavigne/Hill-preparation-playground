@@ -1,4 +1,4 @@
-r"""Every float comparison in ``tests/`` states its tolerance.
+r"""Every ``approx`` / ``isclose`` / ``allclose`` call in ``tests/`` states its tolerance.
 
 .. math::
 	|a - b| \le \max(\mathrm{rel}\,|b|,\ \mathrm{abs}) \ \text{(pytest)}, \quad
@@ -12,7 +12,9 @@ Required keywords (the defaults are hidden and scale dependent, e.g. ``numpy.isc
 * ``numpy.isclose``, ``numpy.allclose``, ``numpy.testing.assert_allclose``: ``rtol`` and ``atol``.
 
 ``isclose``/``allclose`` are recognised through their module (``math.``, ``np.``, ``numpy.``): import the module,
-not the function.
+not the function. Not checked: bare ``==`` on floats (exact by design, e.g. step ends) and the second, hidden
+tolerance when only one is given (``approx(rel=...)`` keeps ``abs=1e-12``, ``isclose(abs_tol=...)`` keeps
+``rel_tol=1e-9``).
 """
 
 import ast

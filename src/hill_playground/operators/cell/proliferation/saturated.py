@@ -19,7 +19,7 @@ class SaturatedProliferation(_SaturatedProliferation):
 
 	Args:
 	    phi_c: :math:`\Phi_c`.
-	    r: Proliferation rate :math:`r` (1/s).
+	    r: Proliferation rate :math:`r` (1/s, or :math:`1/t_0` in solve time :math:`\hat t`).
 	    phi_c_max: :math:`\Phi_{c,max}`.
 	    test_c: Test function of :math:`\Phi_c`.
 	    measure: Gel measure.

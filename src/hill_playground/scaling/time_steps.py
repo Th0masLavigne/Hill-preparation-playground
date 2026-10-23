@@ -13,7 +13,7 @@ from ..integration import TimeInterval
 from .characteristic_scales import CharacteristicScales
 
 STEP_TIME_FIELDS: tuple[str, ...] = ("duration", "init_dt", "min_dt", "max_dt", "min_simu_seconds")
-"""Time fields of a step (``io.Step``); absent or ``None`` fields are left as they are."""
+"""Time fields of a step (``fenicsoft.io.Step``); absent or ``None`` fields are left as they are."""
 
 T_Step = TypeVar("T_Step")
 
@@ -22,7 +22,7 @@ def nondimensionalize_step(step: T_Step, scales: CharacteristicScales) -> T_Step
 	r"""Every time field of ``step`` (:data:`STEP_TIME_FIELDS`) divided by :math:`t_0`, as ``float``.
 
 	Args:
-	    step: Frozen dataclass step, in s (``io.Step``).
+	    step: Frozen dataclass step, in s (``fenicsoft.io.Step``).
 	    scales: :math:`t_0`.
 
 	Returns:

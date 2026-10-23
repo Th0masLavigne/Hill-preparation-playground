@@ -37,7 +37,9 @@ from ...ufl_functions import floored
 
 @dataclass(slots=True, frozen=True)
 class Parameters(VolumetricPenaltyParameters):
-	r""":class:`VolumetricPenaltyParameters` (:math:`\kappa`) plus the compaction point.
+	r"""Fenicsoft ``VolumetricPenaltyParameters`` (:math:`\kappa`) plus the compaction point.
+
+	Parent: :class:`~fenicsoft.materials.volumetric.parameters.VolumetricPenaltyParameters`.
 
 	Attributes:
 	    kappa: Drained bulk modulus at :math:`J = 1`, :math:`\kappa` (Pa, or :math:`\hat\kappa`).
@@ -64,7 +66,9 @@ class Parameters(VolumetricPenaltyParameters):
 	def from_young_poisson(  # type: ignore[override]
 		cls, young: Any, poisson: Any, solid_jacobian: Any, x_floor: float = 1e-8
 	) -> "Parameters":
-		r""":math:`\kappa = E / (3(1 - 2\nu))`, via :meth:`VolumetricPenaltyParameters.from_young_poisson`.
+		r""":math:`\kappa = E / (3(1 - 2\nu))`, via the parent ``from_young_poisson``.
+
+		Parent: :meth:`~fenicsoft.materials.volumetric.parameters.VolumetricPenaltyParameters.from_young_poisson`.
 
 		Args:
 		    young: Drained Young modulus :math:`E`.
@@ -82,7 +86,9 @@ class Parameters(VolumetricPenaltyParameters):
 	def from_lame(  # type: ignore[override]
 		cls, lame_lambda: Any, lame_mu: Any, solid_jacobian: Any, x_floor: float = 1e-8
 	) -> "Parameters":
-		r""":math:`\kappa = \lambda + 2\mu/3`, via :meth:`VolumetricPenaltyParameters.from_lame`.
+		r""":math:`\kappa = \lambda + 2\mu/3`, via the parent ``from_lame``.
+
+		Parent: :meth:`~fenicsoft.materials.volumetric.parameters.VolumetricPenaltyParameters.from_lame`.
 
 		Args:
 		    lame_lambda: Drained :math:`\lambda`.

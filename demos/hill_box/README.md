@@ -3,7 +3,7 @@
 Active poro-elastic gel slab $875 \times 375 \times 50\ \mu\text{m}$ seeded with contractile cells
 (Hill chain) of random isotropic orientation. The slab is clamped on its two $x$-faces, drained
 ($p = 0$) and traction-free on the four others. Under the activation $\alpha(t)$ (ramp 0 → 1, then hold)
-the cells contract, the gel shortens across $x$ and expels liquid; the cells may also migrate,
+the cells contract, the gel narrows in $y$ and $z$ between the clamped $x$-faces and expels liquid; the cells may also migrate,
 proliferate and reorient.
 
 <p align="center">

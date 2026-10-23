@@ -152,6 +152,12 @@ def test_reference_state_without_fluid_is_rejected(module: Any) -> None:
 		module.Parameters(conductivity_0=K0, phi_s0=dolfin.Constant(1.2))
 
 
+def test_kozeny_carman_rejects_no_solid() -> None:
+	"""Phi_s0 + Phi_c0 = 0 (phi_l0 = 1, Carman ratio 1/0): refused."""
+	with pytest.raises(ValueError, match="solid phase"):
+		kozeny_carman.Parameters(conductivity_0=K0, phi_s0=0.0)
+
+
 @pytest.mark.parametrize("override", [{"exponent": -1.0}, {"stiffening": -0.5}])
 def test_holmes_mow_rejects_negative_constants(override: dict[str, float]) -> None:
 	"""kappa_HM < 0 or M < 0: refused."""

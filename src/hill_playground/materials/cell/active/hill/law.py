@@ -48,7 +48,8 @@ def check_uniqueness(k_e: float, k_p: float, f_max: float, lmbda_opt: float, wid
 	The last bound holds for the ``"mooney"`` SEE at any :math:`I_{4e}`
 	(:math:`\frac{k_e}{2}(I_{4e} + I_{4e}^{-1})`), and for ``"tension_only"`` / ``"exponential"`` only while the
 	SEE is taut (:math:`I_{4e} \ge 1`); a slack non-Mooney SEE adds no stiffness. The max is sampled on
-	:math:`\lambda \in [0.05, 3]`. Any consistent stress unit (SI or :math:`\mu_0`).
+	:math:`u = (\lambda - \lambda_{opt})/W \in [\max(-4, -\lambda_{opt}/W),\, 4]` (:math:`\lambda > 0`; the term is
+	:math:`O(e^{-16})` beyond), for any :math:`W`. Any consistent stress unit (SI or :math:`\mu_0`).
 
 	Args:
 	    k_e: SEE stiffness.
@@ -65,11 +66,12 @@ def check_uniqueness(k_e: float, k_p: float, f_max: float, lmbda_opt: float, wid
 	    ValueError: Condition violated (descending-limb instability possible).
 	"""
 	n_samples = 20001
+	u_min = max(-4.0, -lmbda_opt / width)  # lambda = lmbda_opt + W u > 0
 	worst = 0.0
 	for i in range(n_samples):
-		lam = 0.05 + 2.95 * i / (n_samples - 1)
-		f_fl = math.exp(-(((lam - lmbda_opt) / width) ** 2))
-		worst = max(worst, abs(-2.0 * (lam - lmbda_opt) / width**2 * f_fl * lam))
+		u = u_min + (4.0 - u_min) * i / (n_samples - 1)
+		lam = lmbda_opt + width * u
+		worst = max(worst, abs(2.0 * u / width * math.exp(-(u**2)) * lam))  # |f_FL'(lam) lam|
 	bound = f_max * worst
 	if k_e + k_p <= bound:
 		raise ValueError(f"Hill chain not unique: k_e + k_p = {k_e + k_p:.3g} <= {bound:.3g}.")
@@ -78,7 +80,7 @@ def check_uniqueness(k_e: float, k_p: float, f_max: float, lmbda_opt: float, wid
 
 @dataclass(slots=True, frozen=True, kw_only=True)
 class Parameters(MaterialParameters):
-	r"""Hill-chain parameters (SI).
+	r"""Hill-chain parameters, in SI as written below or dimensionless (stresses / :math:`\mu_0`, times / :math:`t_0`).
 
 	Attributes:
 	    phi_c: :math:`\Phi_c`, cell volume per unit reference volume (``Constant``, ``Function`` or unknown).
@@ -99,7 +101,7 @@ class Parameters(MaterialParameters):
 	    hill_b: Hill rate constant :math:`b` (1/s); :math:`v_{max} = b / A` (:math:`A > 0`).
 	    f_ecc: Eccentric saturation :math:`f_{ecc}` (-).
 	    eta_0: Optional CE damper :math:`\eta_0` (Pa.s); 0 removes the branch.
-	    see_variant: SEE law, one of :data:`functions.SeeVariant`.
+	    see_variant: SEE law, one of :data:`.functions.SeeVariant`.
 	    k_2e: Stiffening exponent of the ``"exponential"`` SEE (-), > 0 for that variant.
 	"""
 

@@ -308,7 +308,9 @@ def initialise_problem(
 
 
 def set_boundary_dirichlet(problem: dolfin_mech.problems.Problem, boundaries_mf: dolfin.MeshFunction) -> None:
-	r"""Drained left face, rollers on the lateral faces, clamped right face; applied to the initial state too.
+	r"""Drained left face, rollers on the lateral faces and on the right face (:math:`u_x = 0`).
+
+	Applied to the initial state too.
 
 	Args:
 	    problem: Problem.

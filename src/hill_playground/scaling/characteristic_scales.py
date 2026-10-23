@@ -1,6 +1,6 @@
 r"""Characteristic scales :math:`(L_0, \mu_0, t_0, \rho_0)` and the SI <-> dimensionless conversions.
 
-Base scales (equations.tex, Eq. ``eq:base-scales``):
+Base scales:
 
 .. math::
 	L_0\ [\mathrm{m}], \qquad \mu_0\ [\mathrm{Pa}], \qquad
@@ -9,12 +9,12 @@ Base scales (equations.tex, Eq. ``eq:base-scales``):
 
 with :math:`t_0 = L_0^2/c_v` the gel consolidation time (:math:`c_v = (k_{\text{gel}}/\eta)\kappa_{\text{gel}}`),
 built by :meth:`CharacteristicScales.from_consolidation_scale`. :math:`\kappa_{\text{gel}}` is the drained
-bulk modulus (Eq. ``eq:W-gel``), not :math:`\mu_0` (shear modulus); a 1D oedometric :math:`c_v` takes the
+bulk modulus, not :math:`\mu_0` (shear modulus); a 1D oedometric :math:`c_v` takes the
 oedometric modulus :math:`M` instead.
 
 ``nondimensionalize_X`` divides by the scale of X, ``redimensionalize_X`` multiplies by it: exact inverses, valid
-on floats and UFL expressions. With :math:`R_k = \mathcal N_k \tilde R_k`, :math:`\mathcal N_k > 0`
-(Eq. ``eq:nd-principle``), the rescaled problem has the SI solution.
+on floats and UFL expressions. With :math:`R_k = \mathcal N_k \tilde R_k`, :math:`\mathcal N_k > 0`,
+the rescaled problem has the SI solution.
 """
 
 from dataclasses import dataclass
@@ -57,7 +57,7 @@ class CharacteristicScales:
 		viscosity: float,
 		consolidation_modulus: float,
 	) -> "CharacteristicScales":
-		r"""Scales with :math:`t_0 = L_0^2 \eta / (k_{\text{gel}} \kappa_{\text{gel}})` (Eq. ``eq:base-scales``).
+		r"""Scales with :math:`t_0 = L_0^2 \eta / (k_{\text{gel}} \kappa_{\text{gel}})`.
 
 		``length``, ``stress`` and ``density`` are passed through; only ``time`` is derived. :math:`\kappa_{\text{gel}}`
 		and :math:`\mu_0` are separate arguments (see :attr:`permeability_over_viscosity`).
@@ -77,7 +77,7 @@ class CharacteristicScales:
 
 		Raises:
 			ValueError: If ``permeability``, ``viscosity`` or ``consolidation_modulus`` is not strictly positive, or
-				a base scale fails :meth:`__post_init__`.
+				a base scale (``length``, ``stress``, ``density`` or the derived ``time``) is not strictly positive.
 		"""
 		if permeability <= 0:
 			raise ValueError(f"permeability must be strictly positive, got {permeability}.")

@@ -28,7 +28,8 @@ ROWS = OneElementRun(
 """Free faces through ``ResidualRows``: other degree per row and row normalizations.
 
 Homogeneous state, CG1 displacement: every integrand is constant per cell, so any degree is exact and
-the row normalizations do not change Newton's iterates: same solution as the default free run.
+the row normalizations do not change Newton's iterates: same solution as the default free run. The wiring
+(1/N_k and q_k reaching the operators) is checked on ``attrs["wiring"]``.
 """
 
 
@@ -51,6 +52,14 @@ def free_run(tmp_path_factory: pytest.TempPathFactory) -> pd.DataFrame:
 def rows_run(tmp_path_factory: pytest.TempPathFactory) -> pd.DataFrame:
 	"""Free faces with per-row degrees and normalizations (:data:`ROWS`)."""
 	return run(ROWS, tmp_path_factory.mktemp("rows"))
+
+
+def test_activation_follows_the_ramp(isometric_runs: dict[float, pd.DataFrame], free_run: pd.DataFrame) -> None:
+	r""":math:`\alpha(t) = \min(t/t_{ramp}, 1)`: the FE schedule the 0D reference takes as input."""
+	ramp = OneElementRun().ramp_duration
+	for table in (*isometric_runs.values(), free_run):
+		expected = np.minimum(table["t"].to_numpy() / ramp, 1.0)
+		np.testing.assert_allclose(table["alpha"].to_numpy(), expected, rtol=0.0, atol=1e-12)
 
 
 @pytest.mark.parametrize("lmbda", ISOMETRIC_STRETCHES)
@@ -96,7 +105,7 @@ def test_free_faces_are_traction_free(free_run: pd.DataFrame) -> None:
 
 
 def test_free_cells_shorten_gel(free_run: pd.DataFrame) -> None:
-	r"""Active cells compact the gel along :math:`\mathbf f_0`: :math:`\lambda < 1`, :math:`J < 1`."""
+	r"""Active cells compact the gel along :math:`\mathbf f_0`: :math:`\lambda < 0.9` (0D: 0.86), :math:`J < 1`."""
 	last = free_run.iloc[-1]
 	assert last["lambda"] < 0.9
 	assert last["lambda"] * last["lambda_t"] ** 2 < 1.0
@@ -130,6 +139,16 @@ def test_rows_free_state_matches_0d(rows_run: pd.DataFrame) -> None:
 	r"""With per-row degrees and normalizations: still the 0D state :math:`(\lambda, \lambda_t, \varepsilon_a)`."""
 	expected = ref.free_history(OneElementRun().model, rows_run["t"], rows_run["alpha"])
 	np.testing.assert_allclose(rows_run[["lambda", "lambda_t", "eps_a"]].to_numpy(), expected, rtol=0.0, atol=1e-10)
+
+
+def test_rows_are_wired_to_the_operators(rows_run: pd.DataFrame, free_run: pd.DataFrame) -> None:
+	r"""Operators built with :math:`1/\mathcal N_k` and :math:`q_k` of their row (the solution cannot show it)."""
+	model = OneElementRun().model
+	(sf_u, q_u), (sf_a, q_a) = rows_run.attrs["wiring"]["displacement"], rows_run.attrs["wiring"]["eps_a"]
+	assert sf_u == pytest.approx(1.0 / model.mu, rel=1e-15)
+	assert sf_a == pytest.approx(1.0 / model.f_max, rel=1e-15)
+	assert (q_u, q_a) == (1, 0)
+	assert [sf for sf, _ in free_run.attrs["wiring"].values()] == [1.0, 1.0]
 
 
 def test_rows_do_not_change_the_solution(rows_run: pd.DataFrame, free_run: pd.DataFrame) -> None:

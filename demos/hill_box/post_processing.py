@@ -610,7 +610,8 @@ def main(argv: Optional[Sequence[str]] = None) -> Dict[str, Path]:
 	    Figure name -> path.
 
 	Raises:
-	    ValueError: No frame holds both direction fields.
+	    FileNotFoundError: No results file.
+	    ValueError: Unreadable results, or no frame holds both direction fields.
 	"""
 	parser = argparse.ArgumentParser(description="Orientation post-processing of the Hill box.")
 	parser.add_argument("--results", type=Path, default=DEFAULT_RESULTS, help="Results .xdmf.")

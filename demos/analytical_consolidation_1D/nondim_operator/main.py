@@ -350,7 +350,9 @@ def initialise_problem(
 def set_boundary_dirichlet(
 	problem: dolfin_mech.problems.Problem, boundaries_mf: dolfin.MeshFunction, initial_pressure: float
 ) -> None:
-	r"""Drained left face (:math:`\hat p_0 \to 0` in the initialising step, then 0), rollers, clamped right face.
+	r"""Drained left face (:math:`\hat p_0 \to 0` in the initialising step, then 0), rollers on the lateral faces.
+
+	Roller :math:`u_x = 0` on the right face.
 
 	Args:
 	    problem: Problem.

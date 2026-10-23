@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.3.0 # Utilisez la dernière version stable
+    rev: v0.17.2 # same major/minor as the ruff of the environment (pyproject: ruff>=0.15.0)
     hooks:
       # Exécute le linter (erreurs et imports)
       - id: ruff

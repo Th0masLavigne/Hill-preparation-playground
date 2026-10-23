@@ -78,7 +78,8 @@ def run(settings: OneElementRun, out_dir: Path) -> pd.DataFrame:
 	    out_dir: Output folder.
 
 	Returns:
-	    Columns ``t`` + :data:`QOI_NAMES`.
+	    Columns ``t`` + :data:`QOI_NAMES`; ``attrs["wiring"]``: ``(scale_factor, quadrature degree or None)`` of
+	    the operator of each row (``"displacement"``, ``"eps_a"``).
 
 	Raises:
 	    RuntimeError: Time integration failed.
@@ -140,8 +141,9 @@ def run(settings: OneElementRun, out_dir: Path) -> pd.DataFrame:
 		scale_factor=rows.scale_factor("eps_a"),
 	)
 
+	elasticity = []
 	for k_step in range(len(problem.steps)):
-		problem.add_operator(
+		elasticity.append(
 			fenicsoft.operators.hyper_elasticity.pk1.HyperElasticity(
 				disp=disp.subfunc,
 				disp_test=disp.dsubtest,
@@ -149,9 +151,9 @@ def run(settings: OneElementRun, out_dir: Path) -> pd.DataFrame:
 				measure=rows.measure(problem.dV, "displacement"),
 				k_step=k_step,
 				scale_factor=rows.scale_factor("displacement"),
-			),
-			k_step=k_step,
+			)
 		)
+		problem.add_operator(elasticity[-1], k_step=k_step)
 		problem.add_operator(contractile, k_step=k_step)
 		if settings.kinematics == "isometric":
 			for comp, axis_side in ((1, 0.0), (1, 1.0), (2, 0.0), (2, 1.0)):
@@ -200,7 +202,12 @@ def run(settings: OneElementRun, out_dir: Path) -> pd.DataFrame:
 		raise RuntimeError("One-element Hill run failed.")
 	integrator.close()
 	table = pd.read_csv(base + "-qois.dat", sep=r"\s+", skiprows=1, names=["t", *QOI_NAMES])
-	return table.query("t > 0.0").reset_index(drop=True)
+	table = table.query("t > 0.0").reset_index(drop=True)
+	table.attrs["wiring"] = {
+		row: (op.scale_factor, op.measure.metadata().get("quadrature_degree"))
+		for row, op in (("displacement", elasticity[0]), ("eps_a", contractile))
+	}
+	return table
 
 
 def stress_check(model: HillChain0D, table: pd.DataFrame) -> NDArray[np.float64]:

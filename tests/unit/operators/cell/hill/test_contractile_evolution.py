@@ -73,9 +73,10 @@ def test_free_cell(make_hill_setup: Any) -> None:
 
 
 def test_passive_cell_is_series_springs(make_hill_setup: Any) -> None:
-	"""Alpha = 0 (no motor): T_e = T_p, i.e. lambda_a = 1 at lambda = 1 (rest state)."""
+	"""Alpha = 0 (no motor): T_e = T_p, i.e. lambda_a = 1 at lambda = 1 (rest state), Newton from lambda_a = 0.9."""
 	setup = make_hill_setup()
 	setup.law.p_act.assign(0.0)
+	setup.eps_a.vector()[:] = math.log(0.9)
 	assert math.isclose(_solve(setup, _operator(setup, 1.0)), 1.0, abs_tol=1e-10)
 
 

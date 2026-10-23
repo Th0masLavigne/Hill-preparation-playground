@@ -140,6 +140,9 @@ def free_history(model: HillChain0D, times: Iterable[float], alphas: Iterable[fl
 
 	Returns:
 	    Array of shape ``(n, 3)``.
+
+	Raises:
+	    RuntimeError: ``fsolve`` residual above 1e-12 at some :math:`t_n`.
 	"""
 	state, t_old, out = np.array([1.0, 1.0, 0.0]), 0.0, []
 	for t, alpha in zip(times, alphas):

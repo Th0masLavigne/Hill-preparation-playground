@@ -93,7 +93,11 @@ class ActivationSchedule:
 	"""
 
 	def __init__(self, configs: Sequence[ActivePowerConfig], simulation_steps: Sequence[dmech.core.Step]) -> None:
-		"""Index the configs by step and create ``p_act = 0``."""
+		"""Index the configs by step and create ``p_act = 0``.
+
+		Until the first :meth:`set_k_step`, the current step is the first one with a constant or ramp config
+		(function configs are skipped, as in fenicsoft ``iso``/``aniso``).
+		"""
 		self._steps = simulation_steps
 		self._configs = {config.k_step: config for config in configs}
 		self._managers = {
@@ -123,6 +127,9 @@ class ActivationSchedule:
 
 		Args:
 		    t_step: :math:`(t - t_{ini})/(t_{fin} - t_{ini}) \in [0, 1]`.
+
+		Raises:
+		    IndexError: Function config on a step absent from ``simulation_steps``.
 		"""
 		if self._k_step < len(self._steps):
 			step = self._steps[self._k_step]

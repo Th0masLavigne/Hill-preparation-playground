@@ -14,7 +14,7 @@ STAMP = Path.home() / ".fenicsoft_installed"
 
 @pytest.mark.parametrize("mod_name", ["dolfin", "dolfin_mech", "fenicsoft", "hill_playground"])
 def test_import(mod_name: str) -> None:
-	"""Each module imports and exposes a version.
+	"""Each module imports and exposes a non-empty version (printed).
 
 	Args:
 		mod_name: Importable module name.
@@ -24,6 +24,7 @@ def test_import(mod_name: str) -> None:
 	except ImportError as e:
 		pytest.fail(f"{mod_name} cannot be imported: {e}")
 	version = getattr(lib, "__version__", None) or importlib.metadata.version(mod_name)
+	assert version, f"{mod_name} has no version"
 	print(f"  {mod_name} version: {version}")
 
 
@@ -77,7 +78,8 @@ def test_quadrature_degree_per_integral() -> None:
 	high = x**4 * u**3 * test * dolfin.dx(domain=mesh, degree=8)
 	low = x**6 * u * test * dolfin.dx(domain=mesh, degree=2)
 	split = dolfin.assemble(high).get_local() + dolfin.assemble(low).get_local()
-	assert abs(split - dolfin.assemble(low).get_local() * 2.0).max() > 1e-6  # the two terms differ
+	exact_low = x**6 * u * test * dolfin.dx(domain=mesh, degree=8)
+	assert abs(dolfin.assemble(low).get_local() - dolfin.assemble(exact_low).get_local()).max() > 1e-8  # degree acts
 	assert abs(dolfin.assemble(high + low).get_local() - split).max() < 1e-14
 	jac = dolfin.assemble(dolfin.derivative(high, u)).array() + dolfin.assemble(dolfin.derivative(low, u)).array()
 	assert abs(dolfin.assemble(dolfin.derivative(high + low, u)).array() - jac).max() < 1e-14

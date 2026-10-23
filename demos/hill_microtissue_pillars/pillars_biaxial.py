@@ -49,7 +49,7 @@ Switched off, :math:`\theta,\varphi` stay at their random draw and :math:`\Phi_c
 
 Residuals
 ---------
-``equations.tex``, :math:`\Omega_0 = \Omega_0^{gel} \cup \Omega_0^{pil}`:
+:math:`\Omega_0 = \Omega_0^{gel} \cup \Omega_0^{pil}`:
 
 .. math::
 	R_u &= \int_{gel} \big(\mathbf{P}_S + \mathbf{P}_h\big) : \nabla\delta\mathbf{u}
@@ -77,12 +77,12 @@ in the pillars, :math:`\mathbf P_S^{pil}` Neo-Hooke + quadratic volumetric (``pi
 ``pillar_kappa``), :math:`\mathbf K_L^{pil} = r_k\,(k_0/\eta) J\mathbf C^{-1}` (``pillar_permeability_ratio``
 :math:`r_k`), and :math:`R_s` with the gel :math:`\Phi_{s,0}` (no jump of :math:`\tilde\phi_s` at the interface,
 hence no haptotactic pull towards the pillars). The pillar term of :math:`R_a` is
-:math:`\mu_0 t_0 \int D_a\,\delta\varepsilon` in SI (``equations.tex``, Eq. ``eq:Ra``), written here dimensionless.
+:math:`\mu_0 t_0 \int D_a\,\delta\varepsilon` in SI, written here dimensionless.
 
-Cell-free pillars (``equations.tex``, Remark ``rem:pillar-pin``): :math:`\Phi_c` and :math:`\varepsilon_a` are
+Cell-free pillars: :math:`\Phi_c` and :math:`\varepsilon_a` are
 frozen there by their rate term alone (``ChangeRate`` on :math:`\Omega_0^{pil}`): :math:`\lambda_a = 1` exactly (DG0),
-:math:`\Phi_c = 0` in the continuous problem (discretely, the :math:`P_1` interface vertices carry gel cells; see the
-Remark), no cell flux crosses the interface (natural condition of the gel rows),
+:math:`\Phi_c = 0` in the continuous problem (discretely, the :math:`P_1` interface vertices carry gel cells),
+no cell flux crosses the interface (natural condition of the gel rows),
 and no scale is involved. An identity :math:`\frac{1}{t_0}\int_{pil}\Phi_c\delta c` would also act on the
 :math:`P_1` interface rows: a cell sink of relative weight :math:`\Delta t/t_0` (up to :math:`3\cdot 10^3` here).
 

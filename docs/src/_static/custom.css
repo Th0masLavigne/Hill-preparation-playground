@@ -1,0 +1,72 @@
+/* Base Admonition Style */
+.admonition {
+    border-radius: 6px;
+    padding: 1rem !important;
+    margin: 1.5rem 0 !important;
+    border: 1px solid transparent;
+}
+
+/* GitHub Style Note [!NOTE] */
+.admonition.note {
+    border-left: .25rem solid #0969da !important;
+    background-color: #f6f8fa !important;
+}
+.admonition.note > .admonition-title {
+    color: #0969da;
+}
+.admonition.note > .admonition-title::before {
+    content: "ⓘ Note"; /* GitHub style icon + text */
+    font-weight: 600;
+    margin-right: 8px;
+}
+
+/* Caution/Danger (Red) */
+.admonition.danger, .admonition.caution {
+    border-left: .25rem solid #d1242f !important;
+    background-color: #fff1f0 !important;
+    border-radius: 6px;
+    padding: 1rem !important;
+}
+
+/* Important/Note (Blue) */
+.admonition.important, .admonition.note {
+    border-left: .25rem solid #0969da !important;
+    background-color: #f6f8fa !important;
+    border-radius: 6px;
+    padding: 1rem !important;
+}
+
+/* Warning (Orange) */
+.admonition.warning {
+    border-left: .25rem solid #9a6700 !important;
+    background-color: #fff8c5 !important;
+    border-radius: 6px;
+    padding: 1rem !important;
+}
+
+/* Hide the default Sphinx title text so it doesn't double up */
+.admonition-title {
+    font-size: 0 !important;
+    line-height: 0;
+    margin-bottom: 10px !important;
+}
+.admonition-title::before {
+    font-size: 1rem !important;
+    line-height: 1.5;
+}
+
+/* Add these to your custom.css to handle the labels for all types */
+
+.admonition.important > .admonition-title::before {
+    content: "➔ Important";
+}
+
+.admonition.warning > .admonition-title::before {
+    content: "⚠ Warning";
+}
+
+.admonition.caution > .admonition-title::before,
+.admonition.danger > .admonition-title::before {
+    content: "✘ Caution";
+    color: #d1242f;
+}

@@ -496,7 +496,7 @@ def _patch_full_time_integrator_init(
 ) -> None:
 	"""Stub ``dolfin_mech.core.TimeIntegrator.__init__`` with every attribute ``integrate()`` reads.
 
-	``write_qois``, ``write_vtus`` and ``write_xmls`` are ``False``.
+	``write_qois`` is ``False``; ``write_vtus`` and ``write_xmls`` too (set only when ``write_sol``).
 
 	Args:
 	    monkeypatch (pytest.MonkeyPatch): Patch/restore fixture.

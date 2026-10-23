@@ -47,7 +47,7 @@ from mpi4py import MPI
 _STEP_END_ABS_TOL = 1e-9
 
 _DEFAULT_PLATEAU_RELATIVE_ERROR = 1e-9
-"""Default plateau threshold :math:`\varepsilon` (also the zero tolerance of ``compute_error``)."""
+r"""Default plateau threshold :math:`\varepsilon` (also the zero tolerance of ``compute_error``)."""
 
 
 @dataclass(frozen=True)

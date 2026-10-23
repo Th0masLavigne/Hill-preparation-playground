@@ -731,7 +731,9 @@ def main(argv: Optional[Sequence[str]] = None) -> Dict[str, Path]:
 	    Figure name -> path.
 
 	Raises:
-	    ValueError: No frame holds both direction fields.
+	    FileNotFoundError: No results file.
+	    ValueError: Unreadable results, no ``gel_indicator``, empty region of interest, or no frame holds both
+	        direction fields.
 	    SystemExit: Only one of ``--center-x-um``, ``--center-y-um``.
 	"""
 	parser = argparse.ArgumentParser(description="ROI post-processing of the microtissue between pillars.")

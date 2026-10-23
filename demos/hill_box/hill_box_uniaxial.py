@@ -2,8 +2,8 @@ r"""Hill box: an active poro-elastic gel slab clamped on two opposite faces.
 
 A hydrogel slab seeded with randomly oriented contractile cells (Hill chain) is clamped at both
 ends of its long axis :math:`x` and drained on its four other faces. Under the activation
-:math:`\alpha(t)` the cells contract: the gel shortens across :math:`x`, expels liquid, and the
-cells may migrate, proliferate and reorient.
+:math:`\alpha(t)` the cells contract: the gel narrows in :math:`y` and :math:`z` between the clamped
+:math:`x`-faces, expels liquid, and the cells may migrate, proliferate and reorient.
 
 Files: this script (model and solve), ``hill_box_scaling.py`` (SI inputs to dimensionless
 coefficients), ``hill_box_outputs.py`` (SI fields and QOIs), ``post_processing.py`` (orientation figures).
