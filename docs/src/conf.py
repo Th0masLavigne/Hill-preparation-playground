@@ -282,11 +282,11 @@ def generate_simple_toc(app):
 
 def skip_globals(app, what, name, obj, skip, options):
 	"""
-	Skipping module-level variables (global data) prevents things like 
-	'comm', 'rank', and 'parent_dir' from appearing in the docs.
+	Skipping undocumented module-level variables (global data) prevents things like
+	'comm', 'rank', and 'parent_dir' from appearing in the docs; documented constants are kept.
 	"""
 	# 'data' refers to top-level variables in a module
-	if what == "data":
+	if what == "data" and not getattr(obj, "docstring", ""):
 		return True
 	
 	return skip

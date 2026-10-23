@@ -1,14 +1,18 @@
 r"""Every float comparison in ``tests/`` states its tolerance.
 
 .. math::
-	|a - b| \le \max(\mathrm{rel}\,|b|,\ \mathrm{abs}) \quad \text{(pytest, math)}, \qquad
-	|a - b| \le \mathrm{atol} + \mathrm{rtol}\,|b| \quad \text{(numpy)}
+	|a - b| \le \max(\mathrm{rel}\,|b|,\ \mathrm{abs}) \ \text{(pytest)}, \quad
+	|a - b| \le \max(\mathrm{rel}\,\max(|a|, |b|),\ \mathrm{abs}) \ \text{(math)}, \quad
+	|a - b| \le \mathrm{atol} + \mathrm{rtol}\,|b| \ \text{(numpy)}
 
 Required keywords (the defaults are hidden and scale dependent, e.g. ``numpy.isclose``'s ``atol=1e-8``):
 
 * ``pytest.approx``: ``rel`` or ``abs``;
 * ``math.isclose``: ``rel_tol`` or ``abs_tol``;
 * ``numpy.isclose``, ``numpy.allclose``, ``numpy.testing.assert_allclose``: ``rtol`` and ``atol``.
+
+``isclose``/``allclose`` are recognised through their module (``math.``, ``np.``, ``numpy.``): import the module,
+not the function.
 """
 
 import ast

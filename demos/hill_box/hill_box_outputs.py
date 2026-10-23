@@ -5,13 +5,15 @@ XDMF fields and the QOI file are in SI.
 
 Fields (XDMF)
 -------------
-* point data: ``displacement_si``, ``pressure_si`` (scaled copies of the unknowns);
-* cell data: ``jacobian``, ``fluid_fraction``, ``permeability_ratio``, ``theta``, ``phi``, ``cell_fraction``
-  (FOIs only when switched off, else the subsols are written), ``theta_deg``/``phi_deg`` (canonical, upper
-  hemisphere), ``theta_wrapped_deg`` (in-plane axis, period 180), ``tilt_xy_deg`` (0: fibre in the :math:`xy`
-  plane), ``angle_x_deg`` (0: along the clamped axis), with ``_current`` variants for
-  :math:`\mathbf f = \mathbf F\mathbf f_0/\|\mathbf F\mathbf f_0\|`; stretches ``lambda_*``, tensions ``tension_*``,
-  ``fibre``, ``fibre_initial``, ``fibre_current``, ``cell_cauchy``, ``total_cauchy``.
+* point data: ``displacement_si``, ``pressure_si`` (scaled copies of the unknowns); with ``cell_transport``, the
+  CG subsols ``cell_fraction`` and ``substrate_smoothed``;
+* cell data: ``jacobian``, ``fluid_fraction``, ``permeability_ratio``, ``theta``, ``phi`` (DG0 subsols with
+  ``remodelling``, else FOIs), ``cell_fraction`` (FOI without ``cell_transport``), ``eps_a`` (subsol),
+  ``theta_deg``/``phi_deg`` (canonical, upper hemisphere), ``theta_wrapped_deg`` (in-plane axis, period 180),
+  ``tilt_xy_deg`` (0: fibre in the :math:`xy` plane), ``angle_x_deg`` (0: along the clamped axis),
+  with ``_current`` variants for :math:`\mathbf f = \mathbf F\mathbf f_0/\|\mathbf F\mathbf f_0\|`; stretches
+  ``lambda_*``, tensions ``tension_*``, ``fibre``, ``fibre_initial``, ``fibre_current``, ``cell_cauchy``,
+  ``total_cauchy``.
 
 QOIs (``.dat``)
 ---------------

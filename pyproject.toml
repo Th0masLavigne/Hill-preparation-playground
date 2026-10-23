@@ -20,6 +20,7 @@ classifiers = [
 # fenicsoft is installed beforehand by .devcontainer/install_fenicsoft.sh (not on PyPI).
 dependencies = [
     "fenicsoft",
+    "h5py",  # io.xdmf_units (TRANSFER issue 3)
     ]
 
 #Install with:

@@ -60,9 +60,10 @@ until `min_dt`: check the `.out` file and the memory given to Docker.
 
 `results/` (`hill_box_outputs.py`):
 
-- point data: `displacement_si`, `pressure_si`;
-- cell data: `jacobian`, `fluid_fraction`, `permeability_ratio`, `theta`, `phi`, `cell_fraction` (FOIs when
-  `remodelling` / `cell_transport` are off, otherwise the subsols themselves), `theta_deg`/`phi_deg`,
+- point data: `displacement_si`, `pressure_si`; with `cell_transport`, the CG subsols `cell_fraction` and
+  `substrate_smoothed`;
+- cell data: `jacobian`, `fluid_fraction`, `permeability_ratio`, `theta`, `phi` (DG0 subsols with `remodelling`,
+  else FOIs), `cell_fraction` (FOI without `cell_transport`), `eps_a` (subsol), `theta_deg`/`phi_deg`,
   `theta_wrapped_deg`, `tilt_xy_deg`, `angle_x_deg` (and `_current` variants), `lambda_*`, `tension_*`,
   `fibre`, `fibre_initial`, `fibre_current`, `cell_cauchy`, `total_cauchy`;
 - QOIs: `time_si`, `cellular_activation`, probes, `mean_*`, `order_x`, `order_z`, `mean_tilt_xy_deg`.

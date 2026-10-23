@@ -1,5 +1,6 @@
 """Unit tests of the step and write-period conversion to the solve time t_hat = t / t0."""
 
+import numpy as np
 import pytest
 from fenicsoft import io
 
@@ -35,3 +36,14 @@ def test_write_period() -> None:
 	assert periods[0] == 1
 	assert periods[1].seconds == pytest.approx(2.0, rel=1e-12)
 	assert isinstance(nondimensionalize_write_period([TimeInterval(8.0)], SCALES), list)
+
+
+def test_numpy_t0_gives_python_floats() -> None:
+	"""t0 as numpy.float64: Python floats out (TimeVaryingConstant.set_value ignores NumPy scalars)."""
+	scales = CharacteristicScales(length=1.0, stress=1.0, time=np.float64(T0), density=1.0)
+	scaled = nondimensionalize_step(io.Step(duration=100.0, init_dt=8.0, min_dt=2.0, max_dt=20.0), scales)
+	for name in ("duration", "init_dt", "min_dt", "max_dt"):
+		value = getattr(scaled, name)
+		assert isinstance(value, float) and not isinstance(value, np.generic), name  # np.float64 subclasses float
+	seconds = nondimensionalize_write_period(TimeInterval(8.0), scales).seconds
+	assert isinstance(seconds, float) and not isinstance(seconds, np.generic)

@@ -168,7 +168,9 @@ class UserInputs:
 	    integrator_parameters: ``TimeIntegrator`` adaptive-``dt`` parameters.
 	    xdmf_write_period: Output decimation (``DecimatedTimeIntegrator``): ``int`` (substeps) or ``TimeInterval``
 	        (s), one value or one per step.
-	    xdmf_si_only: Write only SI fields in the XDMF (no raw :math:`\hat{\mathbf u}, \hat p`, no ``*_old``).
+	    xdmf_si_only: XDMF holds the SI FOIs and the unknowns already dimensionless
+	        (:math:`\theta, \varphi, \Phi_c, \tilde\phi_s, \varepsilon_a`);
+	        no :math:`\hat{\mathbf u}, \hat p` nor ``*_old``.
 	    stagnation_plateau_relative_error: Plateau-exit threshold.
 	    project_prefix: Output folder.
 	    stem_name: Output file stem.
@@ -657,6 +659,9 @@ def build_permeability(
 
 	Returns:
 	    Law exposing ``ratio``, ``hydraulic_conductivity`` and ``tensor``.
+
+	Raises:
+	    ValueError: Unknown ``permeability_law``.
 	"""
 	kin, law = problem.kinematics, user_inputs.permeability_law
 	if law == "constant":
@@ -692,6 +697,9 @@ def build_materials(
 
 	Returns:
 	    ``(gel_material, hill_material)``; the second owns ``p_act`` (:math:`\alpha`).
+
+	Raises:
+	    ValueError: Unknown ``volumetric_law``.
 	"""
 	kin = problem.kinematics
 	isochoric = fenicsoft.materials.iso.neo_hooke.Constitutive(
@@ -1114,6 +1122,7 @@ def solve_problem(
 	)
 	begin_t = time.time()
 	success = integrator.integrate()
+	integrator.close()  # release the results XDMF/HDF5 before xdmf_units rewrites them
 	comm.Barrier()
 	if rank == 0:
 		logging.getLogger(__name__).info(f"Solve: {time.time() - begin_t:.1f} s, success={success}.")

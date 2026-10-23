@@ -58,7 +58,8 @@ def check_uniqueness(k_e: float, k_p: float, f_max: float, lmbda_opt: float, wid
 	    width: :math:`W`.
 
 	Returns:
-	    Margin :math:`(k_e + k_p) / (f_{max} \max|f_{FL}'\lambda|)`, > 1.
+	    Margin :math:`(k_e + k_p) / (f_{max} \max|f_{FL}'\lambda|)`, > 1 (``inf`` if the bound is 0,
+	    e.g. :math:`f_{max} = 0`).
 
 	Raises:
 	    ValueError: Condition violated (descending-limb instability possible).
@@ -72,7 +73,7 @@ def check_uniqueness(k_e: float, k_p: float, f_max: float, lmbda_opt: float, wid
 	bound = f_max * worst
 	if k_e + k_p <= bound:
 		raise ValueError(f"Hill chain not unique: k_e + k_p = {k_e + k_p:.3g} <= {bound:.3g}.")
-	return (k_e + k_p) / bound
+	return math.inf if bound == 0.0 else (k_e + k_p) / bound
 
 
 @dataclass(slots=True, frozen=True, kw_only=True)

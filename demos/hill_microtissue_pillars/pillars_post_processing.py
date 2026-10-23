@@ -36,8 +36,8 @@ with :math:`S \in [0, 1]`, 0 isotropic, and the biaxiality
 uniaxial (prolate or oblate) state. The lab components read the tissue directly:
 :math:`Q_{xx} \to 1` aligned with :math:`x` (axis of the core pillar rows), :math:`Q_{zz} \to -\frac12` all in the
 :math:`xy` plane. For :math:`\mathbf f`, :math:`Q_{xx}`, :math:`Q_{zz}` and the mean tilt out of :math:`xy` are
-the QOIs ``order_x``, ``order_z`` and ``mean_tilt_xy_deg``, drawn over the XDMF values as a check
-(equal up to the cell-wise projection of :math:`\mathbf f`).
+the QOIs ``order_x``, ``order_z`` and ``mean_tilt_xy_deg``, averaged over the whole gel and drawn over the XDMF
+values as a check (equal up to the cell-wise projection of :math:`\mathbf f` with ``--whole-domain`` only).
 
 Figures (``--output-dir``, default ``<results>/../post_processing_roi`` or ``_gel``)
 ------------------------------------------------------------------------------------
@@ -53,12 +53,15 @@ Figures (``--output-dir``, default ``<results>/../post_processing_roi`` or ``_ge
 
 * ``phi_pressure_time.png``: mean and min--max band of :math:`\Phi_c` and :math:`p` over the region.
 
-The XDMF times are SI once the run is over. During a run they are the solver times :math:`\hat t`, converted
-with the QOI file (columns ``t`` and ``time_si``); frames not yet flushed to the HDF5 file are skipped.
+The XDMF times and geometry are SI once the run is over. During a run they are the solver times
+:math:`\hat t`, converted with the QOI file (columns ``t`` and ``time_si``), and the coordinates
+:math:`\hat{\mathbf X} = \mathbf X/L_0`, so the ROI is converted to :math:`L_0` units (``--length-scale-um``,
+default :math:`L_0 = T = 50` µm); frames not yet flushed to the HDF5 file are skipped.
 
 Usage::
 
 	python3 pillars_post_processing.py [--stage a|b] [--results path.xdmf] [--whole-domain] [--roi-side-um 130]
+		[--length-scale-um 50]
 """
 
 from __future__ import annotations
@@ -283,7 +286,7 @@ class OrderMeasures:
 	    eigenvalues: :math:`\lambda_1 \ge \lambda_2 \ge \lambda_3`.
 	    state: ``"isotropic"``, ``"prolate"``, ``"oblate"`` or ``"biaxial"``.
 	    order: :math:`S \in [0, 1]`.
-	    director: :math:`\mathbf n` (unit, :math:`n_z \ge 0`, then :math:`n_x \ge 0`).
+	    director: :math:`\mathbf n` (unit, :math:`n_z \ge 0`, then :math:`n_x \ge 0`, then :math:`n_y \ge 0`).
 	    biaxiality: :math:`\beta` (0 when ``"isotropic"``).
 	    mean_tilt_xy_deg: :math:`\sum_e w_e \beta_{z,e}` (degrees).
 	"""
@@ -338,7 +341,7 @@ def order_measures(
 		director, order = vectors[:, 2], float(-2.0 * values[2])
 	else:
 		director, order = vectors[:, 0], float(values[0])
-	for k in (2, 0):  # sign convention only
+	for k in (2, 0, 1):  # sign convention only
 		if abs(director[k]) > _EPS:
 			director = director if director[k] > 0.0 else -director
 			break
@@ -489,6 +492,8 @@ def plot_sphere(
 ) -> None:
 	r"""Equal-area projections (:func:`lambert_upper_hemisphere`), density relative to the isotropic one.
 
+	Each bin's weight is divided by its area inside the disc; bins less than 25 % inside are masked.
+
 	Args:
 	    frames: ``"first"``/``"last"`` -> (time, directions per label, measures per label).
 	    weights: :math:`w_e`.
@@ -496,9 +501,12 @@ def plot_sphere(
 	    bins: Number of bins along each axis of the disc.
 	"""
 	edges = np.linspace(-1.0, 1.0, bins + 1)
-	centres = 0.5 * (edges[1:] + edges[:-1])
-	outside = (centres[None, :] ** 2 + centres[:, None] ** 2) > 1.0
-	bin_area = (edges[1] - edges[0]) ** 2
+	sub = np.linspace(-1.0, 1.0, 16 * bins + 1)
+	sub = 0.5 * (sub[1:] + sub[:-1])  # 16 x 16 sub-samples per bin
+	inside = (sub[None, :] ** 2 + sub[:, None] ** 2) <= 1.0
+	coverage = inside.reshape(bins, 16, bins, 16).mean(axis=(1, 3))  # fraction of each bin in the disc
+	outside = coverage < 0.25  # bins mostly outside the disc: too few samples
+	bin_area = (edges[1] - edges[0]) ** 2 * np.maximum(coverage, 0.25)  # in-disc area of each bin
 	norm = LogNorm(vmin=0.1, vmax=10.0)  # type: ignore  # matplotlib < 3.8: no stubs, decorated signature
 	fig, axes = plt.subplots(len(DIRECTIONS), len(frames), figsize=(4.2 * len(frames) + 1.2, 8.4), squeeze=False)
 	image = None
@@ -559,7 +567,7 @@ def plot_time(
 	qois: Optional[Dict[str, NDArray[np.float64]]],
 	output: Path,
 ) -> None:
-	r""":math:`S`, :math:`Q_{xx}`, :math:`Q_{zz}` and mean tilt over the frames; QOIs of :math:`\mathbf f` in gray.
+	r""":math:`S`, :math:`Q_{xx}`, :math:`Q_{zz}`, mean tilt per frame; QOIs of :math:`\mathbf f` (whole gel) in gray.
 
 	Args:
 	    times: Frame times (s).
@@ -597,7 +605,7 @@ def plot_time(
 				color=MUTED,
 				linewidth=1.0,
 				linestyle="--",  # type: ignore[index]
-				label=f"QOI {qoi} (current)",
+				label=f"QOI {qoi} (current, whole gel)",
 			)
 		ax.set_title(title, fontsize=10)
 		ax.set_xlabel("time (h)")
@@ -620,9 +628,10 @@ def roi_cells(
 	"""Gel cells in the ROI (module docstring).
 
 	Args:
-	    series: Results (SI geometry).
-	    center_xy: ROI centre (m); default the centre of the bounding box of the gel cells.
-	    side: ROI side (m); None: every gel cell.
+	    series: Results.
+	    center_xy: ROI centre, in the length unit of the geometry (m, or :math:`L_0` during a run); default the
+	        centre of the bounding box of the gel cells.
+	    side: ROI side, same unit; None: every gel cell.
 
 	Returns:
 	    Mask ``(n_cells,)``.
@@ -723,6 +732,7 @@ def main(argv: Optional[Sequence[str]] = None) -> Dict[str, Path]:
 
 	Raises:
 	    ValueError: No frame holds both direction fields.
+	    SystemExit: Only one of ``--center-x-um``, ``--center-y-um``.
 	"""
 	parser = argparse.ArgumentParser(description="ROI post-processing of the microtissue between pillars.")
 	parser.add_argument("--stage", choices=sorted(RESULTS), default="a", help="Stage whose default results to read.")
@@ -734,17 +744,24 @@ def main(argv: Optional[Sequence[str]] = None) -> Dict[str, Path]:
 	parser.add_argument("--center-y-um", type=float, default=None, help="ROI centre y (um), default gel centre.")
 	parser.add_argument("--bins", type=int, default=36, help="Bins of the histograms.")
 	parser.add_argument("--sphere-bins", type=int, default=30, help="Bins per axis of the projections.")
+	parser.add_argument(
+		"--length-scale-um", type=float, default=50.0, help="L0 (um) of a run in progress (geometry in L0 units)."
+	)
 	args = parser.parse_args(argv)
+	if (args.center_x_um is None) != (args.center_y_um is None):
+		parser.error("--center-x-um and --center-y-um go together.")
 
 	results = args.results or RESULTS[args.stage]
 	series = ResultsSeries(results)
 	qois = read_qois(results.with_suffix(".dat"))
-	if not series.is_redimensionalized() and qois is not None and {"t", "time_si"} <= set(qois):
+	in_progress = not series.is_redimensionalized()
+	if in_progress and qois is not None and {"t", "time_si"} <= set(qois):
 		series.times = list(np.interp(series.times, qois["t"], qois["time_si"]))  # run in progress: t_hat -> s
+	unit = args.length_scale_um * 1e-6 if in_progress else 1.0  # geometry length unit: L0 during a run, else 1 m
 	center = None
 	if args.center_x_um is not None and args.center_y_um is not None:
-		center = (args.center_x_um * 1e-6, args.center_y_um * 1e-6)
-	cells = roi_cells(series, center, None if args.whole_domain else args.roi_side_um * 1e-6)
+		center = (args.center_x_um * 1e-6 / unit, args.center_y_um * 1e-6 / unit)
+	cells = roi_cells(series, center, None if args.whole_domain else args.roi_side_um * 1e-6 / unit)
 	weights = series.cell_weights() * cells
 	weights /= weights.sum()
 

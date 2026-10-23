@@ -2,8 +2,9 @@ r"""Orientation diagnostics for ParaView: current fibre, tilt out of a plane, an
 
 Complements ``materials.orientation.spherical`` (``canonical_theta_phi_degrees``,
 ``wrapped_theta_degrees``), which describe the *reference* angles :math:`(\theta, \varphi)`.
-Everything here is head/tail symmetric (:math:`\mathbf f \to -\mathbf f` invariant) and written
-with ``atan2`` (no ``acos`` / ``asin`` domain issue at :math:`|\cdot| = 1`):
+The angles and the order parameter are head/tail symmetric (:math:`\mathbf f \to -\mathbf f` invariant;
+:math:`\mathbf f` itself changes sign with :math:`\mathbf f_0`) and written with ``atan2`` (no ``acos`` / ``asin``
+domain issue at :math:`|\cdot| = 1`):
 
 .. math::
 	\mathbf f = \frac{\mathbf F \mathbf f_0}{\|\mathbf F \mathbf f_0\|}, \qquad

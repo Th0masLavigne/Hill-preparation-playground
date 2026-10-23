@@ -1,7 +1,9 @@
 r"""Time inputs of the integrator in solve time :math:`\hat t = t/t_0`.
 
 Steps (duration, ``dt`` bounds, plateau floor) and write periods in s are divided by :math:`t_0`; write periods
-given as a number of substeps are unchanged.
+given as a number of substeps are unchanged. Results are Python ``float``: ``dolfin_mech``'s
+``TimeVaryingConstant.set_value`` ignores NumPy scalars, so a ``numpy.float64`` :math:`\Delta t` would leave every
+``set_dt`` at 0.
 """
 
 import dataclasses
@@ -17,7 +19,7 @@ T_Step = TypeVar("T_Step")
 
 
 def nondimensionalize_step(step: T_Step, scales: CharacteristicScales) -> T_Step:
-	r"""Every time field of ``step`` (:data:`STEP_TIME_FIELDS`) divided by :math:`t_0`.
+	r"""Every time field of ``step`` (:data:`STEP_TIME_FIELDS`) divided by :math:`t_0`, as ``float``.
 
 	Args:
 	    step: Frozen dataclass step, in s (``io.Step``).
@@ -27,7 +29,7 @@ def nondimensionalize_step(step: T_Step, scales: CharacteristicScales) -> T_Step
 	    A copy of ``step`` in :math:`\hat t`.
 	"""
 	values = {k: getattr(step, k) for k in STEP_TIME_FIELDS if getattr(step, k, None) is not None}
-	scaled = {k: scales.nondimensionalize_time(v) for k, v in values.items()}
+	scaled = {k: float(scales.nondimensionalize_time(v)) for k, v in values.items()}
 	return dataclasses.replace(step, **scaled)  # type: ignore[type-var]
 
 
@@ -42,7 +44,7 @@ def nondimensionalize_write_period(period: Any, scales: CharacteristicScales) ->
 	    Same structure, :class:`TimeInterval` divided by :math:`t_0`.
 	"""
 	if isinstance(period, TimeInterval):
-		return TimeInterval(scales.nondimensionalize_time(period.seconds))
+		return TimeInterval(float(scales.nondimensionalize_time(period.seconds)))
 	if isinstance(period, (list, tuple)):
 		return type(period)(nondimensionalize_write_period(p, scales) for p in period)
 	return period

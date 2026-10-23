@@ -1,6 +1,6 @@
 r"""Hill box: SI inputs converted to the dimensionless coefficients of the weak form.
 
-Scales (``UserInputs.scales``): :math:`L_0 = L_z` (drainage length), :math:`\mu_0 = \mu_{gel}`,
+Scales (``UserInputs.scales``): :math:`L_0 = L_z` (thickness), :math:`\mu_0 = \mu_{gel}`,
 :math:`t_0 = L_0^2\eta/(k\,\kappa_{gel})` (consolidation time over the thickness), :math:`\rho_0 = \rho_s`.
 Each coefficient is divided by the combination of scales of its unit
 (``CharacteristicScales.nondimensionalize_*``, ``scaling.time_steps`` for steps and write period):

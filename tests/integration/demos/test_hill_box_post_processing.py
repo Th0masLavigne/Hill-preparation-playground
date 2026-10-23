@@ -35,7 +35,7 @@ def _uniform(n: int) -> NDArray[np.float64]:
 
 
 def test_isotropic_set() -> None:
-	"""Uniform on the sphere: Q = 0, isotropic, mean tilt out of xy = 90 - 180/pi rad = 32.70 deg."""
+	"""Uniform on the sphere: Q = 0, isotropic, mean tilt out of xy = pi/2 - 1 rad = 32.70 deg."""
 	m = pp.order_measures(_fibonacci_sphere(N), _uniform(N))
 	assert m.state == "isotropic"
 	assert np.allclose(m.q, 0.0, rtol=0.0, atol=2e-3)

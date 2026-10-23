@@ -514,6 +514,9 @@ def build_permeability(
 
 	Returns:
 	    Law exposing ``ratio``, ``hydraulic_conductivity`` and ``tensor``.
+
+	Raises:
+	    ValueError: Unknown ``permeability_law``.
 	"""
 	kin, law = problem.kinematics, user_inputs.permeability_law
 	if law == "constant":
@@ -549,6 +552,9 @@ def build_materials(
 
 	Returns:
 	    ``(gel_material, hill_material)``; the second owns ``p_act`` (:math:`\alpha`).
+
+	Raises:
+	    ValueError: Unknown ``volumetric_law``.
 	"""
 	kin = problem.kinematics
 	isochoric = fenicsoft.materials.iso.neo_hooke.Constitutive(
@@ -814,6 +820,7 @@ def solve_problem(
 	)
 	begin_t = time.time()
 	success = integrator.integrate()
+	integrator.close()  # release the results XDMF/HDF5 before xdmf_units rewrites them
 	comm.Barrier()
 	if rank == 0:
 		logging.getLogger(__name__).info(f"Solve: {timedelta(seconds=int(time.time() - begin_t))}, success={success}.")

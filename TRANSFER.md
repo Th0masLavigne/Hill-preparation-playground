@@ -76,7 +76,7 @@ Legend: **new**: the file does not exist in fenicsoft. **change**: patch an exis
   - conversions documented for floats and UFL expressions;
   - corrected docstring of `permeability_over_viscosity`: L₀²/(μ₀t₀) = (k/η)κ/μ₀, so K̂ = μ₀/κ;
   - raw-docstring math fixed (`1/\tau`, `k/\eta` were written with a double backslash).
-- `time_steps.py`: `nondimensionalize_step` (`io.Step` time fields, `min_simu_seconds` included) and `nondimensionalize_write_period` (`TimeInterval` / t₀), shared by the scaled demos. Depends on `integration.TimeInterval`.
+- `time_steps.py`: `nondimensionalize_step` (`io.Step` time fields, `min_simu_seconds` included) and `nondimensionalize_write_period` (`TimeInterval` / t₀), shared by the scaled demos; both return Python `float` (see §15, `set_dt` with a NumPy scalar). Depends on `integration.TimeInterval`.
 - The demo-side test `microtissue_pillar_spherical_scale/test/test_characteristic_scales.py:130` expects (k/η)(μ₀/κ) for `permeability_over_viscosity`; the code returns (k/η)(κ/μ₀) (correct). It fails whenever μ₀ ≠ κ: it goes with the demo below (the playground test is the corrected one).
 - The scaled pillar demo (`microtissue_pillar_spherical_scale`, wrong row factors: see issue 11) is to be deleted from fenicsoft (still on the reference branch). The pillar case will be recoded in the playground on top of issues 2 and 11, once the Hill box is validated.
 
@@ -93,7 +93,7 @@ Legend: **new**: the file does not exist in fenicsoft. **change**: patch an exis
 **Changes.** New `src/fenicsoft/materials/cell/active/activation.py`:
 - `ActivePowerConfig`: same API as in `iso.law`;
 - `ActivationSchedule`: owns `p_act` and the global `time`, with `set_k_step` and `update_time`.
-- Difference from the machinery in `iso`/`aniso`: in `update_time`, `elif manager is not None` becomes `else`. A manager exists for every config without `func`, so the third case was unreachable (`# pragma: no cover` in aniso).
+- Difference from the machinery in `iso`/`aniso`: in `update_time`, `elif manager is not None` becomes `else`. A manager exists for every config without `func`, so the third case was unreachable (`# pragma: no cover` in iso and aniso).
 
 It is not a constitutive law. Active laws use it by composition, so no law depends on another one.
 
@@ -116,7 +116,7 @@ It is not a constitutive law. Active laws use it by composition, so no law depen
 
 ## 6. Contractile element operator $R_a$
 
-**Changes.** New `src/fenicsoft/operators/cell/hill/contractile_evolution.py` (no `__init__.py`, export from `operators/cell/__init__.py`): `ContractileEvolution`, with R_a = [f_max α f_FL h(D_a) + η₀D_a + T_p − T_e] δε and D_a = (ε_a − ε_aⁿ)/Δt, plus `scale_factor`.
+**Changes.** New `src/fenicsoft/operators/cell/hill/contractile_evolution.py` (no `__init__.py`, export from `operators/cell/__init__.py`): `ContractileEvolution`, with R_a = [f_max α f_FL h(D_a) + η₀D_a + T_p − T_e] δε and D_a = (ε_a − ε_aⁿ)/Δt, plus `scale_factor`. Register it per step (`k_step`): `set_dt` is only called on step operators.
 
 **Tests.** `tests/unit/operators/cell/hill/test_contractile_evolution.py`.
 
@@ -155,7 +155,7 @@ It is not a constitutive law. Active laws use it by composition, so no law depen
 
 ## 11. Residual rows: quadrature degree, test scale and normalization per row
 
-**Problem.** Every operator of a monolithic residual needs a `scale_factor` = s_row·v/𝒩_row. Today these are hand-written per demo (`RowFactors` in the pillar demos, magic factors in the tests).
+**Problem.** Every operator of a monolithic residual needs a `scale_factor` = s_row·v/𝒩_row. Today these are hand-written per demo (inline `value_preserving_factor / N_row` in `set_weak_form_and_bcs` of the porous pillar demos, magic factors in the tests).
 
 equations.tex Table tab:sf omitted s_row, the scale of the row's test function: the FE test function is δx̂ while R_row of Table tab:N is written with δx = s δx̂ (s_u = L₀, s_p = μ₀, else 1). The solution is unchanged (row scaling), but with tab:sf as printed the u row was 1/L₀ too large and the p row 1/μ₀ too small: κ₂(J) = 9.3e8 instead of 7.5e4. Corrected factors (equations.tex fixed accordingly): gel 1/μ₀, fluid 1, J rate t₀, Darcy μ₀t₀/L₀², cell flux in R_p t₀/L₀²; the other rows are unchanged. Assembly could also be cheaper with a quadrature degree per row (measured: −31 % assembly on the Hill box).
 
@@ -238,6 +238,8 @@ equations.tex Table tab:sf omitted s_row, the scale of the row's test function: 
   - delete the playground copies;
   - switch the playground imports to fenicsoft.
 - Devcontainer: the playground mounts the JIT cache `/home/fenics_user/.cache/dolfin` (`DIJITSO_CACHE_DIR` of the image) as the named volume `hill-dijitso-cache`; do the same in fenicsoft. The Hill forms take about 90 s of JIT compilation on a fresh container.
+- `set_dt` with a NumPy scalar: `dolfin_mech.core.TimeVaryingConstant.set_value_sca` only accepts `int`/`float`/`list`/`ndarray` (exact `type(val) in ...`), so a `numpy.float64` Δt is silently ignored and Δt stays 0 in every operator (`ChangeRate`, `OrientationChange`, `ContractileEvolution`, `Inertia`). The operators are left as in dolfin_mech/fenicsoft (`self.tv_dt.set_value(dt)`); the playground casts at the source instead (`scaling.time_steps` returns Python `float`, test `test_numpy_t0_gives_python_floats`). Root fix to raise in dolfin_mech: `isinstance(val, numbers.Real)` in `set_value_sca`.
+- Docs: `skip_globals` in `docs/src/conf.py` now skips only undocumented module data (documented constants and their `:data:` cross-references are rendered); same change in fenicsoft.
 - Tooling: autoapi documents the tests too, so docstrings there must be valid reST. Write `|x|` inside `:math:`, never bare (`make docs` fails on "Undefined substitution").
 
 ## 16. Subdomain indicators (gel/pillar data fields)
@@ -262,8 +264,8 @@ equations.tex Table tab:sf omitted s_row, the scale of the row's test function: 
 
 **Changes.** `demos/hill_microtissue_pillars/{pillars_biaxial.py, pillars_scaling.py, pillars_outputs.py, pillars_cut_to_core.py, pillars_uniaxial_release.py, pillars_post_processing.py, batch_hill_microtissue_pillars.sh, README.md}` → fenicsoft `demos/smooth_muscle_cells/porous_hydrogel/hill_microtissue_pillars/`, replacing `microtissue_pillar_spherical` (aniso active law, SI) and `microtissue_pillar_spherical_scale` (scaled by `scale_factor`, not reviewed); figure `hill_microtissue_pillars_bcs.{tex,svg}`.
 - Self-contained demo (imports no other demo; stage B and the cut reuse stage A of the same folder).
-- Geometry: the lid sits **on top of the gel**, z ∈ [T, T + t_l] (`MicrotissuePillarsMeshGenerator` builds it so), base at z = T − (h_p − t_l); interface `SIDE_PILLARS_*` = shaft wall in the gel + annulus under the lid (not part of `TOP_GEL`, not drained). The module docstring of `fenicsoft.mesh_geometries.microtissue_pillars` (section 2: "lid flush with the gel top", z_base = T − h_p) and the `PILLAR_LID_TOP_*` marker docstring ("z = T") disagree with the code: fix them in fenicsoft.
-- Gel: Hill box model on the gel measure; pillars: Neo-Hooke + quadratic volumetric (pillar moduli / μ₀), Darcy with r_k k₀ (constant law), R_θ,φ and R_s over the whole mesh (Φ_s0 = `pillar_phi_s0` in the pillars).
+- Geometry: the lid sits **on top of the gel**, z ∈ [T, T + t_l] (`MicrotissuePillarsMeshGenerator` builds it so), base at z = T − (h_p − t_l); `SIDE_PILLARS_*` = pillar boundary minus base and lid top: the interface (shaft wall in the gel + annulus under the lid, not part of `TOP_GEL`, not drained) plus the shaft below the gel and the lid rim. The module docstring of `fenicsoft.mesh_geometries.microtissue_pillars` (section 2: "lid flush with the gel top", z_base = T − h_p), the `PILLAR_LID_TOP_*` marker docstring ("z = T"), the `pillar_base_z` docstring (T − h_p, code T − (h_p − t_l)) and the `SIDE_PILLARS_*` docstring ("interface" only) disagree with the code: fix them in fenicsoft.
+- Gel: Hill box model on the gel measure; pillars: Neo-Hooke + quadratic volumetric (pillar moduli / μ₀), Darcy with r_k k₀ (constant law), R_θ,φ and R_s over the whole mesh, R_s with the gel Φ_s0 everywhere (a pillar value would make φ̃_s jump across the first gel element and pull the cells onto the pillars by haptotaxis; `pillar_phi_s0` only enters `fluid_fraction`).
 - Φ_c and ε_a frozen in the pillars by `ChangeRate` on the pillar measure (∫(x − xⁿ)/Δt δx): Φ_c = 0, λ_a = 1, no flux through the interface, no scale. equations.tex updated accordingly (2026-10-23, backup `equations.tex.bak-2026-10-23`): eq:Rc, eq:Ra, eq:Rc-nd, eq:Ra-nd, tab:sf, the strong form on Ω_pil and the new Remark rem:pillar-pin, which explains why the former identities (1/t₀)∫Φ_c δc and μ₀∫(λ_a − 1)δλ were dropped: with P1 Φ_c the identity also enters the interface rows (cell sink of relative weight Δt/t₀, up to 3e3 in the hold) and gives Φ_c < 0 inside (checked on a two-domain cube: interface value pulled from 1 to < 0.99).
 - Initial Φ_c: Φ_c0 at every vertex touching the gel, 0 strictly inside the pillars (`materials.domain_fields`, issue 16; needs Φ_c ∈ P1: `displacement_degree` = 2, checked).
 - Stage A → B: SI checkpoints of u, p, Φ_c, θ, φ, ε_a (`HANDOVER`; ε_a was not transferred in the fenicsoft demo, the aniso law had no internal variable); mesh restored to SI before writing. Cut (serial): `io.extract_submesh_by_tags`, `io.project_facet_tags`, `io.transfer_field_by_interpolation` (CG) and `io.build_dg0_gather_map` / `transfer_dg0_field` (DG0); the cut planes are tagged `CUT_FACES` and drained in stage B (p = 0 there checked in the results).

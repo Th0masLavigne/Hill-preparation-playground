@@ -41,7 +41,7 @@ reactions vanish and the solution is the free one (displacements relative to $A$
 | `hill_cylinder_outputs.py` | SI fields (XDMF) and QOIs (`.dat`) |
 | `cylinder_post_processing.py` | orientation figures from the results |
 
-The solve is dimensionless (by the parameters): $\hat{\mathbf X} = \mathbf X/L_0$ with the drainage length
+The solve is dimensionless (by the parameters): $\hat{\mathbf X} = \mathbf X/L_0$ with the height
 $L_0 = H$, $\hat p = p/\mu_0$, $\hat t = t/t_0$, $t_0 = H^2\eta/(k\,\kappa_{gel}) \approx 880$ s with the default
 parameters. Inputs and outputs are SI; the XDMF geometry and time stamps are put back in m and s after the run.
 
@@ -57,8 +57,10 @@ python3 cylinder_post_processing.py       # [--results <xdmf>] [--output-dir <di
 
 `results/` (`hill_cylinder_outputs.py`):
 
-- point data: `displacement_si`, `pressure_si`;
-- cell data: `jacobian`, `fluid_fraction`, `permeability_ratio`, `theta`, `phi`, `cell_fraction`, orientation
+- point data: `displacement_si`, `pressure_si`; with `cell_transport`, the CG subsols `cell_fraction` and
+  `substrate_smoothed`;
+- cell data: `jacobian`, `fluid_fraction`, `permeability_ratio`, `theta`, `phi` (DG0 subsols with `remodelling`,
+  else FOIs), `cell_fraction` (FOI without `cell_transport`), `eps_a` (subsol), orientation
   angles (`theta_deg`, `phi_deg`, `theta_wrapped_deg`, `tilt_xy_deg`, `angle_x_deg` and `_current` variants),
   `lambda_*`, `tension_*`, `fibre`, `fibre_initial`, `fibre_current`, `cell_cauchy`, `total_cauchy`;
 - QOIs: `time_si`, `cellular_activation`, `top_center_disp_z` at $(0, 0, H)$ (height change), `wall_disp_y` on

@@ -30,9 +30,9 @@ holds what is new.
 │   ├── materials/orientation/        # orientation diagnostics                               [new]
 │   ├── operators/residual_rows.py    # quadrature degree, test scale, normalization per row   [new]
 │   ├── operators/cell/hill/          # ContractileEvolution (R_a)                            [new]
-│   ├── operators/cell/proliferation/ # clipped SaturatedProliferation                        [patch]
+│   ├── operators/cell/proliferation/ # clipped SaturatedProliferation                        [change]
 │   └── scaling/                      # CharacteristicScales (promoted)                       [new]
-├── tests/{unit,integration,environment}/
+├── tests/{unit,integration,environment,conventions}/
 ├── demos/analytical_consolidation_1D/  # Terzaghi, nondimensionalised: start here
 ├── demos/hill_box/                     # gel slab clamped on two faces
 ├── demos/hill_cylinder_free/           # free-floating cylinder
@@ -97,3 +97,5 @@ for the `local` mode, or use `FENICSOFT_SOURCE=remote`.
 | --- | --- |
 | `demos/analytical_consolidation_1D/` | Terzaghi's consolidation solved in dimensionless variables, by the parameters (`nondim_parameters/`, one step) and by the operators (`nondim_operator/`, initialising step): error vs analytical and figures |
 | `demos/hill_box/` | Active poro-elastic gel slab with Hill-chain cells, clamped on its two $x$-faces, drained and traction-free elsewhere |
+| `demos/hill_cylinder_free/` | Free-floating cylinder, drained and traction-free on its whole boundary, isostatic 3-2-1 support |
+| `demos/hill_microtissue_pillars/` | Microtissue between twelve pillars: stage A (biaxial), cut to the core, stage B (uniaxial release), ROI post-processing, batch script |

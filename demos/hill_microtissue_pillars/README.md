@@ -15,7 +15,9 @@ Gel: unknowns $\mathbf u, p, \varepsilon_a$, optionally $\Phi_c, \tilde\phi_s$ (
 $\theta, \varphi$ (`remodelling`), Hill chain, poromechanics and cell transport. Pillars (`equations.tex`,
 $\Omega_0^{pil}$): stiff Neo-Hooke + quadratic volumetric, permeability $r_k k_0$ (constant), cell-free:
 $\Phi_c$ and $\varepsilon_a$ frozen by their rate term, $\int_{\Omega^{pil}} (x - x^n)/\Delta t\,\delta x$, so
-$\Phi_c = 0$, $\lambda_a = 1$ and no cell flux crosses the interface (`equations.tex`, Remark `rem:pillar-pin`).
+$\lambda_a = 1$, $\Phi_c = 0$ (up to the $P_1$ interface vertices) and no cell flux crosses the interface
+(`equations.tex`, Remark `rem:pillar-pin`); $R_s$ takes the gel $\Phi_{s,0}$ in the pillars too (no substrate jump,
+hence no haptotactic pull towards the pillars).
 Residuals and options: module docstring of `pillars_biaxial.py`.
 
 The solve is dimensionless (by the parameters) with $L_0 = T$ (gel thickness): $t_0 = T^2\eta/(k\,\kappa_{gel})
@@ -55,15 +57,17 @@ nohup ./batch_hill_microtissue_pillars.sh > pipeline_pillars.log 2>&1 &
 ```
 
 The batch mounts the whole playground (`PYTHONPATH=/app/src` for `hill_playground`); the image (`fenicsoft:latest`)
-must hold the fenicsoft branch with `scale_factor` and `OrientationChange`, and the restructured `dolfin_mech`.
+must hold the fenicsoft branch with `scale_factor`, `OrientationChange`, `io.mesh_transfer`/`io.mesh_checkpoint` and
+`mesh_geometries.microtissue_pillars`, and the restructured `dolfin_mech`.
 
 ## Outputs (SI)
 
 `outputs_pillars_biaxial/` (stage A) and `outputs_pillars_uniaxial_release/` (stage B; its `mesh/` folder holds the
 cut):
 
-- `results/` (`pillars_outputs.py`): `displacement_si`, `pressure_si` (point data); `jacobian`, `fluid_fraction`,
-  `permeability_ratio` (gel law), orientation angles, `lambda_*`, `tension_*`, `fibre*`, `cell_cauchy`,
+- `results/` (`pillars_outputs.py`): `displacement_si`, `pressure_si`, and with `cell_transport` the CG subsols
+  `cell_fraction`, `substrate_smoothed` (point data); `jacobian`, `fluid_fraction`, `permeability_ratio` (gel law),
+  `theta`, `phi`, `eps_a`, orientation angles, `lambda_*`, `tension_*`, `fibre*`, `cell_cauchy`,
   `total_cauchy` (gel or pillar law), `gel_indicator` (cell data); QOIs on the core patch (centre, top-face centre,
   front face) and averages over the gel. Hill fields are meaningful in the gel only.
 - `results/<field>.xdmf`: SI checkpoints $\mathbf u, p, \Phi_c, \theta, \varphi, \varepsilon_a$ (stage A → cut →

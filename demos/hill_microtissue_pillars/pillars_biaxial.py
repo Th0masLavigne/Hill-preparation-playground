@@ -16,8 +16,9 @@ Geometry and boundary conditions
 Three gel patches ``GEL_SIDE_LEFT | GEL_CORE | GEL_SIDE_RIGHT``, :math:`z \in [0, T]`, four pillars each
 (``fenicsoft.mesh_geometries.microtissue_pillars``): a shaft of radius :math:`r_p` through the gel, from its
 clamped base :math:`z_b = T - (h_p - t_l)` below the gel to :math:`z = T`, capped by a lid of radius
-:math:`r_l > r_p` **above the gel**, :math:`z \in [T, T + t_l]`. The gel/pillar interface is the shaft wall in the
-gel and the annulus :math:`r_p < r < r_l` under the lid, on the top face of the gel (``SIDE_PILLARS_*``).
+:math:`r_l > r_p` **above the gel**, :math:`z \in [T, T + t_l]`. The gel/pillar interface (shaft wall in the gel,
+annulus :math:`r_p < r < r_l` under the lid, on the top face of the gel) is part of ``SIDE_PILLARS_*``, which also
+holds the exposed shaft below the gel and the lid rim (pillar boundary minus base and lid top); no BC uses it.
 
 .. image:: /_static/resources/hill_microtissue_pillars_bcs.svg
 	:alt: Top view of the three gel patches and twelve pillars, and section of one pillar with its lid on the gel
@@ -31,16 +32,16 @@ gel and the annulus :math:`r_p < r < r_l` under the lid, on the top face of the 
 
 Unknowns
 --------
-=======================  =====  =================================================  ==================
-Unknown                  Space  Initial value                                      Present if
-=======================  =====  =================================================  ==================
-:math:`\hat{\mathbf u}`  CG2    0                                                  always
-:math:`\theta,\varphi`   DG0    isotropic draw                                     ``remodelling``
-:math:`\hat p`           CG1    0                                                  always
-:math:`\Phi_c`           CG1    :math:`\Phi_{c,0}`, 0 strictly inside the pillars  ``cell_transport``
-:math:`\tilde\phi_s`     CG1    :math:`\Phi_{s,0}` of the gel                      ``cell_transport``
-:math:`\varepsilon_a`    DG0    0 (:math:`\lambda_a = 1`)                          always
-=======================  =====  =================================================  ==================
+=======================  =====  ====================================================  ==================
+Unknown                  Space  Initial value                                         Present if
+=======================  =====  ====================================================  ==================
+:math:`\hat{\mathbf u}`  CG2    0                                                     always
+:math:`\theta,\varphi`   DG0    isotropic draw                                        ``remodelling``
+:math:`\hat p`           CG1    0                                                     always
+:math:`\Phi_c`           CG1    :math:`\Phi_{c,0}`, 0 strictly inside the pillars     ``cell_transport``
+:math:`\tilde\phi_s`     CG1    :math:`\Phi_{s,0}` of the gel (guess, R_s algebraic)  ``cell_transport``
+:math:`\varepsilon_a`    DG0    0 (:math:`\lambda_a = 1`)                             always
+=======================  =====  ====================================================  ==================
 
 Switched off, :math:`\theta,\varphi` stay at their random draw and :math:`\Phi_c` at its initial field.
 :math:`\Phi_c = \Phi_{c,0}` at every vertex touching the gel, 0 at the vertices whose cells are all pillar
@@ -74,18 +75,20 @@ Residuals
 SEE :math:`T_e` in series with the CE, itself in parallel with the PEE :math:`T_p`; ``materials.cell.active.hill``);
 in the pillars, :math:`\mathbf P_S^{pil}` Neo-Hooke + quadratic volumetric (``pillar_shear_modulus``,
 ``pillar_kappa``), :math:`\mathbf K_L^{pil} = r_k\,(k_0/\eta) J\mathbf C^{-1}` (``pillar_permeability_ratio``
-:math:`r_k`), :math:`\Phi_{s,0}` = ``pillar_phi_s0`` in :math:`R_s`. The pillar term of :math:`R_a` is
+:math:`r_k`), and :math:`R_s` with the gel :math:`\Phi_{s,0}` (no jump of :math:`\tilde\phi_s` at the interface,
+hence no haptotactic pull towards the pillars). The pillar term of :math:`R_a` is
 :math:`\mu_0 t_0 \int D_a\,\delta\varepsilon` in SI (``equations.tex``, Eq. ``eq:Ra``), written here dimensionless.
 
 Cell-free pillars (``equations.tex``, Remark ``rem:pillar-pin``): :math:`\Phi_c` and :math:`\varepsilon_a` are
-frozen there by their rate term alone (``ChangeRate`` on :math:`\Omega_0^{pil}`): they keep their initial values
-(:math:`\Phi_c = 0`, :math:`\lambda_a = 1`), no cell flux crosses the interface (natural condition of the gel rows),
+frozen there by their rate term alone (``ChangeRate`` on :math:`\Omega_0^{pil}`): :math:`\lambda_a = 1` exactly (DG0),
+:math:`\Phi_c = 0` in the continuous problem (discretely, the :math:`P_1` interface vertices carry gel cells; see the
+Remark), no cell flux crosses the interface (natural condition of the gel rows),
 and no scale is involved. An identity :math:`\frac{1}{t_0}\int_{pil}\Phi_c\delta c` would also act on the
 :math:`P_1` interface rows: a cell sink of relative weight :math:`\Delta t/t_0` (up to :math:`3\cdot 10^3` here).
 
 Nondimensionalisation (by the parameters)
 -----------------------------------------
-Inputs are SI. Scales :math:`L_0 = T` (gel thickness, drainage length), :math:`\mu_0 = \mu_{gel}`,
+Inputs are SI. Scales :math:`L_0 = T` (gel thickness), :math:`\mu_0 = \mu_{gel}`,
 :math:`t_0 = L_0^2\eta/(k\,\kappa_{gel})` (``UserInputs.scales``). The mesh is divided by :math:`L_0` after loading
 (:math:`\hat{\mathbf u} = \mathbf u/L_0` follows), :math:`\hat p = p/\mu_0`, and every coefficient, the pillar moduli
 included, is converted by ``pillars_scaling.Coefficients``; the solver time is :math:`\hat t = t/t_0`. Outputs and
@@ -200,7 +203,7 @@ class UserInputs:
 	Attributes:
 	    side_length_x: :math:`L_{side}`, x-extent of each side patch (m).
 	    core_length_x: :math:`L_{core}`, x-extent of the core patch (m).
-	    width_y: :math:`W` (m).
+	    width_y: :math:`L_y` (m).
 	    gel_thickness_z: :math:`T`, also :math:`L_0` (m).
 	    pillar_radius: Shaft radius :math:`r_p` (m).
 	    pillar_lid_radius: Lid radius :math:`r_l` (m).
@@ -248,7 +251,8 @@ class UserInputs:
 	    pillar_shear_modulus: :math:`\mu_{pil}` (Pa).
 	    pillar_kappa: :math:`\kappa_{pil}` (Pa).
 	    pillar_permeability_ratio: :math:`r_k = k_{pil}/k_0`, in :math:`(0, 1]`.
-	    pillar_phi_s0: :math:`\Phi_{s,0}` of the pillars in :math:`R_s` (1: full solid).
+	    pillar_phi_s0: :math:`\Phi_{s,0}` of the pillars (1: full solid), for ``fluid_fraction`` only; :math:`R_s` uses
+	        ``phi_s0`` everywhere.
 	    phi_s0: :math:`\Phi_{s,0}` of the gel.
 	    phi_c_init: :math:`\Phi_{c,0}` of the gel.
 	    phi_c_max: :math:`\Phi_{c,max}`.
@@ -455,7 +459,7 @@ class PillarFields:
 
 	Attributes:
 	    gel: :math:`\chi_{gel}` (DG0).
-	    phi_s0: :math:`\Phi_{s,0}` (gel ``phi_s0``, pillars ``pillar_phi_s0``).
+	    phi_s0: :math:`\Phi_{s,0}` (gel ``phi_s0``, pillars ``pillar_phi_s0``), for ``fluid_fraction``.
 	    phi_c0: Initial :math:`\Phi_c` (CG1): :math:`\Phi_{c,0}(1 - \chi^{int}_{pil})`, :math:`\chi^{int}_{pil} = 1`
 	        strictly inside the pillars.
 	"""
@@ -710,6 +714,9 @@ def build_permeability(
 
 	Returns:
 	    Law exposing ``ratio``, ``hydraulic_conductivity`` and ``tensor``.
+
+	Raises:
+	    ValueError: Unknown ``permeability_law``.
 	"""
 	kin, law = problem.kinematics, user_inputs.permeability_law
 	if law == "constant":
@@ -745,6 +752,9 @@ def build_materials(
 
 	Returns:
 	    ``(gel_material, hill_material)``; the second owns ``p_act`` (:math:`\alpha`).
+
+	Raises:
+	    ValueError: Unknown ``volumetric_law``.
 	"""
 	kin = problem.kinematics
 	isochoric = fenicsoft.materials.iso.neo_hooke.Constitutive(
@@ -889,7 +899,7 @@ def build_step_operators(
 				phi_s_func=phi_s,
 				test_phi_s=problem.phis_subsol.dsubtest,
 				kin_j=kin.J,
-				phi_s0=problem.phi_s0,
+				phi_s0=dolfin.Constant(user_inputs.phi_s0),  # gel value everywhere: no jump at the interface
 				measure=dv("substrate_smoothed"),
 			),
 		]
@@ -1091,6 +1101,7 @@ def solve_problem(
 	)
 	begin_t = time.time()
 	success = integrator.integrate()
+	integrator.close()  # release the results XDMF/HDF5 before xdmf_units rewrites them
 	comm.Barrier()
 	if rank == 0:
 		logging.getLogger(__name__).info(f"Solve: {timedelta(seconds=int(time.time() - begin_t))}, success={success}.")

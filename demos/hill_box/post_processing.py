@@ -256,7 +256,7 @@ class OrderMeasures:
 	    eigenvalues: :math:`\lambda_1 \ge \lambda_2 \ge \lambda_3`.
 	    state: ``"isotropic"``, ``"prolate"``, ``"oblate"`` or ``"biaxial"``.
 	    order: :math:`S \in [0, 1]`.
-	    director: :math:`\mathbf n` (unit, :math:`n_z \ge 0`, then :math:`n_x \ge 0`).
+	    director: :math:`\mathbf n` (unit, :math:`n_z \ge 0`, then :math:`n_x \ge 0`, then :math:`n_y \ge 0`).
 	    biaxiality: :math:`\beta` (0 when ``"isotropic"``).
 	    mean_tilt_xy_deg: :math:`\sum_e w_e \beta_{z,e}` (degrees).
 	"""
@@ -311,7 +311,7 @@ def order_measures(
 		director, order = vectors[:, 2], float(-2.0 * values[2])
 	else:
 		director, order = vectors[:, 0], float(values[0])
-	for k in (2, 0):  # sign convention only
+	for k in (2, 0, 1):  # sign convention only
 		if abs(director[k]) > _EPS:
 			director = director if director[k] > 0.0 else -director
 			break
@@ -462,6 +462,8 @@ def plot_sphere(
 ) -> None:
 	r"""Equal-area projections (:func:`lambert_upper_hemisphere`), density relative to the isotropic one.
 
+	Each bin's weight is divided by its area inside the disc; bins less than 25 % inside are masked.
+
 	Args:
 	    frames: ``"first"``/``"last"`` -> (time, directions per label, measures per label).
 	    weights: :math:`w_e`.
@@ -469,9 +471,12 @@ def plot_sphere(
 	    bins: Number of bins along each axis of the disc.
 	"""
 	edges = np.linspace(-1.0, 1.0, bins + 1)
-	centres = 0.5 * (edges[1:] + edges[:-1])
-	outside = (centres[None, :] ** 2 + centres[:, None] ** 2) > 1.0
-	bin_area = (edges[1] - edges[0]) ** 2
+	sub = np.linspace(-1.0, 1.0, 16 * bins + 1)
+	sub = 0.5 * (sub[1:] + sub[:-1])  # 16 x 16 sub-samples per bin
+	inside = (sub[None, :] ** 2 + sub[:, None] ** 2) <= 1.0
+	coverage = inside.reshape(bins, 16, bins, 16).mean(axis=(1, 3))  # fraction of each bin in the disc
+	outside = coverage < 0.25  # bins mostly outside the disc: too few samples
+	bin_area = (edges[1] - edges[0]) ** 2 * np.maximum(coverage, 0.25)  # in-disc area of each bin
 	norm = LogNorm(vmin=0.1, vmax=10.0)  # type: ignore  # matplotlib < 3.8: no stubs, decorated signature
 	fig, axes = plt.subplots(len(DIRECTIONS), len(frames), figsize=(4.2 * len(frames) + 1.2, 8.4), squeeze=False)
 	image = None

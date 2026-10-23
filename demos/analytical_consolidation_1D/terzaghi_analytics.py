@@ -88,7 +88,7 @@ class TerzaghiCase:
 		return self.load * terms.sum(axis=1)
 
 	def settlement(self, t: ArrayLike) -> NDArray[np.float64]:
-		r""":math:`u_x(0, t)` (m), displacement of the loaded face.
+		r""":math:`u_x(0, t)` (m), displacement of the loaded face; 0 for :math:`t \le t_s`.
 
 		Args:
 		    t: Times (s).
@@ -96,7 +96,7 @@ class TerzaghiCase:
 		Returns:
 		    Settlement at each time.
 		"""
-		big_t = self.time_factor(t)
+		big_t = np.atleast_1d(self.time_factor(t))
 		m = self._modes()
 		series = (2.0 / m**2 * np.exp(-(m**2) * big_t[:, None])).sum(axis=1)
-		return self.final_settlement * (1.0 - series)
+		return self.final_settlement * np.where(big_t > 0.0, 1.0 - series, 0.0)  # truncated series != 0 at T = 0

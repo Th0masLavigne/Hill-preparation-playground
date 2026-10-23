@@ -28,9 +28,10 @@ Cylinder :math:`\Omega_0 = \{x^2 + y^2 \le R^2,\ 0 \le z \le H\}`, all gel (defa
   :math:`C`             :math:`(0, R, 0)`                     :math:`u_z`
   ====================  ====================================  ==========================
 
-  Six components for six rigid modes (3 translations, rotations about :math:`z` by :math:`B`, about
-  :math:`x, y` by :math:`B, C`), none redundant: the reactions vanish at equilibrium (self-equilibrated internal
-  stress, no load), so the solution is the free one. Displacements are relative to :math:`A`.
+  Six components for six rigid modes (3 translations at :math:`A`; rotations about :math:`z` by :math:`u_y(B)`,
+  about :math:`y` by :math:`u_z(B)`, about :math:`x` by :math:`u_z(C)`), none redundant: the reactions vanish at
+  equilibrium (self-equilibrated internal stress, no load), so the solution is the free one. Displacements are
+  relative to :math:`A`.
 
 Unknowns
 --------
@@ -73,7 +74,7 @@ and :math:`h` the Hill force--velocity law (``materials.cell.active.hill``).
 
 Nondimensionalisation (by the parameters)
 -----------------------------------------
-Inputs are SI. Scales :math:`L_0 = H` (drainage length), :math:`\mu_0 = \mu_{gel}`,
+Inputs are SI. Scales :math:`L_0 = H` (height), :math:`\mu_0 = \mu_{gel}`,
 :math:`t_0 = L_0^2\eta/(k\,\kappa_{gel})` (``UserInputs.scales``). The mesh is divided by :math:`L_0` after loading
 (:math:`\hat{\mathbf u} = \mathbf u/L_0` follows), :math:`\hat p = p/\mu_0`, and every coefficient is converted by
 ``hill_cylinder_scaling.Coefficients``; the solver time is :math:`\hat t = t/t_0`. The weak form is written as in
@@ -547,6 +548,9 @@ def build_permeability(
 
 	Returns:
 	    Law exposing ``ratio``, ``hydraulic_conductivity`` and ``tensor``.
+
+	Raises:
+	    ValueError: Unknown ``permeability_law``.
 	"""
 	kin, law = problem.kinematics, user_inputs.permeability_law
 	if law == "constant":
@@ -582,6 +586,9 @@ def build_materials(
 
 	Returns:
 	    ``(gel_material, hill_material)``; the second owns ``p_act`` (:math:`\alpha`).
+
+	Raises:
+	    ValueError: Unknown ``volumetric_law``.
 	"""
 	kin = problem.kinematics
 	isochoric = fenicsoft.materials.iso.neo_hooke.Constitutive(
@@ -892,6 +899,7 @@ def solve_problem(
 	)
 	begin_t = time.time()
 	success = integrator.integrate()
+	integrator.close()  # release the results XDMF/HDF5 before xdmf_units rewrites them
 	comm.Barrier()
 	if rank == 0:
 		logging.getLogger(__name__).info(f"Solve: {timedelta(seconds=int(time.time() - begin_t))}, success={success}.")

@@ -118,3 +118,8 @@ def test_uniqueness_violated_without_see() -> None:
 	"""k_e = 0 (free cell): k_p alone cannot dominate the descending limb."""
 	with pytest.raises(ValueError, match="not unique"):
 		hill_law.check_uniqueness(0.0, K_P, 20e3, 1.05, 0.3)
+
+
+def test_uniqueness_passive_cell() -> None:
+	"""f_max = 0 (no active tension): always unique, infinite margin."""
+	assert hill_law.check_uniqueness(K_E, K_P, 0.0, 1.05, 0.3) == math.inf

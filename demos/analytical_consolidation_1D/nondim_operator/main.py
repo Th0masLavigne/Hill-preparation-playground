@@ -124,7 +124,7 @@ class UserInputs:
 	    sol_tol: Newton relative tolerances for :math:`(\hat{\mathbf u}, \hat p)`.
 	    n_iter_max: Newton iterations per time step.
 	    steps: Initialising step, then consolidation (s): 1 ms first, accelerated up to 0.05 s.
-	    time_integrator_param: Adaptive time stepping.
+	    time_integrator_param: Adaptive time stepping (``n_iter_for_decel`` < ``n_iter_max``).
 	    n_probes: Pressure probes along the axis :math:`y = W/2`.
 	"""
 
@@ -149,7 +149,7 @@ class UserInputs:
 		io.Step(duration=15.0, init_dt=1e-3, min_dt=1e-4, max_dt=5e-2),
 	)
 	time_integrator_param: Dict[str, Any] = field(
-		default_factory=lambda: {"n_iter_for_accel": 4, "n_iter_for_decel": 16, "accel_coeff": 1.1, "decel_coeff": 2}
+		default_factory=lambda: {"n_iter_for_accel": 4, "n_iter_for_decel": 8, "accel_coeff": 1.1, "decel_coeff": 2}
 	)
 	n_probes: int = 21
 
@@ -266,9 +266,10 @@ def main(user_inputs: UserInputs = UserInputs()) -> post_process.Errors:
 		),
 		name="kirchhoff",
 	)
-	set_boundary_dirichlet(problem, boundaries_mf, scales.nondimensionalize_stress(user_inputs.load_magnitude))
+	p0_hat = scales.nondimensionalize_stress(user_inputs.load_magnitude)  # NONDIM: p0 / mu0
+	set_boundary_dirichlet(problem, boundaries_mf, p0_hat)
 	set_boundary_neumann(problem, user_inputs.load_magnitude * scaling.factor("displacement", "load"))  # NONDIM
-	set_weak_form(problem, material, user_inputs.hydraulic_conductivity, scaling)
+	set_weak_form(problem, material, user_inputs.hydraulic_conductivity, scaling)  # NONDIM: row scaling
 	set_qois(problem, user_inputs)
 	solve_problem(problem, paths, user_inputs)
 

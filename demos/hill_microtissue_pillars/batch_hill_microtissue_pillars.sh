@@ -4,7 +4,8 @@
 # stage A (biaxial, mpirun) -> cut to core (serial) -> stage B (release, mpirun) -> post-processing.
 #
 # The whole playground is mounted (hill_playground is read from its src/ through PYTHONPATH); the image
-# must hold fenicsoft (branch with scale_factor and OrientationChange) and the restructured dolfin_mech.
+# must hold fenicsoft (branch with scale_factor, OrientationChange, io.mesh_transfer/mesh_checkpoint and
+# mesh_geometries.microtissue_pillars) and the restructured dolfin_mech.
 #
 # Usage (from this folder):
 #   chmod +x batch_hill_microtissue_pillars.sh

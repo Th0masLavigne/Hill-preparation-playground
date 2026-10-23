@@ -108,7 +108,7 @@ class UserInputs:
 	    sol_tol: Newton relative tolerances for :math:`(\hat{\mathbf u}, \hat p)`.
 	    n_iter_max: Newton iterations per time step.
 	    steps: Time steps, SI (s): 1 ms first (boundary layer at the drained face), accelerated up to 0.05 s.
-	    time_integrator_param: Adaptive time stepping.
+	    time_integrator_param: Adaptive time stepping (``n_iter_for_decel`` < ``n_iter_max``).
 	    n_probes: Pressure probes along the axis :math:`y = W/2`.
 	"""
 
@@ -130,7 +130,7 @@ class UserInputs:
 	n_iter_max: int = 10
 	steps: Sequence[io.Step] = (io.Step(duration=15.0, init_dt=1e-3, min_dt=1e-4, max_dt=5e-2),)
 	time_integrator_param: Dict[str, Any] = field(
-		default_factory=lambda: {"n_iter_for_accel": 4, "n_iter_for_decel": 16, "accel_coeff": 1.1, "decel_coeff": 2}
+		default_factory=lambda: {"n_iter_for_accel": 4, "n_iter_for_decel": 8, "accel_coeff": 1.1, "decel_coeff": 2}
 	)
 	n_probes: int = 21
 
@@ -226,8 +226,8 @@ def main(user_inputs: UserInputs = UserInputs()) -> post_process.Errors:
 		name="kirchhoff",
 	)
 	set_boundary_dirichlet(problem, boundaries_mf)
-	set_boundary_neumann(problem, coefficients.load)
-	set_weak_form(problem, material, coefficients.conductivity)
+	set_boundary_neumann(problem, coefficients.load)  # NONDIM: p0_hat
+	set_weak_form(problem, material, coefficients.conductivity)  # NONDIM: k_hat
 	set_qois(problem, user_inputs)
 	solve_problem(problem, paths, user_inputs)
 
@@ -358,7 +358,7 @@ def set_weak_form(problem: dolfin_mech.problems.Problem, material: Any, conducti
 	u, du = problem.displacement_subsol.subfunc, problem.displacement_subsol.dsubtest
 	p, dp = problem.pl_subsol.subfunc, problem.pl_subsol.dsubtest
 	kin = problem.kinematics
-	darcy_conductivity = permeability.constant.Permeability(  # K_L = k J C^-1
+	darcy_conductivity = permeability.constant.Permeability(  # K_L = k J C^-1  # NONDIM: k_hat
 		kin, permeability.constant.Parameters(conductivity_0=conductivity)
 	).tensor
 	residual_terms = [
@@ -371,7 +371,7 @@ def set_weak_form(problem: dolfin_mech.problems.Problem, material: Any, conducti
 			function=p,
 			test=dp,
 			conductivity=darcy_conductivity,
-			dx=problem.dV,  # NONDIM: k_hat
+			dx=problem.dV,
 		),
 	]
 	for k_step in range(len(problem.steps)):

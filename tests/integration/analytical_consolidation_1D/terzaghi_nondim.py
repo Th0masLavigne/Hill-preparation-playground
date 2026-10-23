@@ -1,6 +1,7 @@
 r"""Terzaghi consolidation solved three ways: SI, operator ``scale_factor``, dimensionless parameters.
 
-Poro-elastic gel: Neo-Hooke :math:`\mu` + :math:`\frac{\kappa}{2}(J-1)^2`,
+Poro-elastic gel: isochoric Neo-Hooke :math:`\frac{\mu}{2}(\bar I_1 - 3)` + :math:`\frac{\kappa}{2}(J-1)^2`
+(hence :math:`M = \kappa + \frac43\mu` below),
 biphasic fluid stress :math:`-Jp\mathbf F^{-T}`, Darcy with :math:`\mathbf K_L = (k/\eta) J \mathbf C^{-1}`.
 Column :math:`[0, L] \times [0, h]^2` (3D, one cell across), lateral rollers, :math:`u_x = 0` at
 :math:`x = L` (impermeable), load :math:`p_0` and :math:`p = 0` at :math:`x = 0`, :math:`p(t=0) = p_0`.
@@ -52,7 +53,7 @@ from hill_playground.scaling import CharacteristicScales
 
 Mode = Literal["none", "operator", "parameters"]
 MODES: tuple[Mode, ...] = ("none", "operator", "parameters")
-_LOAD, _DRAINED_MARK = 1, 1
+_LOAD = 1
 
 
 @dataclass(frozen=True)

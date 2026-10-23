@@ -8,7 +8,7 @@ final orientation.
 Boundary conditions (:data:`STAGE_B`)
 -------------------------------------
 * :math:`\mathbf u = \mathbf 0` on ``PILLAR_BASE_CORE`` (four pillars);
-* :math:`p = 0` on the remaining ``*_GEL`` faces and on the two cut faces ``CUT_FACES`` (in contact with the
+* :math:`p = 0` on ``FRONT/BACK/TOP/BOTTOM_GEL`` and on the two cut faces ``CUT_FACES`` (in contact with the
   medium after the release); traction-free, no cell flux;
 * :math:`\alpha = 1` held.
 """
@@ -33,7 +33,7 @@ STAGE_B = stage_a.PillarRegion(
 	gel=(int(M.GEL_CORE),),
 	pillars=(int(M.PILLAR_CORE),),
 	clamped=(int(M.PILLAR_BASE_CORE),),
-	drained=(*stage_a.GEL_ENVELOPE, stage_a.CUT_FACES),
+	drained=(*(int(m) for m in (M.FRONT_GEL, M.BACK_GEL, M.TOP_GEL, M.BOTTOM_GEL)), stage_a.CUT_FACES),
 )
 """Stage B: core patch, its four pillar bases clamped, cut faces drained."""
 
@@ -43,7 +43,7 @@ class UserInputs(stage_a.UserInputs):
 	r"""Stage B configuration, SI units: stage A inputs with one hold step and the stage B outputs.
 
 	Attributes:
-	    steps: Hold (s); small first step (sudden release).
+	    steps: Hold (s); first step 1 s ≈ :math:`t_0` (sudden release).
 	    activation_configs: :math:`\alpha = 1`.
 	    xdmf_write_period: One period for the single step.
 	    project_prefix: Output folder (its ``mesh`` folder holds the cut).

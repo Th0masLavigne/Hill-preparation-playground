@@ -30,6 +30,9 @@ from ....materials.cell.active.hill.law import Constitutive as HillLaw
 class ContractileEvolution(operators.Operator):
 	r"""Implicit Hill force--length--velocity evolution of :math:`\varepsilon_a`.
 
+	Register it per step (``problem.add_operator(op, k_step=k)``): ``dolfin_mech`` calls :meth:`set_dt` on step
+	operators only (otherwise :math:`\Delta t = 0`).
+
 	Args:
 	    law: Hill-chain law already summed into the gel material; provides the kinematics,
 	        :math:`\mathbf{f}_0`, :math:`\varepsilon_a`, :math:`\varepsilon_a^n`, the chain
@@ -37,7 +40,7 @@ class ContractileEvolution(operators.Operator):
 	    test: DG0 test function of the :math:`\varepsilon_a` subsol.
 	    dx: Gel measure.
 	    scale_factor: Multiplies the residual. :math:`1/\mu_0` for :math:`\tilde R_a = R_a/(\mu_0 L_0^3)` on a
-	        mesh rescaled by :math:`L_0` with tensions in Pa (``scale_factor`` method); 1 in SI or with
+	        mesh rescaled by :math:`L_0` with tensions in Pa and times in s (``scale_factor`` method); 1 in SI or with
 	        dimensionless coefficients :math:`\hat f_{max}, \hat k_e, \hat k_p, \hat b, \hat\eta_0`.
 
 	Attributes:

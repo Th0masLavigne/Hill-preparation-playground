@@ -55,7 +55,7 @@
 		% pillar: leg + shaft (radius r_p) from the base z_b to the gel top z = T, lid (radius r_l) on top of the gel
 		\filldraw[pillar] (-\rp,\zb) -- (-\rp,\T) -- (-\rl,\T) -- (-\rl,\T+\tl) -- (\rl,\T+\tl) -- (\rl,\T)
 			-- (\rp,\T) -- (\rp,\zb) -- cycle;
-		% gel/pillar interface (SIDE_PILLARS): shaft wall in the gel and annulus under the lid
+		% gel/pillar interface (part of SIDE_PILLARS, which also holds the shaft below the gel and the lid rim)
 		\draw[orange!80!black,line width=1.4pt] (-\rp,0) -- (-\rp,\T) -- (-\rl,\T) (\rp,0) -- (\rp,\T) -- (\rl,\T);
 		% clamped base
 		\fill[red!8] (-\rp-0.35,\zb-0.3) rectangle (\rp+0.35,\zb);

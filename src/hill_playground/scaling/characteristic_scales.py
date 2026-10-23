@@ -8,8 +8,9 @@ Base scales (equations.tex, Eq. ``eq:base-scales``):
 	\rho_0\ [\mathrm{kg\,m^{-3}}],
 
 with :math:`t_0 = L_0^2/c_v` the gel consolidation time (:math:`c_v = (k_{\text{gel}}/\eta)\kappa_{\text{gel}}`),
-built by :meth:`CharacteristicScales.from_consolidation_scale`. :math:`\kappa_{\text{gel}}` is the confined
-modulus, not :math:`\mu_0` (shear modulus).
+built by :meth:`CharacteristicScales.from_consolidation_scale`. :math:`\kappa_{\text{gel}}` is the drained
+bulk modulus (Eq. ``eq:W-gel``), not :math:`\mu_0` (shear modulus); a 1D oedometric :math:`c_v` takes the
+oedometric modulus :math:`M` instead.
 
 ``nondimensionalize_X`` divides by the scale of X, ``redimensionalize_X`` multiplies by it: exact inverses, valid
 on floats and UFL expressions. With :math:`R_k = \mathcal N_k \tilde R_k`, :math:`\mathcal N_k > 0`
@@ -27,7 +28,7 @@ class CharacteristicScales:
 		length (float): :math:`L_0`, in m (sample size or drainage length).
 		stress (float): :math:`\mu_0`, in Pa (gel shear modulus).
 		time (float): :math:`t_0`, in s; see :meth:`from_consolidation_scale`.
-		density (float): :math:`\rho_0`, in kg/m^3 (gel mass density).
+		density (float): :math:`\rho_0 = \rho_s`, in kg/m^3 (substrate density, haptotaxis scale).
 	"""
 
 	length: float
@@ -67,8 +68,9 @@ class CharacteristicScales:
 			density (float): :math:`\rho_0`, in kg/m^3.
 			permeability (float): :math:`k_{\text{gel}}`, in m^2 (> 0).
 			viscosity (float): :math:`\eta`, in Pa.s (> 0).
-			consolidation_modulus (float): :math:`\kappa_{\text{gel}}`, in Pa (> 0): confined modulus of
-				:math:`c_v = (k_{\text{gel}}/\eta)\,\kappa_{\text{gel}}`, typically ``gel_kappa``.
+			consolidation_modulus (float): :math:`\kappa_{\text{gel}}`, in Pa (> 0): modulus of
+				:math:`c_v = (k_{\text{gel}}/\eta)\,\kappa_{\text{gel}}`: ``gel_kappa`` (drained bulk modulus), or
+				the oedometric :math:`M` for the 1D Terzaghi column.
 
 		Returns:
 			CharacteristicScales: The base scales, with the derived ``time``.
