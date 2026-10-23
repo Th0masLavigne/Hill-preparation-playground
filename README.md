@@ -25,6 +25,7 @@ holds what is new.
 │   ├── materials/cell/active/hill/   # Hill law (R_u) + shared UFL functions                 [new]
 │   ├── materials/permeability/       # k(phi_l) laws on a common base class                  [new]
 │   ├── materials/saturated_mixture.py # J_min, Phi_l, phi_l, phi_s (mixture kinematics)      [new]
+│   ├── materials/domain_fields.py    # subdomain indicators (gel/pillar data fields)         [new]
 │   ├── materials/volumetric/         # volumetric energy with a compaction point             [new]
 │   ├── materials/orientation/        # orientation diagnostics                               [new]
 │   ├── operators/residual_rows.py    # quadrature degree, test scale, normalization per row   [new]
@@ -33,7 +34,9 @@ holds what is new.
 │   └── scaling/                      # CharacteristicScales (promoted)                       [new]
 ├── tests/{unit,integration,environment}/
 ├── demos/analytical_consolidation_1D/  # Terzaghi, nondimensionalised: start here
-├── demos/hill_box/
+├── demos/hill_box/                     # gel slab clamped on two faces
+├── demos/hill_cylinder_free/           # free-floating cylinder
+├── demos/hill_microtissue_pillars/     # microtissue between pillars (stage A, cut, stage B, batch)
 ├── docs/src/
 └── TRANSFER.md             # transfer plan to fenicsoft, one merge request per issue
 ```

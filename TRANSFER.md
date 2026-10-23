@@ -27,6 +27,9 @@ Legend: **new**: the file does not exist in fenicsoft. **change**: patch an exis
 | 13 | Terzaghi integration test, nondimensionalization methods | new | 2, 11 |
 | 14 | Hill box demo | new | 0–11 |
 | 15 | Follow-ups (iso/aniso activation, `ScaledKinematics`, tooling) | change | 4 |
+| 16 | Subdomain indicators (gel/pillar data fields) | new | – |
+| 17 | Free-floating cylinder demo | new | 0–11 |
+| 18 | Microtissue between pillars demo (stage A, cut, stage B) | new | 0–11, 16 |
 
 ---
 
@@ -174,7 +177,7 @@ equations.tex Table tab:sf omitted s_row, the scale of the row's test function: 
   - Terzaghi: all 3 modes through `ResidualRows`, plus the `+rows` variants.
   - Hill box demo.
 
-**Follow-up.** The pillar case is recoded in the playground with `ResidualRows` (multi-domain: `rows.measure(problem.dV(PILLAR), row)` keeps the subdomain; the pillar identity Φ_c = 0 sits in the `cell_fraction` row with v = L₀³/t₀, i.e. factor 1).
+**Follow-up.** The pillar case is recoded in the playground with `ResidualRows` (issue 18; multi-domain: `rows.measure(problem.dV(tags), row)` keeps the subdomain). Φ_c and ε_a are frozen in the pillars by their rate term (`ChangeRate`), not by the identities of equations.tex (see issue 18).
 
 ## 12. Hill one-element integration test
 
@@ -236,3 +239,35 @@ equations.tex Table tab:sf omitted s_row, the scale of the row's test function: 
   - switch the playground imports to fenicsoft.
 - Devcontainer: the playground mounts the JIT cache `/home/fenics_user/.cache/dolfin` (`DIJITSO_CACHE_DIR` of the image) as the named volume `hill-dijitso-cache`; do the same in fenicsoft. The Hill forms take about 90 s of JIT compilation on a fresh container.
 - Tooling: autoapi documents the tests too, so docstrings there must be valid reST. Write `|x|` inside `:math:`, never bare (`make docs` fails on "Undefined substitution").
+
+## 16. Subdomain indicators (gel/pillar data fields)
+
+**Changes.** New `src/fenicsoft/materials/domain_fields.py`:
+- `cell_indicator(mesh, domains, tags)`: χ_T, 1 on the tagged cells (DG0), from `io.build_indicator_meshfunction`. Piecewise data a = a_out + (a_in − a_out) χ_T (Φ_s0, conductivity, solid stress).
+- `interior_vertex_indicator(mesh, domains, tags)`: χ_T^int, 1 at the vertices whose cells are all tagged (CG1), 0 on the interface; one assembly of ∫(1 − χ_T)φ_v, exact across MPI partitions (the vertex loop of the fenicsoft demo looked at the local cells only: a partition boundary could put a gel cell out of sight).
+- Replaces the side files of `demos/smooth_muscle_cells/porous_hydrogel/microtissue_pillar_spherical{,_scale}`: `domain_fields.build_domain_split_dg0_field` (→ `cell_indicator`), `permeability.py` (→ `materials.permeability.constant` on the pillar measure), `cell_fraction_porous.build_initial_phi_s0_field` / `build_initial_phi_c_field` (→ the two indicators), `validate_gel_saturation` (→ `GelInputs.__post_init__`, `saturated_mixture.compaction_jacobian`), `PillarInteriorIdentity` (→ frozen rate, issue 18).
+
+**Tests.** `tests/unit/materials/test_domain_fields.py`.
+
+## 17. Free-floating cylinder demo
+
+**Changes.** `demos/hill_cylinder_free/{hill_cylinder_free.py, hill_cylinder_scaling.py, hill_cylinder_outputs.py, cylinder_post_processing.py, README.md}` → fenicsoft `demos/smooth_muscle_cells/porous_hydrogel/hill_cylinder_free/`, figure `docs/src/_static/resources/hill_cylinder_free_bcs.{tex,svg}`.
+- Self-contained demo (imports no other demo): the Hill box model on a cylinder (`CylinderGeometry`), L₀ = H, drained on WALL, TOP, BOTTOM; nondimensionalised by the parameters.
+- Rigid modes: isostatic 3-2-1 support (pointwise BCs, `dolfin_mech.core.PinpointSubDomain`) at the vertices nearest to (0,0,0), (R,0,0), (0,R,0), found over all ranks (`nearest_vertex`). Reuse candidate for `fenicsoft.constraints` if another free-body demo needs it.
+- QOIs `top_center_disp_z` (height change), `wall_disp_y` (−ΔR at mid-height, probe inset by h_max²/(4R)), `mean_jacobian` (V/V₀).
+
+**Done when** a local run reaches the plateau; checked here: one step (α 0 → 0.1, 1 s) on a 0.6 × 0.3 mm cylinder converges, serial = `mpirun -n 2` to 1e-15, and the post-processing reads the results.
+
+## 18. Microtissue between pillars demo
+
+**Changes.** `demos/hill_microtissue_pillars/{pillars_biaxial.py, pillars_scaling.py, pillars_outputs.py, pillars_cut_to_core.py, pillars_uniaxial_release.py, pillars_post_processing.py, batch_hill_microtissue_pillars.sh, README.md}` → fenicsoft `demos/smooth_muscle_cells/porous_hydrogel/hill_microtissue_pillars/`, replacing `microtissue_pillar_spherical` (aniso active law, SI) and `microtissue_pillar_spherical_scale` (scaled by `scale_factor`, not reviewed); figure `hill_microtissue_pillars_bcs.{tex,svg}`.
+- Self-contained demo (imports no other demo; stage B and the cut reuse stage A of the same folder).
+- Geometry: the lid sits **on top of the gel**, z ∈ [T, T + t_l] (`MicrotissuePillarsMeshGenerator` builds it so), base at z = T − (h_p − t_l); interface `SIDE_PILLARS_*` = shaft wall in the gel + annulus under the lid (not part of `TOP_GEL`, not drained). The module docstring of `fenicsoft.mesh_geometries.microtissue_pillars` (section 2: "lid flush with the gel top", z_base = T − h_p) and the `PILLAR_LID_TOP_*` marker docstring ("z = T") disagree with the code: fix them in fenicsoft.
+- Gel: Hill box model on the gel measure; pillars: Neo-Hooke + quadratic volumetric (pillar moduli / μ₀), Darcy with r_k k₀ (constant law), R_θ,φ and R_s over the whole mesh (Φ_s0 = `pillar_phi_s0` in the pillars).
+- Φ_c and ε_a frozen in the pillars by `ChangeRate` on the pillar measure (∫(x − xⁿ)/Δt δx): Φ_c = 0, λ_a = 1, no flux through the interface, no scale. equations.tex updated accordingly (2026-10-23, backup `equations.tex.bak-2026-10-23`): eq:Rc, eq:Ra, eq:Rc-nd, eq:Ra-nd, tab:sf, the strong form on Ω_pil and the new Remark rem:pillar-pin, which explains why the former identities (1/t₀)∫Φ_c δc and μ₀∫(λ_a − 1)δλ were dropped: with P1 Φ_c the identity also enters the interface rows (cell sink of relative weight Δt/t₀, up to 3e3 in the hold) and gives Φ_c < 0 inside (checked on a two-domain cube: interface value pulled from 1 to < 0.99).
+- Initial Φ_c: Φ_c0 at every vertex touching the gel, 0 strictly inside the pillars (`materials.domain_fields`, issue 16; needs Φ_c ∈ P1: `displacement_degree` = 2, checked).
+- Stage A → B: SI checkpoints of u, p, Φ_c, θ, φ, ε_a (`HANDOVER`; ε_a was not transferred in the fenicsoft demo, the aniso law had no internal variable); mesh restored to SI before writing. Cut (serial): `io.extract_submesh_by_tags`, `io.project_facet_tags`, `io.transfer_field_by_interpolation` (CG) and `io.build_dg0_gather_map` / `transfer_dg0_field` (DG0); the cut planes are tagged `CUT_FACES` and drained in stage B (p = 0 there checked in the results).
+- fenicsoft demo defects not carried over: `InterfaceResistance` on `dS(SIDE_PILLARS_*)` acts on exterior facets only (`problem.dS` is `exterior_facet`), i.e. on the pillar legs and lid surfaces, not on the gel/pillar interface (not used here: the interface is no-flux by construction); the vertex loop of the initial Φ_c sees the local cells only (MPI), replaced by `interior_vertex_indicator`; cut faces undrained; `cut_to_core` re-coded `io.transfer_field_by_interpolation`; `io.configure_environment` empties the results folder, so the cut reads stage A's folders directly.
+- Batch for asimov kept (`batch_hill_microtissue_pillars.sh`): same docker pipeline, the whole playground mounted (`PYTHONPATH=/app/src`).
+
+**Done when** stage A, cut, stage B and the post-processing run locally; checked here: one step of each stage on a half-size geometry (T = 25 µm), stage B starting exactly from the stage A state (same probe values), serial = `mpirun -n 2` (stage A) to 1e-15, post-processing on both stages.
