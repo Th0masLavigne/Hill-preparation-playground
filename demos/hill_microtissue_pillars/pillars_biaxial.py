@@ -251,9 +251,7 @@ class UserInputs:
 	    pillar_shear_modulus: :math:`\mu_{pil}` (Pa).
 	    pillar_kappa: :math:`\kappa_{pil}` (Pa).
 	    pillar_permeability_ratio: :math:`r_k = k_{pil}/k_0`, in :math:`(0, 1]`.
-	    pillar_phi_s0: :math:`\Phi_{s,0}` of the pillars (1: full solid), for ``fluid_fraction`` only; :math:`R_s` uses
-	        ``phi_s0`` everywhere.
-	    phi_s0: :math:`\Phi_{s,0}` of the gel.
+	    phi_s0: :math:`\Phi_{s,0}` of the gel, used everywhere (:math:`R_s` included).
 	    phi_c_init: :math:`\Phi_{c,0}` of the gel.
 	    phi_c_max: :math:`\Phi_{c,max}`.
 	    cellular_diffusion: :math:`D_\phi` (m^2/s).
@@ -342,7 +340,6 @@ class UserInputs:
 	pillar_shear_modulus: float = 385.0e3
 	pillar_kappa: float = 833.0e3
 	pillar_permeability_ratio: float = 1.0 / 100.0
-	pillar_phi_s0: float = 1.0
 
 	# --- Volume fractions ---
 	phi_s0: float = 0.25
@@ -401,8 +398,7 @@ class UserInputs:
 		    ValueError: :math:`\Phi_{s,0} + \Phi_{c,0} \ge 1`, uniqueness condition
 		        :math:`k_e + k_p > f_{max} \max_\lambda |f_{FL}'(\lambda)\,\lambda|` violated, a value outside its
 		        ``Literal`` (``permeability_law``, ``volumetric_law``, ``see_variant``), ``displacement_degree != 2``
-		        (initial :math:`\Phi_c` built on :math:`P_1`), :math:`r_k \notin (0, 1]` or
-		        ``pillar_phi_s0`` :math:`\notin [0, 1]`.
+		        (initial :math:`\Phi_c` built on :math:`P_1`) or :math:`r_k \notin (0, 1]`.
 		"""
 		for name, choices in _CHOICES.items():
 			value = getattr(self, name)
@@ -417,8 +413,6 @@ class UserInputs:
 			raise ValueError(f"displacement_degree must be 2 (Phi_c in P1), got {self.displacement_degree}.")
 		if not 0.0 < self.pillar_permeability_ratio <= 1.0:
 			raise ValueError(f"pillar_permeability_ratio must be in (0, 1], got {self.pillar_permeability_ratio}.")
-		if not 0.0 <= self.pillar_phi_s0 <= 1.0:
-			raise ValueError(f"pillar_phi_s0 must be in [0, 1], got {self.pillar_phi_s0}.")
 
 	@property
 	def hydraulic_conductivity(self) -> float:
@@ -459,13 +453,11 @@ class PillarFields:
 
 	Attributes:
 	    gel: :math:`\chi_{gel}` (DG0).
-	    phi_s0: :math:`\Phi_{s,0}` (gel ``phi_s0``, pillars ``pillar_phi_s0``), for ``fluid_fraction``.
 	    phi_c0: Initial :math:`\Phi_c` (CG1): :math:`\Phi_{c,0}(1 - \chi^{int}_{pil})`, :math:`\chi^{int}_{pil} = 1`
 	        strictly inside the pillars.
 	"""
 
 	gel: dolfin.Function
-	phi_s0: Any
 	phi_c0: dolfin.Function
 
 
@@ -580,7 +572,7 @@ def build_mesh(user_inputs: UserInputs) -> io.SimulationPaths:
 def build_pillar_fields(
 	mesh: dolfin.Mesh, domains_mf: dolfin.MeshFunction, region: PillarRegion, user_inputs: UserInputs
 ) -> PillarFields:
-	r"""Indicators, :math:`\Phi_{s,0}` and initial :math:`\Phi_c` of the gel/pillar split (``domain_fields``).
+	r"""Gel indicator and initial :math:`\Phi_c` of the gel/pillar split (``domain_fields``).
 
 	Args:
 	    mesh: Mesh.
@@ -595,8 +587,7 @@ def build_pillar_fields(
 	pillar_interior = domain_fields.interior_vertex_indicator(mesh, domains_mf, region.pillars)
 	phi_c0 = dolfin.Function(pillar_interior.function_space(), name="cell_fraction_initial")
 	phi_c0.vector()[:] = user_inputs.phi_c_init * (1.0 - pillar_interior.vector().get_local())
-	phi_s0 = user_inputs.pillar_phi_s0 + (user_inputs.phi_s0 - user_inputs.pillar_phi_s0) * gel
-	return PillarFields(gel=gel, phi_s0=phi_s0, phi_c0=phi_c0)
+	return PillarFields(gel=gel, phi_c0=phi_c0)
 
 
 def initialise_problem(
@@ -612,7 +603,7 @@ def initialise_problem(
 
 	Sets on ``problem``: the subsols, ``theta_func``/``phi_func`` (subsol or frozen draw),
 	``theta_initial``/``phi_initial``, ``phic_func`` (subsol or frozen initial :math:`\Phi_c`),
-	``phi_s0`` (gel/pillar field),
+	``phi_s0`` (gel :math:`\Phi_{s,0}`, ``dolfin.Constant``),
 	``kinematics``, ``permeability`` (``permeability_law``), ``k_l_tensor``
 	(:math:`\mathbf K_L = (k/\eta) J \mathbf C^{-1}`) and ``sol_tol`` (one entry per subsol, registration order).
 
@@ -666,7 +657,7 @@ def initialise_problem(
 	problem.pl_subsol = scalar("liquid_pressure", "CG", lower_degree, 0.0)
 	sol_tol.append(user_inputs.sol_tol)
 
-	problem.phi_s0 = fields.phi_s0
+	problem.phi_s0 = dolfin.Constant(user_inputs.phi_s0)
 	if user_inputs.cell_transport:
 		problem.phic_subsol = scalar("cell_fraction", "CG", lower_degree, user_inputs.phi_c_init)
 		problem.phis_subsol = scalar("substrate_smoothed", "CG", lower_degree, user_inputs.phi_s0)

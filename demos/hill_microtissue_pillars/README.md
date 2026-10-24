@@ -66,7 +66,7 @@ must hold the fenicsoft branch with `scale_factor`, `OrientationChange`, `io.mes
 cut):
 
 - `results/` (`pillars_outputs.py`): `displacement_si`, `pressure_si`, and with `cell_transport` the CG subsols
-  `cell_fraction`, `substrate_smoothed` (point data); `jacobian`, `fluid_fraction`, `permeability_ratio` (gel law),
+  `cell_fraction`, `substrate_smoothed` (point data); `jacobian`, `fluid_fraction` (0 in the pillars), `permeability_ratio` (gel law),
   `theta`, `phi`, `eps_a`, orientation angles, `lambda_*`, `tension_*`, `fibre*`, `cell_cauchy`,
   `total_cauchy` (gel or pillar law), `gel_indicator` (cell data); QOIs on the core patch (centre, top-face centre,
   front face) and averages over the gel. Hill fields are meaningful in the gel only.

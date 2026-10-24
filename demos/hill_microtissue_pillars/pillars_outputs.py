@@ -7,8 +7,9 @@ Fields (XDMF)
 -------------
 * point data: ``displacement_si``, ``pressure_si`` (scaled copies of the unknowns); with ``cell_transport``, the
   CG subsols ``cell_fraction`` and ``substrate_smoothed``;
-* cell data: ``jacobian``, ``fluid_fraction``, ``permeability_ratio``, ``theta``, ``phi`` (DG0 subsols with
-  ``remodelling``, else FOIs), ``cell_fraction`` (FOI without ``cell_transport``), ``eps_a`` (subsol),
+* cell data: ``jacobian``, ``fluid_fraction`` (:math:`\chi_{gel}\phi_\ell`, 0 in the pillars),
+  ``permeability_ratio``, ``theta``, ``phi`` (DG0 subsols with ``remodelling``, else FOIs), ``cell_fraction``
+  (FOI without ``cell_transport``), ``eps_a`` (subsol),
   ``theta_deg``/``phi_deg`` (canonical, upper hemisphere), ``theta_wrapped_deg`` (in-plane axis, period 180),
   ``tilt_xy_deg`` (0: fibre in the :math:`xy` plane), ``angle_x_deg`` (0: along :math:`x`),
   with ``_current`` variants for :math:`\mathbf f = \mathbf F\mathbf f_0/\|\mathbf F\mathbf f_0\|`; stretches
@@ -65,7 +66,7 @@ def add_outputs(
 	    contractile: :math:`R_a` operator (provides :math:`T_0` and :math:`T_{CE}`).
 	    gel_dx: Gel measure of the averages.
 	    solid_cauchy: Dimensionless solid Cauchy stress (gel law in the gel, pillar law in the pillars).
-	    gel_indicator: :math:`\chi_{gel}` (DG0).
+	    gel_indicator: :math:`\chi_{gel}` (DG0), also masks ``fluid_fraction``.
 	"""
 	kin = problem.kinematics
 	s = user_inputs.scales
@@ -96,7 +97,7 @@ def add_outputs(
 	scalar_fois: Dict[str, Any] = {
 		"jacobian": kin.J,
 		"cell_fraction": problem.phic_func,
-		"fluid_fraction": saturated_mixture.eulerian_porosity(kin.J, problem.phi_s0, problem.phic_func),
+		"fluid_fraction": gel_indicator * saturated_mixture.eulerian_porosity(kin.J, problem.phi_s0, problem.phic_func),
 		"permeability_ratio": problem.permeability.ratio,
 		"theta": problem.theta_func,
 		"phi": problem.phi_func,
