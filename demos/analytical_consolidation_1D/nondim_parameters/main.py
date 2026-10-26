@@ -70,7 +70,7 @@ from typing import Any, Dict, Sequence, Tuple
 import dolfin
 import dolfin_mech
 import numpy as np
-from fenicsoft import io, materials, operators
+from fenicsoft import integration, io, materials, operators
 from fenicsoft.mesh_geometries import GmshKeys, MeshOptions, RectangleGeometry, RectangleMarker, RectangleMeshGenerator
 from numpy.typing import NDArray
 
@@ -128,7 +128,7 @@ class UserInputs:
 	function_degree: int = 2
 	sol_tol: Tuple[float, float] = (1e-10, 1e-10)
 	n_iter_max: int = 10
-	steps: Sequence[io.Step] = (io.Step(duration=15.0, init_dt=1e-3, min_dt=1e-4, max_dt=5e-2),)
+	steps: Sequence[integration.Step] = (integration.Step(duration=15.0, init_dt=1e-3, min_dt=1e-4, max_dt=5e-2),)
 	time_integrator_param: Dict[str, Any] = field(
 		default_factory=lambda: {"n_iter_for_accel": 4, "n_iter_for_decel": 8, "accel_coeff": 1.1, "decel_coeff": 2}
 	)
@@ -179,7 +179,7 @@ class DimensionlessCoefficients:  # NONDIM
 	young: float
 	load: float
 	conductivity: float
-	steps: Tuple[io.Step, ...]
+	steps: Tuple[integration.Step, ...]
 
 	@classmethod
 	def from_inputs(cls, user_inputs: UserInputs) -> "DimensionlessCoefficients":

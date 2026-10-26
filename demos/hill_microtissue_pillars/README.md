@@ -56,9 +56,20 @@ or the whole pipeline in Docker (logs in `logs/pipeline_pillars/`):
 nohup ./batch_hill_microtissue_pillars.sh > pipeline_pillars.log 2>&1 &
 ```
 
-The batch mounts the whole playground (`PYTHONPATH=/app/src` for `hill_playground`); the image (`fenicsoft:latest`)
-must hold the fenicsoft branch with `scale_factor`, `OrientationChange`, `io.mesh_transfer`/`io.mesh_checkpoint` and
-`mesh_geometries.microtissue_pillars`, and the restructured `dolfin_mech`.
+The batch runs the image `hill_playground:<user>` (fenicsoft, restructured `dolfin_mech`, `hill_playground`
+installed editable), built once on asimov (playground and fenicsoft cloned side by side):
+
+```bash
+docker/hill_playground/build.sh                                  # fenicsoft ref of .devcontainer/fenicsoft.env
+FENICSOFT_REF=<branch|tag|sha> docker/hill_playground/build.sh   # other ref
+```
+
+Only the demo folder is mounted, so it can be copied anywhere (outputs and logs are written in it).
+`HILL_PLAYGROUND_DIR=<clone>` mounts that clone over the editable install: changes synced there are used without
+rebuilding (default: `../..` if the folder sits in a clone, else the snapshot taken at build time). The fenicsoft ref
+must hold `scale_factor`, `OrientationChange`, `mesh.transfer`/`io.mesh_checkpoint` and
+`mesh_geometries.microtissue_pillars` (checked by the build). Installed refs and the `hill_playground` used are
+written to `logs/pipeline_pillars/image.txt` at each run.
 
 ## Outputs (SI)
 

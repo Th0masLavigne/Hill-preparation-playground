@@ -75,6 +75,7 @@ import fenicsoft
 import fenicsoft.materials.orientation.spherical as spherical_mod
 import fenicsoft.operators.cell as cell_ops
 from fenicsoft import io
+from fenicsoft.integration import Step
 from fenicsoft.mesh_geometries.box import BoxGeometry, BoxMarker, BoxMeshGenerator
 from fenicsoft.mesh_geometries.mesh_geometries import GmshKeys, MeshOptions
 from fenicsoft.operators.cell.rotation.orientation_change import OrientationChange
@@ -243,7 +244,7 @@ class UserInputs:
 	displacement_degree: int = 2
 
 	# --- Time ---
-	steps: Sequence[io.Step] = field(default_factory=lambda: (io.Step(duration=20.0, init_dt=5.0, min_dt=0.5),))
+	steps: Sequence[Step] = field(default_factory=lambda: (Step(duration=20.0, init_dt=5.0, min_dt=0.5),))
 	activation_configs: Sequence[ActivePowerConfig] = field(
 		default_factory=lambda: [ActivePowerConfig.ramp(k_step=0, ini=0.0, fin=1.0)]
 	)
@@ -363,7 +364,7 @@ class Coefficients:
 	hapt_coeff: float
 	rho_s: float
 	prol_coeff: float
-	steps: Tuple[io.Step, ...]
+	steps: Tuple[Step, ...]
 	xdmf_write_period: Any
 
 	@classmethod

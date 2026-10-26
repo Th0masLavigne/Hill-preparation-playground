@@ -92,6 +92,7 @@ import fenicsoft
 import fenicsoft.materials.orientation.spherical as spherical_mod
 import fenicsoft.operators.cell as cell_ops
 from fenicsoft import io
+from fenicsoft.integration import Step
 from fenicsoft.mesh_geometries.box import BoxGeometry, BoxMarker, BoxMeshGenerator
 from fenicsoft.mesh_geometries.mesh_geometries import GmshKeys, MeshOptions
 from fenicsoft.operators.cell.rotation.orientation_change import OrientationChange
@@ -255,12 +256,12 @@ class UserInputs:
 	displacement_degree: int = 2
 
 	# --- Time ---
-	steps: Sequence[io.Step] = field(
+	steps: Sequence[Step] = field(
 		default_factory=lambda: (
-			io.Step(duration=10.0, init_dt=1.0, min_dt=0.25),  # ramp, dt ~ tau_a (was 60 and 10)
-			# io.Step(duration=600.0, init_dt=60.0, min_dt=0.25, max_dt=60.0),  # hold
-			# io.Step(duration=600.0, init_dt=30.0, min_dt=5.0),  # step 0: 0% -> 100% ramp, 10 min
-			io.Step(duration=180000.0, init_dt=1000.0, min_dt=100.0, max_dt=3000.0, min_simu_seconds=3 * 3600),
+			Step(duration=10.0, init_dt=1.0, min_dt=0.25),  # ramp, dt ~ tau_a (was 60 and 10)
+			# Step(duration=600.0, init_dt=60.0, min_dt=0.25, max_dt=60.0),  # hold
+			# Step(duration=600.0, init_dt=30.0, min_dt=5.0),  # step 0: 0% -> 100% ramp, 10 min
+			Step(duration=180000.0, init_dt=1000.0, min_dt=100.0, max_dt=3000.0, min_simu_seconds=3 * 3600),
 		)
 	)
 	activation_configs: Sequence[ActivePowerConfig] = field(

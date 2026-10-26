@@ -56,7 +56,7 @@ Expected layout on the host (same as today):
 
    | `FENICSOFT_SOURCE` | Installs | `FENICSOFT_REF` |
    | --- | --- | --- |
-   | `local` (default) | a throw-away copy of `../fenicsoft` at the ref; your checkout is untouched | local branch, `origin/<branch>`, tag or sha (default `64-reproduce-experiment-from-mostert-et-al-2`: `scale_factor` and `OrientationChange` are not on `main` yet) |
+   | `local` (default) | a throw-away copy of `../fenicsoft` at the ref; your checkout is untouched | local branch, `origin/<branch>`, tag or sha (default `main`) |
    | `editable` | `pip install -e ../fenicsoft` as currently checked out (edit both repos live) | ignored |
    | `remote` | from the GitLab, needs `FENICSOFT_TOKEN` (`secrets.env` or host env) | branch, tag or sha |
 
@@ -74,13 +74,21 @@ Expected layout on the host (same as today):
 Inside the container, no rebuild needed:
 
 ```bash
-make fenicsoft FENICSOFT_REF=77-add-micro-tissue-pillar-mesh-generator-for-mostert-et-al-demo
+make fenicsoft FENICSOFT_REF=main
 make fenicsoft FENICSOFT_SOURCE=editable
 make fenicsoft            # back to what fenicsoft.env says
 ```
 
 A branch that only exists on the GitLab must be fetched on the host first (`git fetch` in `../fenicsoft`)
 for the `local` mode, or use `FENICSOFT_SOURCE=remote`.
+
+### Batch image (asimov)
+
+`docker/hill_playground/build.sh` builds `hill_playground:<user>` from the same pieces (base `dolfin:v2019.2.0.dev0`
+with your uid, `install_fenicsoft.sh` at the ref of `fenicsoft.env`, `FENICSOFT_REF=...` to override) plus this
+package installed editable. The batches (`demos/*/batch_*.sh`) mount their own folder only, and the clone given by
+`HILL_PLAYGROUND_DIR` over the editable install. Needs `../fenicsoft` (or `FENICSOFT_SOURCE=remote` + token) and
+BuildKit (Docker ≥ 23).
 
 ## Daily commands
 

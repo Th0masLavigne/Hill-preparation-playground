@@ -22,6 +22,7 @@ from typing import Any, Sequence, Union
 import dolfin
 import pillars_biaxial as stage_a
 from fenicsoft import io
+from fenicsoft.integration import Step
 
 from hill_playground import integration
 from hill_playground.materials.cell.active.activation import ActivePowerConfig
@@ -51,9 +52,9 @@ class UserInputs(stage_a.UserInputs):
 	    stem_mesh_name: Core mesh file stem.
 	"""
 
-	steps: Sequence[io.Step] = field(
+	steps: Sequence[Step] = field(
 		default_factory=lambda: (
-			io.Step(duration=42000.0, init_dt=1.0, min_dt=0.25, max_dt=3000.0, min_simu_seconds=3 * 3600),
+			Step(duration=42000.0, init_dt=1.0, min_dt=0.25, max_dt=3000.0, min_simu_seconds=3 * 3600),
 		)
 	)
 	activation_configs: Sequence[ActivePowerConfig] = field(

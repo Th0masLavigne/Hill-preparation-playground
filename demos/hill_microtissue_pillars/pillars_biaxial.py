@@ -122,6 +122,7 @@ import fenicsoft
 import fenicsoft.materials.orientation.spherical as spherical_mod
 import fenicsoft.operators.cell as cell_ops
 from fenicsoft import io
+from fenicsoft.integration import Step
 from fenicsoft.mesh_geometries.mesh_geometries import GmshKeys, MeshOptions, RefinementZone
 from fenicsoft.mesh_geometries.microtissue_pillars import (
 	MicrotissuePillarsGeometry,
@@ -355,10 +356,10 @@ class UserInputs:
 	displacement_degree: int = 2
 
 	# --- Time ---
-	steps: Sequence[io.Step] = field(
+	steps: Sequence[Step] = field(
 		default_factory=lambda: (
-			io.Step(duration=10.0, init_dt=1.0, min_dt=0.25),  # ramp, dt ~ tau_a
-			io.Step(duration=42000.0, init_dt=100.0, min_dt=1.0, max_dt=3000.0, min_simu_seconds=3 * 3600),
+			Step(duration=10.0, init_dt=1.0, min_dt=0.25),  # ramp, dt ~ tau_a
+			Step(duration=42000.0, init_dt=100.0, min_dt=1.0, max_dt=3000.0, min_simu_seconds=3 * 3600),
 		)
 	)
 	activation_configs: Sequence[ActivePowerConfig] = field(

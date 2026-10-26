@@ -2,7 +2,7 @@
 
 import numpy as np
 import pytest
-from fenicsoft import io
+from fenicsoft import integration
 
 from hill_playground.integration import TimeInterval
 from hill_playground.scaling import CharacteristicScales, nondimensionalize_step, nondimensionalize_write_period
@@ -13,7 +13,7 @@ SCALES = CharacteristicScales(length=1.0, stress=1.0, time=T0, density=1.0)
 
 def test_every_time_field_of_a_step_is_divided_by_t0() -> None:
 	"""duration, init_dt, min_dt, max_dt and min_simu_seconds: t / t0."""
-	step = io.Step(duration=100.0, init_dt=8.0, min_dt=2.0, max_dt=20.0, min_simu_seconds=40.0)
+	step = integration.Step(duration=100.0, init_dt=8.0, min_dt=2.0, max_dt=20.0, min_simu_seconds=40.0)
 	scaled = nondimensionalize_step(step, SCALES)
 	for name in ("duration", "init_dt", "min_dt", "max_dt", "min_simu_seconds"):
 		assert getattr(scaled, name) == pytest.approx(getattr(step, name) / T0, rel=1e-12), name
@@ -21,7 +21,7 @@ def test_every_time_field_of_a_step_is_divided_by_t0() -> None:
 
 def test_optional_fields_left_at_none() -> None:
 	"""max_dt and min_simu_seconds not given: still None."""
-	scaled = nondimensionalize_step(io.Step(duration=100.0, init_dt=8.0, min_dt=2.0), SCALES)
+	scaled = nondimensionalize_step(integration.Step(duration=100.0, init_dt=8.0, min_dt=2.0), SCALES)
 	assert scaled.max_dt is None
 	assert scaled.min_simu_seconds is None
 	assert scaled.duration == pytest.approx(25.0, rel=1e-12)
@@ -41,7 +41,7 @@ def test_write_period() -> None:
 def test_numpy_t0_gives_python_floats() -> None:
 	"""t0 as numpy.float64: Python floats out (TimeVaryingConstant.set_value ignores NumPy scalars)."""
 	scales = CharacteristicScales(length=1.0, stress=1.0, time=np.float64(T0), density=1.0)
-	scaled = nondimensionalize_step(io.Step(duration=100.0, init_dt=8.0, min_dt=2.0, max_dt=20.0), scales)
+	scaled = nondimensionalize_step(integration.Step(duration=100.0, init_dt=8.0, min_dt=2.0, max_dt=20.0), scales)
 	for name in ("duration", "init_dt", "min_dt", "max_dt"):
 		value = getattr(scaled, name)
 		assert isinstance(value, float) and not isinstance(value, np.generic), name  # np.float64 subclasses float

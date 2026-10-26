@@ -1,4 +1,4 @@
-"""Equivalence with fenicsoft: ``ActivationSchedule`` gives the same alpha as the iso and aniso laws.
+"""Equivalence with fenicsoft: ``ActivationSchedule`` gives the same alpha as the iso active law.
 
 Random config sets (constant, ramp, function of t; missing, duplicated and out-of-range ``k_step``)
 and random ``set_k_step``/``update_time`` sequences.
@@ -10,7 +10,6 @@ from typing import Any, Callable
 
 import dolfin
 from dolfin_mech.kinematics import Kinematics
-from fenicsoft.materials.cell.active.aniso import law as aniso
 from fenicsoft.materials.cell.active.iso import law as iso
 from fenicsoft.materials.cell.active.iso.law import ActivePowerConfig as FenicsoftConfig
 
@@ -37,8 +36,8 @@ def _alpha(obj: Any, t_step: float) -> Any:
 	return float(obj.p_cell if hasattr(obj, "p_cell") else obj.p_act)
 
 
-def test_same_alpha_as_iso_and_aniso() -> None:
-	"""100 random cases x 20 calls: identical alpha (or identical failure) for the three implementations."""
+def test_same_alpha_as_iso() -> None:
+	"""100 random cases x 20 calls: identical alpha (or identical failure) for both implementations."""
 	rng = random.Random(0)
 	mesh = dolfin.UnitCubeMesh(1, 1, 1)
 	kin = Kinematics(U=dolfin.Function(dolfin.VectorFunctionSpace(mesh, "CG", 1)))
@@ -58,16 +57,6 @@ def test_same_alpha_as_iso_and_aniso() -> None:
 			for _ in range(rng.randint(0, 5))
 		]
 		laws = [
-			aniso.Constitutive(
-				kin,
-				aniso.Parameters(
-					phi_c=dolfin.Constant(0.1),
-					f0=dolfin.Constant((1.0, 0.0, 0.0)),
-					activation_configs=_configs(FenicsoftConfig, specs),
-					f_max=1.0,
-					simulation_steps=steps,
-				),
-			),
 			iso.Constitutive(
 				kin,
 				iso.Parameters(
@@ -83,4 +72,4 @@ def test_same_alpha_as_iso_and_aniso() -> None:
 					obj.set_k_step(k_step)
 			t_step = rng.random()
 			values = [_alpha(obj, t_step) for obj in laws]
-			assert values[0] == values[1] == values[2], (specs, values)
+			assert values[0] == values[1], (specs, values)

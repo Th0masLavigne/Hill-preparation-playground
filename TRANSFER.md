@@ -2,7 +2,24 @@
 
 Everything in `hill_playground/<path>` targets `fenicsoft/<path>` (same sub-package names).
 One issue = one merge request, in the order below: each one only needs the issues above it.
-Reference branch: `64-reproduce-experiment-from-mostert-et-al-2` (it has `scale_factor` and `OrientationChange`).
+Reference branch: fenicsoft `main` (clean-up #93 merged; it carries `scale_factor` and `OrientationChange`).
+
+**fenicsoft conventions since #93** (apply them in every transfer merge request):
+- Layout: `Step` is in `fenicsoft.integration` (`integration.Step`), the mesh cut and field transfer in the new
+  `fenicsoft.mesh` (`fenicsoft.mesh.transfer`); `fenicsoft.io` only reads and writes files. Tests mirror `src`
+  (`tests/unit/integration/`, `tests/unit/mesh/`, ...).
+- Demos: elementary cases on simple geometries in `demos/`, complex cases (real geometries, multi-stage pipelines,
+  reproduced experiments) in `demos/applications/`. Each demo module docstring gives the problem, the BCs with a TikZ
+  figure (`docs/src/_static/resources/<demo>_bcs.{tex,svg}`), the residuals and the validation.
+- Archives: superseded code in `archives/{src,demos,tests}` (not installed, tested nor linted; documented under
+  "Archives (not maintained)"). The anisotropic active law `materials/cell/active/aniso` and the demos using it
+  (`hill_cube`, `hill_cylinder_*remodelling`, `microtissue_pillars_{planar,spherical}`, porous
+  `microtissue_pillar_spherical`) are there; `microtissue_pillar_spherical_scale` was deleted.
+- Docstrings: Google style, short (first line = objective, then the equation, `Args`/`Returns` without types, no
+  history; tests: one line stating what is verified), as in the playground (fenicsoft README, "Contributing").
+- `make linter` (ruff 0.3.0 of the pre-commit hook, D rules included: one-line summary, blank line after it),
+  `make cov` (100 % of the transferred modules) and `make docs` (`sphinx -W`, docs include demos, applications,
+  tests and archives) must pass.
 
 **`__init__.py` files** are never copied: merge their imports and `__all__` into the existing fenicsoft ones (they export more). fenicsoft has no `__init__.py` in `operators/cell/*/` sub-folders: export the new classes from `operators/cell/__init__.py` instead. New top-level sub-package (`scaling`): add it to `fenicsoft/__init__.py` and its `__all__`.
 
@@ -26,7 +43,7 @@ Legend: **new**: the file does not exist in fenicsoft. **change**: patch an exis
 | 12 | Hill one-element integration test | new | 5, 6, 11 |
 | 13 | Terzaghi integration test, nondimensionalization methods | new | 2, 11 |
 | 14 | Hill box demo | new | 0–11 |
-| 15 | Follow-ups (iso/aniso activation, `ScaledKinematics`, tooling) | change | 4 |
+| 15 | Follow-ups (iso activation, `ScaledKinematics`, tooling) | change | 4 |
 | 16 | Subdomain indicators (gel/pillar data fields) | new | – |
 | 17 | Free-floating cylinder demo | new | 0–11 |
 | 18 | Microtissue between pillars demo (stage A, cut, stage B) | new | 0–11, 16 |
@@ -35,7 +52,7 @@ Legend: **new**: the file does not exist in fenicsoft. **change**: patch an exis
 
 ## 0. Shared UFL guards
 
-**Changes.** New `src/fenicsoft/ufl_functions.py`: `piecewise(x, x0, f_le, f_gt)` (the tie x = x0 and its UFL tangent go to the lower branch), and with it `floored(x, x_f)` = max(x, x_f), `capped(x, x_c)` = min(x, x_c), `macaulay(x)` = max(x, 0) (tangent 0 at 0) and `macaulay_negative(x)` = min(x, 0) (tangent 1 at 0), the Newton safeguards of the Hill, permeability and compaction laws and of `SaturatedProliferation` (written once; they were three copies). Package root, not `materials/`: operators use them too. Import it first in `fenicsoft/__init__.py`. Reuse candidates in fenicsoft: `safe_inv4` in `materials/cell/active/aniso/law.py` (`floored`), the clamped `sqrt` in `materials/orientation/generic.py` (`macaulay`), the saturation `conditional(phi_c > phi_c_max, 0, 1 - phi_c/phi_c_max)` in `operators/cell/haptotaxis/saturated.py` (`macaulay`).
+**Changes.** New `src/fenicsoft/ufl_functions.py`: `piecewise(x, x0, f_le, f_gt)` (the tie x = x0 and its UFL tangent go to the lower branch), and with it `floored(x, x_f)` = max(x, x_f), `capped(x, x_c)` = min(x, x_c), `macaulay(x)` = max(x, 0) (tangent 0 at 0) and `macaulay_negative(x)` = min(x, 0) (tangent 1 at 0), the Newton safeguards of the Hill, permeability and compaction laws and of `SaturatedProliferation` (written once; they were three copies). Package root, not `materials/`: operators use them too. Import it first in `fenicsoft/__init__.py`. Reuse candidates in fenicsoft: the clamped `sqrt` in `materials/orientation/generic.py` (`macaulay`), the saturation `conditional(phi_c > phi_c_max, 0, 1 - phi_c/phi_c_max)` in `operators/cell/haptotaxis/saturated.py` (`macaulay`).
 
 **Tests.** `tests/unit/test_ufl_functions.py`.
 
@@ -58,28 +75,27 @@ Legend: **new**: the file does not exist in fenicsoft. **change**: patch an exis
 - Permanent fix on the fenicsoft side: no dolfin_mech change is expected, and fenicsoft only uses `DecimatedTimeIntegrator`. `NonlinearSolver` needs no change: the base `TimeIntegrator.__init__` sets `solver.printer = self.printer`, so silencing `self.printer` also silences the Newton lines. Only a `NonlinearSolver` used on its own with `print_out=<file>` would still write from every rank.
 
 **Tests.**
-- `tests/unit/integration/test_decimated_time_integrator.py` and `integrator_case.py` → fenicsoft `tests/unit/io/`. They cover:
+- `tests/unit/integration/test_decimated_time_integrator.py` and `integrator_case.py` → fenicsoft `tests/unit/integration/` (where fenicsoft's `test_decimated_time_integrator_unit.py` now is). They cover:
   - the selected fields and the base list;
   - the `mpirun -n 2` logs being identical to the serial ones (`.out` as text with every number masked, since timings differ; `.sta` as raw text; `.dat` numerically to 1e-10);
   - a silenced rank, both after a run and at construction (rank faked to 1);
   - the plateau exit on a real problem, including the "before `min_simu_seconds`" and "not yet stagnant" branches.
 - `integrator_case.py` is a no-flux diffusion with c₀ = 1 + cos πx, so c → 1 and the plateau is reached around t ≈ 0.6. Avoid a Dirichlet BC with a single subsol: it does not act on the solution and the case becomes trivial (c ≡ 0).
 - The MPI test works with both MPICH and Open MPI. `--oversubscribe` and `--allow-run-as-root` are only added when `mpirun --version` says Open MPI, because MPICH's hydra rejects them. The parent's `OMPI_*`, `PMIX_*` and `PMI_*` variables are dropped for the child job, since dolfin has already initialised MPI in the parent.
-- `test_decimated_time_integrator_unit.py` is fenicsoft's test with the import changed, all docstrings shortened, the `_relative_error` tests removed (function gone), the constant renamed, and: `test_integrate_permanent_solver_failure_ends_the_step_unsuccessfully` now expects no write (t = 0 already in the file); new tests `..._force_at_previous_step_end_after_step_change_is_a_no_op`, `..._force_at_initial_time_is_a_no_op` (duplicate-frame fix) and `test_is_subsol_stagnant_zero_scale` (zero norm). Port these changes into fenicsoft's file.
+- `test_decimated_time_integrator_unit.py` is fenicsoft's test with the import changed, all docstrings shortened, the `_relative_error` tests removed (function gone), the constant renamed, and: `test_integrate_permanent_solver_failure_ends_the_step_unsuccessfully` now expects no write (t = 0 already in the file); new tests `..._force_at_previous_step_end_after_step_change_is_a_no_op`, `..._force_at_initial_time_is_a_no_op` (duplicate-frame fix) and `test_is_subsol_stagnant_zero_scale` (zero norm). Port these changes into fenicsoft's file, now `tests/unit/integration/test_decimated_time_integrator_unit.py` (its docstrings were already condensed in #93: diff the code, not the docstrings).
 
 **Done when** the 61 integration unit test cases (59 functions, 2 of them parametrized) pass with 100 % coverage of the module, and an `mpirun -n 2` run of a demo gives a `.out` with the same line count as the serial run.
 
 ## 2. Scaling: promote `CharacteristicScales` to `fenicsoft.scaling`
 
 **Changes.**
-- New `src/fenicsoft/scaling/{__init__.py, characteristic_scales.py, time_steps.py}`, from `hill_playground/scaling`. It is the demo-side `microtissue_pillar_spherical_scale/src/characteristic_scales.py`, plus:
+- New `src/fenicsoft/scaling/{__init__.py, characteristic_scales.py, time_steps.py}`, from `hill_playground/scaling`. It supersedes the demo-side copy of the deleted `microtissue_pillar_spherical_scale` (`src/characteristic_scales.py`), plus:
   - `identity()`;
   - conversions documented for floats and UFL expressions;
   - corrected docstring of `permeability_over_viscosity`: L₀²/(μ₀t₀) = (k/η)κ/μ₀, so K̂ = μ₀/κ;
   - raw-docstring math fixed (`1/\tau`, `k/\eta` were written with a double backslash).
-- `time_steps.py`: `nondimensionalize_step` (`fenicsoft.io.Step` time fields, `min_simu_seconds` included) and `nondimensionalize_write_period` (`TimeInterval` / t₀), shared by the scaled demos; both return Python `float` (see §15, `set_dt` with a NumPy scalar). Depends on `integration.TimeInterval`.
-- The demo-side test `microtissue_pillar_spherical_scale/test/test_characteristic_scales.py:130` expects (k/η)(μ₀/κ) for `permeability_over_viscosity`; the code returns (k/η)(κ/μ₀) (correct). It fails whenever μ₀ ≠ κ: it goes with the demo below (the playground test is the corrected one).
-- The scaled pillar demo (`microtissue_pillar_spherical_scale`, wrong row factors: see issue 11) is to be deleted from fenicsoft (still on the reference branch). The pillar case will be recoded in the playground on top of issues 2 and 11, once the Hill box is validated.
+- `time_steps.py`: `nondimensionalize_step` (`fenicsoft.integration.Step` time fields, `min_simu_seconds` included) and `nondimensionalize_write_period` (`TimeInterval` / t₀), shared by the scaled demos; both return Python `float` (see §15, `set_dt` with a NumPy scalar). Depends on `integration.TimeInterval`.
+- Done in #93: the scaled pillar demo `microtissue_pillar_spherical_scale` (wrong row factors, see issue 11; its test expected (k/η)(μ₀/κ) for `permeability_over_viscosity`) is deleted from fenicsoft. The pillar case is recoded in the playground (issue 18).
 
 **Tests.** `tests/unit/scaling/test_characteristic_scales.py` (100 % coverage), `tests/unit/scaling/test_time_steps.py`.
 
@@ -94,13 +110,13 @@ Legend: **new**: the file does not exist in fenicsoft. **change**: patch an exis
 **Changes.** New `src/fenicsoft/materials/cell/active/activation.py`:
 - `ActivePowerConfig`: same API as in `iso.law`;
 - `ActivationSchedule`: owns `p_act` and the global `time`, with `set_k_step` and `update_time`.
-- Difference from the machinery in `iso`/`aniso`: in `update_time`, `elif manager is not None` becomes `else`. A manager exists for every config without `func`, so the third case was unreachable (`# pragma: no cover` in iso and aniso).
+- Difference from the machinery in `iso`: in `update_time`, `elif manager is not None` becomes `else`. A manager exists for every config without `func`, so the third case was unreachable (`# pragma: no cover` in iso; the archived aniso law had the same copy).
 
 It is not a constitutive law. Active laws use it by composition, so no law depends on another one.
 
 **Tests.**
 - `tests/unit/materials/cell/active/test_activation.py`.
-- `tests/unit/materials/cell/active/test_activation_equivalence.py`: 100 random config sets × 20 calls give the same α as `iso.Constitutive` and `aniso.Constitutive`, or the same `IndexError` for a function config on a missing step. The sets cover constant, ramp and function configs, and missing, duplicated or out-of-range `k_step`.
+- `tests/unit/materials/cell/active/test_activation_equivalence.py`: 100 random config sets × 20 calls give the same α as `iso.Constitutive` (the aniso comparison was dropped with the archived law), or the same `IndexError` for a function config on a missing step. The sets cover constant, ramp and function configs, and missing, duplicated or out-of-range `k_step`.
 - fenicsoft demos: they only use `ActivePowerConfig.constant`, `.ramp` and `.function`, never the internals, so the change is transparent for them.
 
 ## 5. Hill chain law (self-contained)
@@ -138,7 +154,6 @@ It is not a constitutive law. Active laws use it by composition, so no law depen
 - New package `src/fenicsoft/materials/permeability/`:
 - `base.py`: `pulled_back_conductivity` K_L = (k/η) J C⁻¹; `PermeabilityParameters(MaterialParameters)` (k₀/η) and `PorousPermeabilityParameters` (+ Φ_s0 uniform, Φ_c, Φ_c0); `Permeability` (abstract `_ratio()` = k/k₀ read through the cached `ratio`, then `hydraulic_conductivity` and `tensor`) and `PorousPermeability` (+ `porosity` φ_ℓ, `porosity_0` φ_ℓ0, `fluid_ratio` Φ_ℓ/Φ_ℓ0).
 - One module per law, with its `Parameters` (own fields only) and `Permeability` (only `_ratio`): `constant`, `kozeny_carman` (0 < Φ_s0 + Φ_c0 enforced: φ_ℓ0 = 1 divides by 0), `holmes_mow` (κ_HM ≥ 0 and M ≥ 0 enforced), `compaction_power` (n ≥ 1 enforced).
-- Afterwards, the pillar demos can replace their `permeability.py` (gel/pillar field) by these laws times a domain field.
 
 **Tests.** `tests/unit/materials/test_saturated_mixture.py`, `tests/unit/materials/permeability/test_permeability_laws.py`.
 
@@ -205,11 +220,12 @@ equations.tex Table tab:sf omitted s_row, the scale of the row's test function: 
 ## 14. Hill box demo
 
 **Changes.**
-- `demos/hill_box/{hill_box_uniaxial.py, hill_box_scaling.py, hill_box_outputs.py, post_processing.py, README.md}` → fenicsoft `demos/smooth_muscle_cells/porous_hydrogel/hill_box/`.
+- `demos/hill_box/{hill_box_uniaxial.py, hill_box_scaling.py, hill_box_outputs.py, post_processing.py, README.md}` → fenicsoft `demos/smooth_muscle_cells/porous_hydrogel/hill_box/` (elementary: simple geometry), figure `docs/src/_static/resources/hill_box_bcs.{tex,svg}`.
+- fenicsoft's `terzaghi_analytics.py` and the SI Terzaghi demos now carry condensed docstrings and the figure `terzaghi_plane_strain.{tex,svg}` (copied from the playground in #93).
 - `demos/analytical_consolidation_1D/{nondim_parameters, nondim_operator, terzaghi_analytics.py, post_process.py, README.md}` → fenicsoft `demos/analytical_consolidation_1D/` (next to `single_step/`, `initialising_step/`).
   - **Name clash**: fenicsoft already has `terzaghi_analytics.py` and `post_process.py` there, with a different content and API (`single_step/` and `initialising_step/` import `post_process`). Either merge (keep fenicsoft's names used by the SI demos, add `TerzaghiCase`, `read_qois`, `compute_errors`, `plot_results`), or rename the playground ones (e.g. `terzaghi_case.py`, `post_process_nondim.py`) before the copy.
 - The demo is nondimensionalised **by the parameters only** (`hill_box_scaling.Coefficients`, every `scale_factor` 1, solve in t̂). The three-mode version (`nondimensionalization` = `none`, `operator`, `parameters`) is the test reference `tests/integration/demos/hill_box_modes/hill_box_all_modes.py`, with `jacobian_scaling.py`.
-- `tests/integration/demos/{test_hill_box_scaling.py, test_hill_box_inputs.py, test_hill_box_post_processing.py, hill_box_modes/}` → `demos/.../hill_box/test/` with a `sys.path` conftest, as in `microtissue_pillar_spherical_scale/test/` (fenicsoft has no `tests/integration/demos/`). `testpaths = ["tests"]` does not collect it: run it explicitly (`pytest demos/.../hill_box/test`), or decide another location before the merge request.
+- `tests/integration/demos/{test_hill_box_scaling.py, test_hill_box_inputs.py, test_hill_box_post_processing.py, hill_box_modes/}` → `demos/.../hill_box/test/` with a `sys.path` conftest (fenicsoft has no `tests/integration/demos/`). `testpaths = ["tests"]` does not collect it: run it explicitly (`pytest demos/.../hill_box/test`), or decide another location before the merge request.
 - Replace the `hill_playground.*` imports by `fenicsoft.*`.
 - `UserInputs` options (demo): `permeability_law`, `volumetric_law`, `see_variant`, `cell_transport`, `remodelling`, `xdmf_si_only`, `quadrature_degrees`; `hill_box_all_modes.UserInputs` adds `nondimensionalization`.
 - Outputs:
@@ -230,11 +246,12 @@ equations.tex Table tab:sf omitted s_row, the scale of the row's test function: 
 
 ## 15. Follow-ups
 
-- `iso.law` and `aniso.law` import `ActivePowerConfig` (and the `p_act` machinery) from `cell/active/activation.py` (issue 4), and remove their copies.
-  - `aniso` keeps `p_act` and `iso` keeps `p_cell` as aliases of `ActivationSchedule.p_act`, plus `current_activation` / `current_power`.
-  - Their unit tests read private attributes and must be adapted: `_current_manager` and `_step_managers` in `test_law_cell_iso.py`, `_current_config` in `test_law_cell_aniso.py`.
+- `iso.law` imports `ActivePowerConfig` (and the `p_act` machinery) from `cell/active/activation.py` (issue 4), and removes its copy (`aniso.law` is archived since #93).
+  - `iso` keeps `p_cell` as an alias of `ActivationSchedule.p_act`, plus `current_power`.
+  - Its unit test reads private attributes and must be adapted: `_current_manager` and `_step_managers` in `test_law_cell_iso.py`.
   - The equivalence test then becomes redundant.
-- `ScaledKinematics` (pillar demo `src/`) goes with the deleted scaled pillar demo: the mesh is scaled, so `Kinematics` is exact.
+  - The archived demos import `ActivePowerConfig` from `fenicsoft.materials.cell.active.iso.law`: point them to `activation.py` too (or leave them, they are not maintained).
+- `ScaledKinematics` (pillar demo `src/`) went with the deleted scaled pillar demo (#93): the mesh is scaled, so `Kinematics` is exact.
 - After each merge:
   - remove the transferred paths from `NEW_BRANCHES` in `tests/environment/test_env.py`;
   - delete the playground copies;
@@ -247,15 +264,15 @@ equations.tex Table tab:sf omitted s_row, the scale of the row's test function: 
 ## 16. Subdomain indicators (gel/pillar data fields)
 
 **Changes.** New `src/fenicsoft/materials/domain_fields.py`:
-- `cell_indicator(mesh, domains, tags)`: χ_T, 1 on the tagged cells (DG0), from `io.build_indicator_meshfunction`. Only owned dofs are written (ghost cells, `ghost_mode != "none"`, have dofs past the local vector). Piecewise data a = a_out + (a_in − a_out) χ_T (Φ_s0, conductivity, solid stress).
+- `cell_indicator(mesh, domains, tags)`: χ_T, 1 on the tagged cells (DG0), from `fenicsoft.mesh.build_indicator_meshfunction`. Only owned dofs are written (ghost cells, `ghost_mode != "none"`, have dofs past the local vector). Piecewise data a = a_out + (a_in − a_out) χ_T (Φ_s0, conductivity, solid stress).
 - `interior_vertex_indicator(mesh, domains, tags)`: χ_T^int, 1 at the vertices whose cells are all tagged (CG1), 0 on the interface; one assembly of ∫(1 − χ_T)φ_v, exact across MPI partitions (the vertex loop of the fenicsoft demo looked at the local cells only: a partition boundary could put a gel cell out of sight).
-- Replaces the side files of `demos/smooth_muscle_cells/porous_hydrogel/microtissue_pillar_spherical{,_scale}`: `domain_fields.build_domain_split_dg0_field` (→ `cell_indicator`), `permeability.py` (→ `materials.permeability.constant` on the pillar measure), `cell_fraction_porous.build_initial_phi_s0_field` / `build_initial_phi_c_field` (→ the two indicators), `validate_gel_saturation` (→ `GelInputs.__post_init__`, `saturated_mixture.compaction_jacobian`), `PillarInteriorIdentity` (→ frozen rate, issue 18).
+- Replaces the side files of the archived `archives/demos/smooth_muscle_cells/porous_hydrogel/microtissue_pillar_spherical` (the `_scale` copy is deleted): `domain_fields.build_domain_split_dg0_field` (→ `cell_indicator`), `permeability.py` (→ `materials.permeability.constant` on the pillar measure), `cell_fraction_porous.build_initial_phi_s0_field` / `build_initial_phi_c_field` (→ the two indicators), `validate_gel_saturation` (→ `GelInputs.__post_init__`, `saturated_mixture.compaction_jacobian`), `PillarInteriorIdentity` (→ frozen rate, issue 18).
 
 **Tests.** `tests/unit/materials/test_domain_fields.py`.
 
 ## 17. Free-floating cylinder demo
 
-**Changes.** `demos/hill_cylinder_free/{hill_cylinder_free.py, hill_cylinder_scaling.py, hill_cylinder_outputs.py, cylinder_post_processing.py, README.md}` → fenicsoft `demos/smooth_muscle_cells/porous_hydrogel/hill_cylinder_free/`, figure `docs/src/_static/resources/hill_cylinder_free_bcs.{tex,svg}`.
+**Changes.** `demos/hill_cylinder_free/{hill_cylinder_free.py, hill_cylinder_scaling.py, hill_cylinder_outputs.py, cylinder_post_processing.py, README.md}` → fenicsoft `demos/smooth_muscle_cells/porous_hydrogel/hill_cylinder_free/` (elementary: simple geometry), figure `docs/src/_static/resources/hill_cylinder_free_bcs.{tex,svg}`.
 - Self-contained demo (imports no other demo): the Hill box model on a cylinder (`CylinderGeometry`), L₀ = H, drained on WALL, TOP, BOTTOM; nondimensionalised by the parameters.
 - Rigid modes: isostatic 3-2-1 support (pointwise BCs, `dolfin_mech.core.PinpointSubDomain`) at the vertices nearest to (0,0,0), (R,0,0), (0,R,0), found over all ranks (`nearest_vertex`). Reuse candidate for `fenicsoft.constraints` if another free-body demo needs it.
 - QOIs `top_center_disp_z` (height change), `wall_disp_y` (−ΔR at mid-height, probe inset by h_max²/(4R)), `mean_jacobian` (V/V₀).
@@ -264,14 +281,14 @@ equations.tex Table tab:sf omitted s_row, the scale of the row's test function: 
 
 ## 18. Microtissue between pillars demo
 
-**Changes.** `demos/hill_microtissue_pillars/{pillars_biaxial.py, pillars_scaling.py, pillars_outputs.py, pillars_cut_to_core.py, pillars_uniaxial_release.py, pillars_post_processing.py, batch_hill_microtissue_pillars.sh, README.md}` → fenicsoft `demos/smooth_muscle_cells/porous_hydrogel/hill_microtissue_pillars/`, replacing `microtissue_pillar_spherical` (aniso active law, SI) and `microtissue_pillar_spherical_scale` (scaled by `scale_factor`, not reviewed); figure `hill_microtissue_pillars_bcs.{tex,svg}`.
+**Changes.** `demos/hill_microtissue_pillars/{pillars_biaxial.py, pillars_scaling.py, pillars_outputs.py, pillars_cut_to_core.py, pillars_uniaxial_release.py, pillars_post_processing.py, batch_hill_microtissue_pillars.sh, README.md}` → fenicsoft `demos/applications/hill_microtissue_pillars/` (complex: multi-patch geometry, two stages and a cut), which supersedes the archived `microtissue_pillar_spherical` (aniso active law, SI); figure `hill_microtissue_pillars_bcs.{tex,svg}`. Being an application, its module docstrings may keep more context than an elementary demo, in the same style.
 - Self-contained demo (imports no other demo; stage B and the cut reuse stage A of the same folder).
-- Geometry: the lid sits **on top of the gel**, z ∈ [T, T + t_l] (`MicrotissuePillarsMeshGenerator` builds it so), base at z = T − (h_p − t_l); `SIDE_PILLARS_*` = pillar boundary minus base and lid top: the interface (shaft wall in the gel + annulus under the lid, not part of `TOP_GEL`, not drained) plus the shaft below the gel and the lid rim. The module docstring of `fenicsoft.mesh_geometries.microtissue_pillars` (section 2: "lid flush with the gel top", z_base = T − h_p), the `PILLAR_LID_TOP_*` marker docstring ("z = T"), the `pillar_base_z` docstring (T − h_p, code T − (h_p − t_l)) and the `SIDE_PILLARS_*` docstring ("interface" only) disagree with the code: fix them in fenicsoft.
+- Geometry: the lid sits **on top of the gel**, z ∈ [T, T + t_l] (`MicrotissuePillarsMeshGenerator` builds it so), base at z = T − (h_p − t_l); `SIDE_PILLARS_*` = pillar boundary minus base and lid top: the interface (shaft wall in the gel + annulus under the lid, not part of `TOP_GEL`, not drained) plus the shaft below the gel and the lid rim. The `fenicsoft.mesh_geometries.microtissue_pillars` docstrings (lid position, `pillar_base_z`, `PILLAR_LID_TOP_*`, `SIDE_PILLARS_*`) were corrected to match the code in #93.
 - Gel: Hill box model on the gel measure; pillars: Neo-Hooke + quadratic volumetric (pillar moduli / μ₀), Darcy with r_k k₀ (constant law), R_θ,φ and R_s over the whole mesh, R_s with the gel Φ_s0 everywhere (a pillar value would make φ̃_s jump across the first gel element and pull the cells onto the pillars by haptotaxis); output `fluid_fraction` = χ_gel φ_ℓ (0 in the pillars, no pillar Φ_s0).
 - Φ_c and ε_a frozen in the pillars by `ChangeRate` on the pillar measure (∫(x − xⁿ)/Δt δx): Φ_c = 0, λ_a = 1, no flux through the interface, no scale. equations.tex updated accordingly (2026-10-23, backup `equations.tex.bak-2026-10-23`): eq:Rc, eq:Ra, eq:Rc-nd, eq:Ra-nd, tab:sf, the strong form on Ω_pil and the new Remark rem:pillar-pin, which explains why the former identities (1/t₀)∫Φ_c δc and μ₀∫(λ_a − 1)δλ were dropped: with P1 Φ_c the identity also enters the interface rows (cell sink of relative weight Δt/t₀, up to 3e3 in the hold) and gives Φ_c < 0 inside (checked on a two-domain cube: interface value pulled from 1 to < 0.99).
 - Initial Φ_c: Φ_c0 at every vertex touching the gel, 0 strictly inside the pillars (`materials.domain_fields`, issue 16; needs Φ_c ∈ P1: `displacement_degree` = 2, checked).
-- Stage A → B: SI checkpoints of u, p, Φ_c, θ, φ, ε_a (`HANDOVER`; ε_a was not transferred in the fenicsoft demo, the aniso law had no internal variable); mesh restored to SI before writing. Cut (serial): `io.extract_submesh_by_tags`, `io.project_facet_tags`, `io.transfer_field_by_interpolation` (CG) and `io.build_dg0_gather_map` / `transfer_dg0_field` (DG0); the cut planes are tagged `CUT_FACES` and drained in stage B (p = 0 there checked in the results).
-- fenicsoft demo defects not carried over: `InterfaceResistance` on `dS(SIDE_PILLARS_*)` acts on exterior facets only (`problem.dS` is `exterior_facet`), i.e. on the pillar legs and lid surfaces, not on the gel/pillar interface (not used here: the interface is no-flux by construction); the vertex loop of the initial Φ_c sees the local cells only (MPI), replaced by `interior_vertex_indicator`; cut faces undrained; `cut_to_core` re-coded `io.transfer_field_by_interpolation`; `io.configure_environment` empties the results folder, so the cut reads stage A's folders directly.
+- Stage A → B: SI checkpoints of u, p, Φ_c, θ, φ, ε_a (`HANDOVER`; ε_a was not transferred in the fenicsoft demo, the aniso law had no internal variable); mesh restored to SI before writing. Cut (serial): `fenicsoft.mesh.extract_submesh_by_tags`, `project_facet_tags`, `transfer_field_by_interpolation` (CG) and `build_dg0_gather_map` / `transfer_dg0_field` (DG0); the cut planes are tagged `CUT_FACES` and drained in stage B (p = 0 there checked in the results).
+- fenicsoft demo defects not carried over: `InterfaceResistance` on `dS(SIDE_PILLARS_*)` acts on exterior facets only (`problem.dS` is `exterior_facet`), i.e. on the pillar legs and lid surfaces, not on the gel/pillar interface (not used here: the interface is no-flux by construction); the vertex loop of the initial Φ_c sees the local cells only (MPI), replaced by `interior_vertex_indicator`; cut faces undrained; `cut_to_core` re-coded `transfer_field_by_interpolation`; `io.configure_environment` empties the results folder, so the cut reads stage A's folders directly.
 - Batch for asimov kept (`batch_hill_microtissue_pillars.sh`): same docker pipeline, the whole playground mounted (`PYTHONPATH=/app/src`).
 
 **Done when** stage A, cut, stage B and the post-processing run locally; checked here: one step of each stage on a half-size geometry (T = 25 µm), stage B starting exactly from the stage A state (same probe values), serial = `mpirun -n 2` (stage A) to 1e-15, post-processing on both stages.

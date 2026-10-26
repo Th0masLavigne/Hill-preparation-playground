@@ -27,7 +27,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Tuple
 
-from fenicsoft import io
+from fenicsoft import integration
 
 from hill_playground.scaling import nondimensionalize_step, nondimensionalize_write_period
 
@@ -75,7 +75,7 @@ class Coefficients:
 	pillar_mu: float
 	pillar_kappa: float
 	prol_coeff: float
-	steps: Tuple[io.Step, ...]
+	steps: Tuple[integration.Step, ...]
 	xdmf_write_period: Any
 
 	@classmethod

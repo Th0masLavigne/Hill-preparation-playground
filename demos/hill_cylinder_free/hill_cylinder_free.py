@@ -114,6 +114,7 @@ import fenicsoft.operators.cell as cell_ops
 import numpy as np
 from dolfin_mech.core import PinpointSubDomain
 from fenicsoft import io
+from fenicsoft.integration import Step
 from fenicsoft.mesh_geometries.cylinder import CylinderGeometry, CylinderMarker, CylinderMeshGenerator
 from fenicsoft.mesh_geometries.mesh_geometries import GmshKeys, MeshOptions
 from fenicsoft.operators.cell.rotation.orientation_change import OrientationChange
@@ -277,10 +278,10 @@ class UserInputs:
 	displacement_degree: int = 2
 
 	# --- Time ---
-	steps: Sequence[io.Step] = field(
+	steps: Sequence[Step] = field(
 		default_factory=lambda: (
-			io.Step(duration=10.0, init_dt=1.0, min_dt=0.25),  # ramp, dt ~ tau_a
-			io.Step(duration=180000.0, init_dt=1000.0, min_dt=100.0, max_dt=3000.0, min_simu_seconds=3 * 3600),
+			Step(duration=10.0, init_dt=1.0, min_dt=0.25),  # ramp, dt ~ tau_a
+			Step(duration=180000.0, init_dt=1000.0, min_dt=100.0, max_dt=3000.0, min_simu_seconds=3 * 3600),
 		)
 	)
 	activation_configs: Sequence[ActivePowerConfig] = field(

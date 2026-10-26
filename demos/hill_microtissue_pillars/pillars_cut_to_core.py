@@ -1,13 +1,14 @@
 r"""Microtissue between pillars, cut: stage A mesh and state restricted to the core patch. Serial only.
 
-Keeps the cells ``GEL_CORE`` and ``PILLAR_CORE`` (``fenicsoft.io.extract_submesh_by_tags``), projects the facet
-tags (``io.project_facet_tags``), tags the two cut planes :math:`x = L_{side}` and :math:`x = L_{side} + L_{core}`
-``CUT_FACES`` (drained in stage B) and transfers the SI checkpoints of stage A (``HANDOVER``):
+Keeps the cells ``GEL_CORE`` and ``PILLAR_CORE`` (``fenicsoft.mesh.extract_submesh_by_tags``), projects the
+facet tags (``fenicsoft.mesh.project_facet_tags``), tags the two cut planes :math:`x = L_{side}` and
+:math:`x = L_{side} + L_{core}` ``CUT_FACES`` (drained in stage B) and transfers the SI checkpoints of stage A
+(``HANDOVER``):
 
-* CG fields :math:`\mathbf u, p, \Phi_c`: interpolation (``io.transfer_field_by_interpolation``), exact since
-  the submesh nodes are parent nodes;
-* DG0 fields :math:`\theta, \varphi, \varepsilon_a`: per-cell gather (``io.build_dg0_gather_map``,
-  ``io.transfer_dg0_field``).
+* CG fields :math:`\mathbf u, p, \Phi_c`: interpolation (``fenicsoft.mesh.transfer_field_by_interpolation``),
+  exact since the submesh nodes are parent nodes;
+* DG0 fields :math:`\theta, \varphi, \varepsilon_a`: per-cell gather (``fenicsoft.mesh.build_dg0_gather_map``,
+  ``fenicsoft.mesh.transfer_dg0_field``).
 
 Writes the core mesh and the checkpoints into the mesh folder of stage B.
 """
@@ -21,6 +22,13 @@ import dolfin
 import pillars_biaxial as stage_a
 import pillars_uniaxial_release as stage_b
 from fenicsoft import io
+from fenicsoft.mesh import (
+	build_dg0_gather_map,
+	extract_submesh_by_tags,
+	project_facet_tags,
+	transfer_dg0_field,
+	transfer_field_by_interpolation,
+)
 
 comm = dolfin.MPI.comm_world
 
@@ -72,18 +80,18 @@ def cut(
 	mesh, domains_mf, boundaries_mf, _ = io.load_mesh_data(prefix_a / "mesh" / stage_a_inputs.stem_mesh_name)
 	parent = stage_a.read_handover(mesh, prefix_a / "results", stage_a_inputs)
 
-	submesh, sub_domains_mf = io.extract_submesh_by_tags(mesh, domains_mf, tags=_CORE)
-	sub_boundaries_mf = io.project_facet_tags(submesh, boundaries_mf)
+	submesh, sub_domains_mf = extract_submesh_by_tags(mesh, domains_mf, tags=_CORE)
+	sub_boundaries_mf = project_facet_tags(submesh, boundaries_mf)
 	n_cut = tag_cut_faces(submesh, sub_boundaries_mf, stage_a_inputs)
 
 	transferred = {}
 	for name, space in stage_a.handover_spaces(submesh, stage_a_inputs).items():
 		transferred[name] = dolfin.Function(space, name=name)
 		if space.ufl_element().family() == "Discontinuous Lagrange" and space.ufl_element().degree() == 0:
-			gather = io.build_dg0_gather_map(submesh, parent[name].function_space(), space)
-			io.transfer_dg0_field(parent[name], transferred[name], gather)
+			gather = build_dg0_gather_map(submesh, parent[name].function_space(), space)
+			transfer_dg0_field(parent[name], transferred[name], gather)
 		else:
-			io.transfer_field_by_interpolation(parent[name], transferred[name])
+			transfer_field_by_interpolation(parent[name], transferred[name])
 
 	paths_b = io.configure_environment(stage_b_inputs.project_prefix, stage_b_inputs.stem_name)
 	io.write_submesh_to_xdmf(
