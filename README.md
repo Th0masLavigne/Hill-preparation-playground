@@ -17,10 +17,9 @@ holds what is new.
 │   ├── install_fenicsoft.sh
 │   ├── initialize.sh       # host-side: base image + bind-mount folders
 │   └── secrets.env.example # token for the remote mode
-├── src/hill_playground/    # -> fenicsoft/ (one issue per item: TRANSFER.md; issues 0, 7 in #95, 3, 4, 10 in #96, 1 in #97, 2 in #98, 5 and 6 in #99, 8 and 9 in #100, 11 in #101)
+├── src/hill_playground/    # -> fenicsoft/ (one issue per item: TRANSFER.md; issues 0, 7 in #95, 3, 4, 10 in #96, 1 in #97, 2 in #98, 5 and 6 in #99, 8 and 9 in #100, 11 in #101, 12 in #102, 13 in #103)
 │   └── materials/domain_fields.py    # subdomain indicators (gel/pillar data fields)         [new]
 ├── tests/{unit,integration,environment,conventions}/
-├── demos/analytical_consolidation_1D/  # Terzaghi, nondimensionalised: start here
 ├── demos/hill_box/                     # gel slab clamped on two faces
 ├── demos/hill_cylinder_free/           # free-floating cylinder
 ├── demos/hill_microtissue_pillars/     # microtissue between pillars (stage A, cut, stage B, batch)
@@ -88,9 +87,11 @@ BuildKit (Docker ≥ 23).
 
 ## Demos
 
+The nondimensionalised Terzaghi demos (method used below, start there) are in fenicsoft
+`demos/analytical_consolidation_1D/` (`nondim_parameters/`, `nondim_operator/`, #103).
+
 | Demo | Content |
 | --- | --- |
-| `demos/analytical_consolidation_1D/` | Terzaghi's consolidation solved in dimensionless variables, by the parameters (`nondim_parameters/`, one step) and by the operators (`nondim_operator/`, initialising step): error vs analytical and figures |
 | `demos/hill_box/` | Active poro-elastic gel slab with Hill-chain cells, clamped on its two $x$-faces, drained and traction-free elsewhere |
 | `demos/hill_cylinder_free/` | Free-floating cylinder, drained and traction-free on its whole boundary, isostatic 3-2-1 support |
 | `demos/hill_microtissue_pillars/` | Microtissue between twelve pillars: stage A (biaxial), cut to the core, stage B (uniaxial release), ROI post-processing, batch script |

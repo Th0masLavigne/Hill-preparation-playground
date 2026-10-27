@@ -44,8 +44,8 @@ contractile element                ``eps_a``               :math:`L_0^3`        
 
 Both scaled modes are the SI system times a constant per row: ``"operator"`` and ``"parameters"`` give the
 same Jacobian (``tests/integration/demos/test_hill_box_scaling.py``) and Newton iterates identical to SI
-(``tests/integration/analytical_consolidation_1D/test_terzaghi_nondim.py``). ``"parameters"`` integrates in
-:math:`\hat t` (QOI ``time_si``: :math:`t` in s).
+(fenicsoft ``tests/integration/analytical_consolidation_1D/nondimensional/test_terzaghi_nondim.py``).
+``"parameters"`` integrates in :math:`\hat t` (QOI ``time_si``: :math:`t` in s).
 
 Outputs
 -------

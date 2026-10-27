@@ -43,7 +43,7 @@ cell orientation angles $\theta, \varphi$ (`remodelling`). Residuals: module doc
 The solve is dimensionless (by the parameters): $\hat{\mathbf X} = \mathbf X/L_0$, $\hat p = p/\mu_0$,
 $\hat t = t/t_0$, coefficients from `hill_box_scaling.Coefficients`. Inputs and outputs stay SI; the XDMF
 geometry and time stamps are put back in m and s after the run (`fenicsoft.io.xdmf_units`). Method explained on
-Terzaghi in `demos/analytical_consolidation_1D/`.
+Terzaghi in fenicsoft `demos/analytical_consolidation_1D/` (`nondim_parameters/`, `nondim_operator/`).
 
 ## Run
 
