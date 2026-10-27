@@ -20,6 +20,15 @@ Reference branch: fenicsoft `main` (clean-up #93 merged; it carries `scale_facto
 - `make linter` (ruff 0.3.0 of the pre-commit hook, D rules included: one-line summary, blank line after it),
   `make cov` (100 % of the transferred modules) and `make docs` (`sphinx -W`, docs include demos, applications,
   tests and archives) must pass.
+- Tests (since #95): every float comparison states its tolerance, guarded by
+  `tests/conventions/test_explicit_tolerances.py` (fenicsoft README, "Contributing"). Exact arithmetic:
+  `rel=1e-12, abs=0.0`; zero target: `rel=0.0, abs=...`. Shared test helper: `tests/conftest.py::cube_mean`
+  (fixture `mean`); the Hill fixtures of issue 5 go into that file.
+- Floors, caps and positive/negative parts use `fenicsoft.ufl_functions` (#95), never an inline `dolfin.conditional`.
+
+**Status.** fenicsoft branch `95-transfert-hill-gardes-ufl-partagees-...` (not merged): issues 0 and 7 and the test
+standard. The playground copies are deleted and its imports point to fenicsoft; the devcontainer installs that branch
+(`.devcontainer/fenicsoft.env`).
 
 **`__init__.py` files** are never copied: merge their imports and `__all__` into the existing fenicsoft ones (they export more). fenicsoft has no `__init__.py` in `operators/cell/*/` sub-folders: export the new classes from `operators/cell/__init__.py` instead. New top-level sub-package (`scaling`): add it to `fenicsoft/__init__.py` and its `__all__`.
 
@@ -28,14 +37,14 @@ Legend: **new**: the file does not exist in fenicsoft. **change**: patch an exis
 
 | # | Issue | Kind | Depends on |
 |---|---|---|---|
-| 0 | Shared UFL guards (package root) `piecewise`, `floored`, `capped`, `macaulay`, `macaulay_negative` | new | – |
+| 0 | Shared UFL guards (package root) `piecewise`, `floored`, `capped`, `macaulay`, `macaulay_negative` — **done (#95)** | new | – |
 | 1 | Integration: select XDMF fields, write logs on rank 0 only | copy | – |
 | 2 | Scaling: promote `CharacteristicScales` to `fenicsoft.scaling` | new | 1 |
 | 3 | IO: write XDMF geometry and time back in SI | new | – |
 | 4 | Active laws: shared activation schedule | new | – |
 | 5 | Hill chain law (self-contained) | new | 0, 4 |
 | 6 | Contractile element operator $R_a$ | new | 5 |
-| 7 | Saturated proliferation: clip the saturation | change | – |
+| 7 | Saturated proliferation: clip the saturation — **done (#95)** | change | – |
 | 8 | Permeability laws $k(\phi_\ell)$ | new | 0 |
 | 9 | Volumetric energy with a compaction point | new | 0; 8 (`saturated_mixture`, demo only) |
 | 10 | Orientation diagnostics | new | – |
@@ -55,6 +64,12 @@ Legend: **new**: the file does not exist in fenicsoft. **change**: patch an exis
 **Changes.** New `src/fenicsoft/ufl_functions.py`: `piecewise(x, x0, f_le, f_gt)` (the tie x = x0 and its UFL tangent go to the lower branch), and with it `floored(x, x_f)` = max(x, x_f), `capped(x, x_c)` = min(x, x_c), `macaulay(x)` = max(x, 0) (tangent 0 at 0) and `macaulay_negative(x)` = min(x, 0) (tangent 1 at 0), the Newton safeguards of the Hill, permeability and compaction laws and of `SaturatedProliferation` (written once; they were three copies). Package root, not `materials/`: operators use them too. Import it first in `fenicsoft/__init__.py`. Reuse candidates in fenicsoft: the clamped `sqrt` in `materials/orientation/generic.py` (`macaulay`), the saturation `conditional(phi_c > phi_c_max, 0, 1 - phi_c/phi_c_max)` in `operators/cell/haptotaxis/saturated.py` (`macaulay`).
 
 **Tests.** `tests/unit/test_ufl_functions.py`.
+
+**Done in #95.** `fenicsoft/ufl_functions.py` (exported from `fenicsoft/__init__.py`, alphabetical: nothing depends on
+the import order) and its test (with `tests/conftest.py::cube_mean`). Reuse sites switched:
+`orientation_change.py` (`floored`), `orientation/generic.py` (`macaulay` under the sqrt, `capped` before acos),
+`haptotaxis/saturated.py` ×2 (`macaulay`; same values, tangent at Φ_c = Φ_c,max exactly now 0 instead of −1/Φ_c,max).
+Left as is: sign/fold switches (`conditional(x < 0, -1, 1)`, `|cos θ|`, angle wrapping), not guards.
 
 ## 1. Integration: select XDMF fields, write logs on rank 0 only
 
@@ -146,6 +161,8 @@ It is not a constitutive law. Active laws use it by composition, so no law depen
 **Tests.** fenicsoft already has `tests/unit/operators/cell/proliferation/test_saturated_prol.py`: merge, do not overwrite.
 - Add the playground cases (identical below Φ_c,max, zero source above), comparing with the analytical value r Φ_c (1 − Φ_c/Φ_c,max) instead of the old fenicsoft class (after the merge it is the same class).
 - `test_saturated_proliferation_construction` builds the operator with a `MagicMock` `phi_c`: UFL `conditional` (`macaulay` → `floored` → `piecewise`, `dolfin.le`) rejects it once the clip is in. Replace the mock by a `dolfin.Function` or remove that test (the assembly tests cover it).
+
+**Done in #95.** Clip in fenicsoft; MagicMock test removed; analytical cases added (Φ_c ∈ {0, 0.05, 0.099}: −rΦ_c(1 − Φ_c/Φ_c,max); Φ_c ∈ {0.1, 0.15}: 0). Playground `operators/cell/proliferation/` and its test deleted; the demos call `cell_ops.SaturatedProliferation` (fenicsoft).
 
 ## 8. Permeability laws $k(\phi_\ell)$
 
@@ -256,6 +273,8 @@ equations.tex Table tab:sf omitted s_row, the scale of the row's test function: 
   - remove the transferred paths from `NEW_BRANCHES` in `tests/environment/test_env.py`;
   - delete the playground copies;
   - switch the playground imports to fenicsoft.
+  - Done for issues 0 and 7 (#95, before the merge). Also fixed: `materials/domain_fields.py` imported
+    `build_indicator_meshfunction` from `fenicsoft.io` (moved to `fenicsoft.mesh` in #93).
 - Devcontainer: the playground mounts the JIT cache `/home/fenics_user/.cache/dolfin` (`DIJITSO_CACHE_DIR` of the image) as the named volume `hill-dijitso-cache`; do the same in fenicsoft. The Hill forms take about 90 s of JIT compilation on a fresh container.
 - `set_dt` with a NumPy scalar: `dolfin_mech.core.TimeVaryingConstant.set_value_sca` only accepts `int`/`float`/`list`/`ndarray` (exact `type(val) in ...`), so a `numpy.float64` Δt is silently ignored and Δt stays 0 in every operator (`ChangeRate`, `OrientationChange`, `ContractileEvolution`, `Inertia`). The operators are left as in dolfin_mech/fenicsoft (`self.tv_dt.set_value(dt)`); the playground casts at the source instead (`scaling.time_steps` returns Python `float`, test `test_numpy_t0_gives_python_floats`). Root fix to raise in dolfin_mech: `isinstance(val, numbers.Real)` in `set_value_sca`.
 - Docs: `skip_globals` in `docs/src/conf.py` now skips only undocumented module data (documented constants and their `:data:` cross-references are rendered); same change in fenicsoft.
