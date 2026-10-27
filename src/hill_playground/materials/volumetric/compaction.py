@@ -31,8 +31,7 @@ from typing import Any
 import dolfin
 from fenicsoft.materials.materials import ConstitutiveLaw
 from fenicsoft.materials.volumetric.parameters import VolumetricPenaltyParameters
-
-from ...ufl_functions import floored
+from fenicsoft.ufl_functions import floored
 
 
 @dataclass(slots=True, frozen=True)

@@ -11,7 +11,8 @@ r"""Kozeny--Carman permeability (Carman 1937).
 from dataclasses import dataclass
 from typing import Any
 
-from ...ufl_functions import floored
+from fenicsoft.ufl_functions import floored
+
 from .. import saturated_mixture
 from .base import PorousPermeability, PorousPermeabilityParameters
 

@@ -31,8 +31,7 @@ Units: tensions in Pa, rates in 1/s (or :math:`\mu_0` and :math:`1/t_0` in a sca
 from typing import Any, Literal, get_args
 
 import dolfin
-
-from .....ufl_functions import floored, macaulay, macaulay_negative, piecewise
+from fenicsoft.ufl_functions import floored, macaulay, macaulay_negative, piecewise
 
 SeeVariant = Literal["mooney", "tension_only", "exponential"]
 """SEE law: ``"mooney"`` (baseline), ``"tension_only"``, ``"exponential"`` (see :func:`see_tension`)."""

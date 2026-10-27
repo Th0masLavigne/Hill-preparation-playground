@@ -108,7 +108,7 @@ from hill_playground.materials.cell.active.hill import law as hill_law
 from hill_playground.materials.cell.active.hill.functions import SeeVariant
 from hill_playground.materials.volumetric import compaction
 from hill_playground.operators import ResidualRows
-from hill_playground.operators.cell import ContractileEvolution, SaturatedProliferation
+from hill_playground.operators.cell import ContractileEvolution
 from hill_playground.scaling import CharacteristicScales
 
 comm = dolfin.MPI.comm_world
@@ -679,7 +679,7 @@ def build_step_operators(
 				test=dc,
 				dx=dv("cell_fraction"),
 			),
-			SaturatedProliferation(
+			cell_ops.SaturatedProliferation(
 				phi_c,
 				c.prol_coeff,
 				user_inputs.phi_c_max,

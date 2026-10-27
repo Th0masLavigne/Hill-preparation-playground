@@ -90,7 +90,7 @@ from hill_playground.materials.cell.active.hill.functions import SeeVariant
 from hill_playground.materials.orientation import display
 from hill_playground.materials.volumetric import compaction
 from hill_playground.operators import ResidualRows
-from hill_playground.operators.cell import ContractileEvolution, SaturatedProliferation
+from hill_playground.operators.cell import ContractileEvolution
 from hill_playground.scaling import CharacteristicScales, nondimensionalize_step, nondimensionalize_write_period
 
 comm = dolfin.MPI.comm_world
@@ -844,7 +844,7 @@ def build_step_operators(
 				dx=dv("cell_fraction"),
 				scale_factor=rows.scale_factor("cell_fraction", values.volume),
 			),
-			SaturatedProliferation(
+			cell_ops.SaturatedProliferation(
 				phi_c,
 				c.prol_coeff,
 				user_inputs.phi_c_max,
