@@ -120,6 +120,7 @@ from fenicsoft.materials.cell.active.activation import ActivePowerConfig
 from fenicsoft.mesh_geometries.cylinder import CylinderGeometry, CylinderMarker, CylinderMeshGenerator
 from fenicsoft.mesh_geometries.mesh_geometries import GmshKeys, MeshOptions
 from fenicsoft.operators.cell.rotation.orientation_change import OrientationChange
+from fenicsoft.scaling import CharacteristicScales
 from hill_cylinder_outputs import add_outputs
 from hill_cylinder_scaling import Coefficients
 from numpy.typing import NDArray
@@ -131,7 +132,6 @@ from hill_playground.materials.cell.active.hill.functions import SeeVariant
 from hill_playground.materials.volumetric import compaction
 from hill_playground.operators import ResidualRows
 from hill_playground.operators.cell import ContractileEvolution
-from hill_playground.scaling import CharacteristicScales
 
 comm = dolfin.MPI.comm_world
 rank = dolfin.MPI.rank(comm)

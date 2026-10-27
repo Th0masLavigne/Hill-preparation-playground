@@ -15,6 +15,6 @@ try:
 except importlib.metadata.PackageNotFoundError:
 	__version__ = "0.0.0"
 
-from . import materials, operators, scaling
+from . import materials, operators
 
-__all__ = ["materials", "operators", "scaling"]
+__all__ = ["materials", "operators"]

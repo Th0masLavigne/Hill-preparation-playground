@@ -46,10 +46,10 @@ import dolfin_mech
 import fenicsoft
 import numpy as np
 import pandas as pd
+from fenicsoft.scaling import CharacteristicScales
 from numpy.typing import ArrayLike, NDArray
 
 from hill_playground.operators import ResidualRows
-from hill_playground.scaling import CharacteristicScales
 
 Mode = Literal["none", "operator", "parameters"]
 MODES: tuple[Mode, ...] = ("none", "operator", "parameters")

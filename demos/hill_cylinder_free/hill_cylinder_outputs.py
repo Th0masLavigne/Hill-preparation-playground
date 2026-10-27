@@ -31,11 +31,11 @@ import dolfin
 import dolfin_mech
 import fenicsoft.materials.orientation.spherical as spherical_mod
 from fenicsoft.materials.orientation import display, generic
+from fenicsoft.scaling import CharacteristicScales
 
 from hill_playground.materials import saturated_mixture
 from hill_playground.materials.cell.active.hill import law as hill_law
 from hill_playground.operators.cell import ContractileEvolution
-from hill_playground.scaling import CharacteristicScales
 
 if TYPE_CHECKING:
 	from hill_cylinder_free import UserInputs

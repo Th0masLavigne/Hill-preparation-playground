@@ -2,7 +2,7 @@
 
 Everything in `hill_playground/<path>` targets `fenicsoft/<path>` (same sub-package names).
 One issue = one merge request, in the order below: each one only needs the issues above it.
-Reference branch: fenicsoft `main` (clean-up #93 and #95 merged; it carries `scale_factor`, `OrientationChange` and `ufl_functions`).
+Reference branch: fenicsoft `main` (clean-up #93, #95, #96 and #97 merged; it carries `scale_factor`, `OrientationChange`, `ufl_functions` and the selected-field integrator).
 
 **fenicsoft conventions since #93** (apply them in every transfer merge request):
 - Layout: `Step` is in `fenicsoft.integration` (`integration.Step`), the mesh cut and field transfer in the new
@@ -26,10 +26,11 @@ Reference branch: fenicsoft `main` (clean-up #93 and #95 merged; it carries `sca
   (fixture `mean`); the Hill fixtures of issue 5 go into that file.
 - Floors, caps and positive/negative parts use `fenicsoft.ufl_functions` (#95), never an inline `dolfin.conditional`.
 
-**Status.** #95 (issues 0 and 7, test standard) and #96 (issues 3, 4, 10 and the first follow-up of §15) are merged
-into `main`. fenicsoft branch `97-transfert-hill-integrateur-champs-xdmf-selectionnes-et-logs-sur-le-rang-0` (not
-merged): issue 1. The playground copies are deleted and its imports point to fenicsoft; the devcontainer installs that
-branch (`.devcontainer/fenicsoft.env`).
+**Status.** #95 (issues 0 and 7, test standard), #96 (issues 3, 4, 10 and the first follow-up of §15) and #97
+(issue 1) are merged into `main`. fenicsoft branch
+`98-transfert-hill-fenicsoft-scaling-echelles-caracteristiques-et-pas-de-temps-adimensionnes` (not merged): issue 2.
+The playground copies are deleted and its imports point to fenicsoft; the devcontainer installs that branch
+(`.devcontainer/fenicsoft.env`).
 
 **`__init__.py` files** are never copied: merge their imports and `__all__` into the existing fenicsoft ones (they export more). fenicsoft has no `__init__.py` in `operators/cell/*/` sub-folders: export the new classes from `operators/cell/__init__.py` instead. New top-level sub-package (`scaling`): add it to `fenicsoft/__init__.py` and its `__all__`.
 
@@ -40,7 +41,7 @@ Legend: **new**: the file does not exist in fenicsoft. **change**: patch an exis
 |---|---|---|---|
 | 0 | Shared UFL guards (package root) `piecewise`, `floored`, `capped`, `macaulay`, `macaulay_negative` — **done (#95)** | new | – |
 | 1 | Integration: select XDMF fields, write logs on rank 0 only — **done (#97)** | copy | – |
-| 2 | Scaling: promote `CharacteristicScales` to `fenicsoft.scaling` | new | 1 |
+| 2 | Scaling: promote `CharacteristicScales` to `fenicsoft.scaling` — **done (#98)** | new | 1 |
 | 3 | IO: write XDMF geometry and time back in SI — **done (#96)** | new | – |
 | 4 | Active laws: shared activation schedule — **done (#96)** | new | – |
 | 5 | Hill chain law (self-contained) | new | 0, 4 |
@@ -121,6 +122,13 @@ changes ported into `test_decimated_time_integrator_unit.py`. Playground: `integ
 - Done in #93: the scaled pillar demo `microtissue_pillar_spherical_scale` (wrong row factors, see issue 11; its test expected (k/η)(μ₀/κ) for `permeability_over_viscosity`) is deleted from fenicsoft. The pillar case is recoded in the playground (issue 18).
 
 **Tests.** `tests/unit/scaling/test_characteristic_scales.py` (100 % coverage), `tests/unit/scaling/test_time_steps.py`.
+
+**Done in #98.** `src/fenicsoft/scaling/` as above, exported from `fenicsoft/__init__.py`; docstrings to the fenicsoft
+standard (`Args` without types, one equation per conversion $\hat x = x/X_0$), the float/NumPy/UFL scope stated once
+through the documented alias `Quantity`. Tests copied (imports `fenicsoft.scaling`) plus `identity()` and a UFL case
+(`dolfin.Constant` assembled on a unit interval). fenicsoft README: `scaling` row. Playground: `scaling/` and its tests
+deleted, `scaling` removed from `hill_playground/__init__.py` and `NEW_BRANCHES`; demos, demo READMEs,
+`hill_box_all_modes` and `terzaghi_nondim` import `fenicsoft.scaling`.
 
 ## 3. IO: write XDMF geometry and time back in SI
 
@@ -300,10 +308,10 @@ equations.tex Table tab:sf omitted s_row, the scale of the row's test function: 
   - remove the transferred paths from `NEW_BRANCHES` in `tests/environment/test_env.py`;
   - delete the playground copies;
   - switch the playground imports to fenicsoft.
-  - Done for issues 0 and 7 (#95) and 3, 4, 10 (#96, before the merge). Also fixed: `materials/domain_fields.py` imported
+  - Done for issues 0 and 7 (#95), 3, 4, 10 (#96), 1 (#97) and 2 (#98), before each merge. Also fixed: `materials/domain_fields.py` imported
     `build_indicator_meshfunction` from `fenicsoft.io` (moved to `fenicsoft.mesh` in #93).
 - Devcontainer: the playground mounts the JIT cache `/home/fenics_user/.cache/dolfin` (`DIJITSO_CACHE_DIR` of the image) as the named volume `hill-dijitso-cache`; do the same in fenicsoft. The Hill forms take about 90 s of JIT compilation on a fresh container.
-- `set_dt` with a NumPy scalar: `dolfin_mech.core.TimeVaryingConstant.set_value_sca` only accepts `int`/`float`/`list`/`ndarray` (exact `type(val) in ...`), so a `numpy.float64` Δt is silently ignored and Δt stays 0 in every operator (`ChangeRate`, `OrientationChange`, `ContractileEvolution`, `Inertia`). The operators are left as in dolfin_mech/fenicsoft (`self.tv_dt.set_value(dt)`); the playground casts at the source instead (`scaling.time_steps` returns Python `float`, test `test_numpy_t0_gives_python_floats`). Root fix to raise in dolfin_mech: `isinstance(val, numbers.Real)` in `set_value_sca`.
+- `set_dt` with a NumPy scalar: `dolfin_mech.core.TimeVaryingConstant.set_value_sca` only accepts `int`/`float`/`list`/`ndarray` (exact `type(val) in ...`), so a `numpy.float64` Δt is silently ignored and Δt stays 0 in every operator (`ChangeRate`, `OrientationChange`, `ContractileEvolution`, `Inertia`). The operators are left as in dolfin_mech/fenicsoft (`self.tv_dt.set_value(dt)`); the playground casts at the source instead (`fenicsoft.scaling.time_steps` returns Python `float`, test `test_numpy_t0_gives_python_floats`). Root fix to raise in dolfin_mech: `isinstance(val, numbers.Real)` in `set_value_sca`.
 - Docs: `skip_globals` in `docs/src/conf.py` now skips only undocumented module data (documented constants and their `:data:` cross-references are rendered); same change in fenicsoft.
 - Tooling: autoapi documents the tests too, so docstrings there must be valid reST. Write `|x|` inside `:math:`, never bare (`make docs` fails on "Undefined substitution").
 

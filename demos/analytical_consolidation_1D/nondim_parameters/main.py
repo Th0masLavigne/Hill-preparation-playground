@@ -35,7 +35,7 @@ Nondimensionalisation by the parameters: the recipe
 -----------------------------------------------------
 1. **Scales.** :math:`L_0 = L`, :math:`\mu_0 = M` (oedometric modulus), :math:`t_0 = L^2/c_v` with
    :math:`c_v = k M`: the dimensionless time is Terzaghi's time factor, :math:`\hat t = T`
-   (``UserInputs.scales``, a :class:`.CharacteristicScales`).
+   (``UserInputs.scales``, a :class:`fenicsoft.scaling.CharacteristicScales`).
 2. **Mesh.** :math:`\hat{\mathbf X} = \mathbf X/L_0`: the mesh coordinates are divided by :math:`L_0` once,
    after loading. Then :math:`\hat{\mathbf u} = \mathbf u/L_0` and :math:`\hat\nabla = L_0\nabla`, so
    :math:`\mathbf F`, :math:`J`, :math:`\mathbf E` are unchanged: the kinematics needs no change.
@@ -73,10 +73,10 @@ import numpy as np
 from fenicsoft import integration, io, materials, operators
 from fenicsoft.io import xdmf_units
 from fenicsoft.mesh_geometries import GmshKeys, MeshOptions, RectangleGeometry, RectangleMarker, RectangleMeshGenerator
+from fenicsoft.scaling import CharacteristicScales, nondimensionalize_step
 from numpy.typing import NDArray
 
 from hill_playground.materials import permeability
-from hill_playground.scaling import CharacteristicScales, nondimensionalize_step
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # shared analytics and post-processing
 import post_process  # noqa: E402

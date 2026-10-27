@@ -34,7 +34,7 @@ see ``terzaghi_analytics.py``.
 Nondimensionalisation by the operators: the recipe
 ----------------------------------------------------
 1. **Scales.** :math:`L_0 = L`, :math:`\mu_0 = M` (oedometric modulus), :math:`t_0 = L^2/c_v` with
-   :math:`c_v = k M` (``UserInputs.scales``, a :class:`.CharacteristicScales`).
+   :math:`c_v = k M` (``UserInputs.scales``, a :class:`fenicsoft.scaling.CharacteristicScales`).
 2. **Mesh.** :math:`\hat{\mathbf X} = \mathbf X/L_0` (coordinates divided once, after loading). Then
    :math:`\hat{\mathbf u} = \mathbf u/L_0` and :math:`\hat\nabla = L_0\nabla`: :math:`\mathbf F`, :math:`J`,
    :math:`\mathbf E` are unchanged, the kinematics needs no change.
@@ -85,11 +85,11 @@ import numpy as np
 from fenicsoft import integration, io, materials, operators
 from fenicsoft.io import xdmf_units
 from fenicsoft.mesh_geometries import GmshKeys, MeshOptions, RectangleGeometry, RectangleMarker, RectangleMeshGenerator
+from fenicsoft.scaling import CharacteristicScales
 from numpy.typing import NDArray
 
 from hill_playground.materials import permeability
 from hill_playground.operators import ResidualRows
-from hill_playground.scaling import CharacteristicScales
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # shared analytics and post-processing
 import post_process  # noqa: E402

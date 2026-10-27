@@ -28,8 +28,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Tuple
 
 from fenicsoft import integration
-
-from hill_playground.scaling import nondimensionalize_step, nondimensionalize_write_period
+from fenicsoft.scaling import nondimensionalize_step, nondimensionalize_write_period
 
 if TYPE_CHECKING:
 	from pillars_biaxial import UserInputs

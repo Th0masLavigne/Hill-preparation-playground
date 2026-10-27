@@ -82,6 +82,7 @@ from fenicsoft.materials.orientation import display, generic
 from fenicsoft.mesh_geometries.box import BoxGeometry, BoxMarker, BoxMeshGenerator
 from fenicsoft.mesh_geometries.mesh_geometries import GmshKeys, MeshOptions
 from fenicsoft.operators.cell.rotation.orientation_change import OrientationChange
+from fenicsoft.scaling import CharacteristicScales, nondimensionalize_step, nondimensionalize_write_period
 
 from hill_playground.materials import permeability as perm
 from hill_playground.materials import saturated_mixture
@@ -90,7 +91,6 @@ from hill_playground.materials.cell.active.hill.functions import SeeVariant
 from hill_playground.materials.volumetric import compaction
 from hill_playground.operators import ResidualRows
 from hill_playground.operators.cell import ContractileEvolution
-from hill_playground.scaling import CharacteristicScales, nondimensionalize_step, nondimensionalize_write_period
 
 comm = dolfin.MPI.comm_world
 rank = dolfin.MPI.rank(comm)
