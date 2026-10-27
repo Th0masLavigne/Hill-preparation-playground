@@ -36,9 +36,13 @@ die() { echo "[fenicsoft] ERROR: $*" >&2; exit 1; }
 
 require_local_repo() {
 	[ -d "$LOCAL_REPO/.git" ] || die "no git clone at $LOCAL_REPO (host: ../fenicsoft next to this repo)."
-	# Host files may belong to another uid: allow read-only git queries on them.
-	git config --global --get-all safe.directory 2>/dev/null | grep -qxF "$LOCAL_REPO" \
-		|| git config --global --add safe.directory "$LOCAL_REPO"
+	# Host files may belong to another uid (root in a docker build context): allow read-only git queries
+	# on them. `git clone` of a local repo checks the .git path itself, hence both entries.
+	local dir
+	for dir in "$LOCAL_REPO" "$LOCAL_REPO/.git"; do
+		git config --global --get-all safe.directory 2>/dev/null | grep -qxF "$dir" \
+			|| git config --global --add safe.directory "$dir"
+	done
 }
 
 commit=""

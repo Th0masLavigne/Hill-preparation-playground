@@ -1,0 +1,8 @@
+# Build context of docker/hill_playground/Dockerfile = playground root: only what the image needs.
+*
+!.devcontainer/fenicsoft.env
+!.devcontainer/install_fenicsoft.sh
+!pyproject.toml
+!README.md
+!src/
+**/__pycache__
