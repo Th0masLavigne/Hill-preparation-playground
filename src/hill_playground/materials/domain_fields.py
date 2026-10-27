@@ -15,7 +15,7 @@ from typing import Sequence
 
 import dolfin
 import numpy as np
-from fenicsoft.io import build_indicator_meshfunction
+from fenicsoft.mesh import build_indicator_meshfunction
 
 
 def cell_indicator(
