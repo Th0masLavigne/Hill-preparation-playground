@@ -3,8 +3,8 @@
 import numpy as np
 import pytest
 from fenicsoft import integration
+from fenicsoft.integration import TimeInterval
 
-from hill_playground.integration import TimeInterval
 from hill_playground.scaling import CharacteristicScales, nondimensionalize_step, nondimensionalize_write_period
 
 T0 = 4.0

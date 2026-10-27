@@ -21,11 +21,9 @@ from typing import Any, Sequence, Union
 
 import dolfin
 import pillars_biaxial as stage_a
-from fenicsoft import io
+from fenicsoft import integration, io
 from fenicsoft.integration import Step
 from fenicsoft.materials.cell.active.activation import ActivePowerConfig
-
-from hill_playground import integration
 
 rank = dolfin.MPI.rank(dolfin.MPI.comm_world)
 

@@ -26,10 +26,10 @@ Reference branch: fenicsoft `main` (clean-up #93 and #95 merged; it carries `sca
   (fixture `mean`); the Hill fixtures of issue 5 go into that file.
 - Floors, caps and positive/negative parts use `fenicsoft.ufl_functions` (#95), never an inline `dolfin.conditional`.
 
-**Status.** #95 (issues 0 and 7, test standard) is merged into `main`. fenicsoft branch
-`96-transfert-hill-ecriture-xdmf-en-si-calendrier-d-activation-partage-et-diagnostics-d-orientation` (not merged):
-issues 3, 4 and 10, plus the first follow-up of §15 (`iso` uses `activation.py`). The playground copies are deleted and its
-imports point to fenicsoft; the devcontainer installs that branch (`.devcontainer/fenicsoft.env`).
+**Status.** #95 (issues 0 and 7, test standard) and #96 (issues 3, 4, 10 and the first follow-up of §15) are merged
+into `main`. fenicsoft branch `97-transfert-hill-integrateur-champs-xdmf-selectionnes-et-logs-sur-le-rang-0` (not
+merged): issue 1. The playground copies are deleted and its imports point to fenicsoft; the devcontainer installs that
+branch (`.devcontainer/fenicsoft.env`).
 
 **`__init__.py` files** are never copied: merge their imports and `__all__` into the existing fenicsoft ones (they export more). fenicsoft has no `__init__.py` in `operators/cell/*/` sub-folders: export the new classes from `operators/cell/__init__.py` instead. New top-level sub-package (`scaling`): add it to `fenicsoft/__init__.py` and its `__all__`.
 
@@ -39,7 +39,7 @@ Legend: **new**: the file does not exist in fenicsoft. **change**: patch an exis
 | # | Issue | Kind | Depends on |
 |---|---|---|---|
 | 0 | Shared UFL guards (package root) `piecewise`, `floored`, `capped`, `macaulay`, `macaulay_negative` — **done (#95)** | new | – |
-| 1 | Integration: select XDMF fields, write logs on rank 0 only | copy | – |
+| 1 | Integration: select XDMF fields, write logs on rank 0 only — **done (#97)** | copy | – |
 | 2 | Scaling: promote `CharacteristicScales` to `fenicsoft.scaling` | new | 1 |
 | 3 | IO: write XDMF geometry and time back in SI — **done (#96)** | new | – |
 | 4 | Active laws: shared activation schedule — **done (#96)** | new | – |
@@ -101,6 +101,13 @@ Left as is: sign/fold switches (`conditional(x < 0, -1, 1)`, `|cos θ|`, angle w
 - `test_decimated_time_integrator_unit.py` is fenicsoft's test with the import changed, all docstrings shortened, the `_relative_error` tests removed (function gone), the constant renamed, and: `test_integrate_permanent_solver_failure_ends_the_step_unsuccessfully` now expects no write (t = 0 already in the file); new tests `..._force_at_previous_step_end_after_step_change_is_a_no_op`, `..._force_at_initial_time_is_a_no_op` (duplicate-frame fix) and `test_is_subsol_stagnant_zero_scale` (zero norm). Port these changes into fenicsoft's file, now `tests/unit/integration/test_decimated_time_integrator_unit.py` (its docstrings were already condensed in #93: diff the code, not the docstrings).
 
 **Done when** the 61 integration unit test cases (59 functions, 2 of them parametrized) pass with 100 % coverage of the module, and an `mpirun -n 2` run of a demo gives a `.out` with the same line count as the serial run.
+
+**Done in #97.** The code changes were patched into fenicsoft's file (code identical to the playground copy once
+docstrings are stripped); fenicsoft's docstrings are kept (Args without types, `-- new --` markers of the `integrate`
+copy) and extended (solve units, selected fields and rank-0 logs, the duplicate guard across steps). Tests:
+`test_decimated_time_integrator.py` and `integrator_case.py` copied (imports `fenicsoft.integration`), the unit-test
+changes ported into `test_decimated_time_integrator_unit.py`. Playground: `integration/` and its tests deleted; demos,
+`hill_box_all_modes`, `scaling/time_steps.py` and its test import `fenicsoft.integration`.
 
 ## 2. Scaling: promote `CharacteristicScales` to `fenicsoft.scaling`
 

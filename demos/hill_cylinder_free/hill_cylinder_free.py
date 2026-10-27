@@ -113,7 +113,7 @@ import fenicsoft.materials.orientation.spherical as spherical_mod
 import fenicsoft.operators.cell as cell_ops
 import numpy as np
 from dolfin_mech.core import PinpointSubDomain
-from fenicsoft import io
+from fenicsoft import integration, io
 from fenicsoft.integration import Step
 from fenicsoft.io import xdmf_units
 from fenicsoft.materials.cell.active.activation import ActivePowerConfig
@@ -124,7 +124,6 @@ from hill_cylinder_outputs import add_outputs
 from hill_cylinder_scaling import Coefficients
 from numpy.typing import NDArray
 
-from hill_playground import integration
 from hill_playground.materials import permeability as perm
 from hill_playground.materials import saturated_mixture
 from hill_playground.materials.cell.active.hill import law as hill_law

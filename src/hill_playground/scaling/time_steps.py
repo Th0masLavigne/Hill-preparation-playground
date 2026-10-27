@@ -9,7 +9,8 @@ given as a number of substeps are unchanged. Results are Python ``float``: ``dol
 import dataclasses
 from typing import Any, TypeVar
 
-from ..integration import TimeInterval
+from fenicsoft.integration import TimeInterval
+
 from .characteristic_scales import CharacteristicScales
 
 STEP_TIME_FIELDS: tuple[str, ...] = ("duration", "init_dt", "min_dt", "max_dt", "min_simu_seconds")
