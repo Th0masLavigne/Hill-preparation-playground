@@ -47,7 +47,7 @@ Nondimensionalisation by the parameters: the recipe
    :math:`L_0^d/t_0` gives the same integrals written with hats. Every ``scale_factor`` stays 1.
 6. **Outputs.** QOIs are redimensionalised in their expression (:math:`u = L_0\hat u`, :math:`p = \mu_0\hat p`);
    the solver time is :math:`\hat t` (``t0`` converts it); the XDMF geometry and time stamps are put back in
-   m and s after the run (``io.xdmf_units``). The XDMF fields stay dimensionless.
+   m and s after the run (``fenicsoft.io.xdmf_units``). The XDMF fields stay dimensionless.
 
 Why: in SI, the rows of the Jacobian differ by many orders of magnitude (:math:`E \sim 10^4` Pa,
 :math:`k \sim 10^{-13}`, :math:`L \sim 10^{-4}`); in hats every coefficient is :math:`\mathcal O(1)`, so the
@@ -71,10 +71,10 @@ import dolfin
 import dolfin_mech
 import numpy as np
 from fenicsoft import integration, io, materials, operators
+from fenicsoft.io import xdmf_units
 from fenicsoft.mesh_geometries import GmshKeys, MeshOptions, RectangleGeometry, RectangleMarker, RectangleMeshGenerator
 from numpy.typing import NDArray
 
-from hill_playground.io import xdmf_units
 from hill_playground.materials import permeability
 from hill_playground.scaling import CharacteristicScales, nondimensionalize_step
 

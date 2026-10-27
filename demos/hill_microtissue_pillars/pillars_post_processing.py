@@ -81,10 +81,9 @@ import matplotlib  # noqa: E402
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
+from fenicsoft.io import xdmf_units  # noqa: E402
 from matplotlib.colors import LinearSegmentedColormap, LogNorm  # noqa: E402
 from numpy.typing import NDArray  # noqa: E402
-
-from hill_playground.io import xdmf_units  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 RESULTS = {
@@ -176,7 +175,7 @@ class ResultsSeries:
 		return None if values is None else values.astype(np.float64).reshape(values.shape[0], -1)
 
 	def is_redimensionalized(self) -> bool:
-		"""True once ``io.xdmf_units`` has put the geometry and times back in SI."""
+		"""True once ``fenicsoft.io.xdmf_units`` has put the geometry and times back in SI."""
 		reference = self._reference(self._grids[0].find("Geometry"))
 		return reference is not None and xdmf_units.is_redimensionalized(self.xdmf_path.parent / reference[0])
 

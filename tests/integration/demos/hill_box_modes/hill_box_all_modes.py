@@ -50,10 +50,10 @@ same Jacobian (``tests/integration/demos/test_hill_box_scaling.py``) and Newton 
 Outputs
 -------
 * SI in every mode, same names, order and spaces; XDMF geometry and time stamps put back in m and s after
-  the run (``hill_playground.io.xdmf_units``).
+  the run (``fenicsoft.io.xdmf_units``).
 * :math:`\mathbf u = L_0\hat{\mathbf u}`, :math:`p = \mu_0\hat p` on the spaces of the unknowns (point data).
 * ``xdmf_si_only`` (default): no :math:`\hat{\mathbf u}`, :math:`\hat p` nor ``*_old`` in the XDMF.
-* Orientation (``hill_playground.materials.orientation.display``), reference :math:`\mathbf f_0(\theta,\varphi)`
+* Orientation (``fenicsoft.materials.orientation.display``), reference :math:`\mathbf f_0(\theta,\varphi)`
   and current :math:`\mathbf f = \mathbf F\mathbf f_0/\|\mathbf F\mathbf f_0\|`: ``theta_deg``/``phi_deg``
   (upper hemisphere), ``theta_wrapped_deg`` (period 180), ``tilt_xy_deg`` (0: in the :math:`xy` plane),
   ``angle_x_deg`` (0: along :math:`x`), each with a ``_current`` variant; QOIs ``mean_tilt_xy_deg`` and
@@ -76,18 +76,18 @@ import fenicsoft.materials.orientation.spherical as spherical_mod
 import fenicsoft.operators.cell as cell_ops
 from fenicsoft import io
 from fenicsoft.integration import Step
+from fenicsoft.io import xdmf_units
+from fenicsoft.materials.cell.active.activation import ActivePowerConfig
+from fenicsoft.materials.orientation import display, generic
 from fenicsoft.mesh_geometries.box import BoxGeometry, BoxMarker, BoxMeshGenerator
 from fenicsoft.mesh_geometries.mesh_geometries import GmshKeys, MeshOptions
 from fenicsoft.operators.cell.rotation.orientation_change import OrientationChange
 
 from hill_playground import integration
-from hill_playground.io import xdmf_units
 from hill_playground.materials import permeability as perm
 from hill_playground.materials import saturated_mixture
-from hill_playground.materials.cell.active.activation import ActivePowerConfig
 from hill_playground.materials.cell.active.hill import law as hill_law
 from hill_playground.materials.cell.active.hill.functions import SeeVariant
-from hill_playground.materials.orientation import display
 from hill_playground.materials.volumetric import compaction
 from hill_playground.operators import ResidualRows
 from hill_playground.operators.cell import ContractileEvolution
@@ -1003,8 +1003,8 @@ def add_outputs(
 		"theta_wrapped_deg": spherical_mod.wrapped_theta_degrees(problem.theta_func),
 		"tilt_xy_deg": display.tilt_degrees(f0, _E_Z),
 		"tilt_xy_current_deg": display.tilt_degrees(fibre, _E_Z),
-		"angle_x_deg": display.axis_angle_degrees(f0, _E_X),
-		"angle_x_current_deg": display.axis_angle_degrees(fibre, _E_X),
+		"angle_x_deg": generic.fiber_reorientation_angle(f0, _E_X, in_degrees=True),
+		"angle_x_current_deg": generic.fiber_reorientation_angle(fibre, _E_X, in_degrees=True),
 		"lambda_fibre": dolfin.sqrt(hill_material.inv4),
 		"lambda_a": hill_material.lmbda_a,
 		"lambda_e": dolfin.sqrt(hill_material.inv4e),

@@ -25,13 +25,13 @@ reactions vanish and the solution is the free one (displacements relative to $A$
 
 | Item | Where |
 | --- | --- |
-| Hill law ($R_u$), activation $\alpha(t)$ | `materials.cell.active.hill`, `materials.cell.active.activation` |
+| Hill law ($R_u$), activation $\alpha(t)$ | `materials.cell.active.hill`, `fenicsoft.materials.cell.active.activation` |
 | CE evolution ($R_a$) | `operators.cell.hill.ContractileEvolution` |
 | Clipped proliferation | `operators.cell.SaturatedProliferation` |
 | Scales ($L_0, \mu_0, t_0$), conversions | `scaling.CharacteristicScales` |
 | $k(\phi_\ell)$, $\mathbf K_L = (k/\eta) J \mathbf C^{-1}$ | `materials.permeability` |
 | Compaction volumetric energy | `materials.volumetric.compaction` |
-| Orientation diagnostics | `materials.orientation.display` |
+| Orientation diagnostics | `fenicsoft.materials.orientation.display`, `generic.fiber_reorientation_angle` (angle to an axis) |
 | Supports | `dolfin_mech.core.PinpointSubDomain` (pointwise BCs) |
 
 | Demo file | Content |

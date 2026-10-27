@@ -12,7 +12,7 @@ The CE and the PEE act on :math:`\varepsilon_a = \ln\lambda_a` through :math:`R_
 (:class:`.ContractileEvolution`).
 
 Derives from the base classes ``MaterialParameters`` and ``ConstitutiveLaw`` only; :math:`\alpha(t)`
-comes from an :class:`.ActivationSchedule` (composition).
+comes from an :class:`~fenicsoft.materials.cell.active.activation.ActivationSchedule` (composition).
 ``p_act`` is the ``dolfin.Constant`` shared with ``OrientationChange`` and ``ContractileEvolution``, refreshed
 by ``HyperElasticity`` via ``set_k_step``/``update_time``.
 
@@ -27,9 +27,9 @@ from typing import Any, Sequence
 
 import dolfin
 import dolfin_mech as dmech
+from fenicsoft.materials.cell.active.activation import ActivationSchedule, ActivePowerConfig
 from fenicsoft.materials.materials import ConstitutiveLaw, MaterialParameters
 
-from ..activation import ActivationSchedule, ActivePowerConfig
 from . import functions as hill
 
 
@@ -85,7 +85,8 @@ class Parameters(MaterialParameters):
 	Attributes:
 	    phi_c: :math:`\Phi_c`, cell volume per unit reference volume (``Constant``, ``Function`` or unknown).
 	    f0: Unit reference fibre direction :math:`\mathbf f_0` (UFL vector).
-	    activation_configs: :math:`\alpha(t)`, one :class:`ActivePowerConfig` per step.
+	    activation_configs: :math:`\alpha(t)`, one
+	        :class:`~fenicsoft.materials.cell.active.activation.ActivePowerConfig` per step.
 	    simulation_steps: ``problem.steps``.
 	    f_max: Maximal isometric tension :math:`f_{max}` (Pa).
 	    eps_a: :math:`\varepsilon_a` (current iterate of the DG0 subsol).

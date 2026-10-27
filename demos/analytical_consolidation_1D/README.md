@@ -64,5 +64,5 @@ Defaults, $T \ge 0.05$, both demos: pressure $3.9\cdot10^{-3}\,p_0$, settlement 
 3. Give each unknown its scale ($\hat p = p/\mu_0$, initial values and Dirichlet values included).
 4. Either convert every coefficient (`CharacteristicScales.nondimensionalize_*`) or give every operator its
    `scale_factor` (`ResidualRows`).
-5. Redimensionalise what you export (`redimensionalize_*` in the QOI expressions, `io.xdmf_units` for the XDMF).
+5. Redimensionalise what you export (`redimensionalize_*` in the QOI expressions, `fenicsoft.io.xdmf_units` for the XDMF).
 6. Check against an SI run, or against an exact solution as here.

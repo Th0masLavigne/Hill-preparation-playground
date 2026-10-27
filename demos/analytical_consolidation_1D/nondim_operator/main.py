@@ -57,7 +57,7 @@ Nondimensionalisation by the operators: the recipe
    The resulting system is the one of ``nondim_parameters`` (dimensionless coefficients), but the
    coefficients keep their SI values and the solver time stays in s.
 6. **Outputs.** QOIs are redimensionalised in their expression (:math:`u = L_0\hat u`, :math:`p = \mu_0\hat p`);
-   the XDMF geometry is put back in m after the run (``io.xdmf_units``); the XDMF fields stay
+   the XDMF geometry is put back in m after the run (``fenicsoft.io.xdmf_units``); the XDMF fields stay
    dimensionless.
 
 Why: in SI, the rows of the Jacobian differ by many orders of magnitude (:math:`E \sim 10^4` Pa,
@@ -83,10 +83,10 @@ import dolfin
 import dolfin_mech
 import numpy as np
 from fenicsoft import integration, io, materials, operators
+from fenicsoft.io import xdmf_units
 from fenicsoft.mesh_geometries import GmshKeys, MeshOptions, RectangleGeometry, RectangleMarker, RectangleMeshGenerator
 from numpy.typing import NDArray
 
-from hill_playground.io import xdmf_units
 from hill_playground.materials import permeability
 from hill_playground.operators import ResidualRows
 from hill_playground.scaling import CharacteristicScales

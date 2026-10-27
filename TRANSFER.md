@@ -2,7 +2,7 @@
 
 Everything in `hill_playground/<path>` targets `fenicsoft/<path>` (same sub-package names).
 One issue = one merge request, in the order below: each one only needs the issues above it.
-Reference branch: fenicsoft `main` (clean-up #93 merged; it carries `scale_factor` and `OrientationChange`).
+Reference branch: fenicsoft `main` (clean-up #93 and #95 merged; it carries `scale_factor`, `OrientationChange` and `ufl_functions`).
 
 **fenicsoft conventions since #93** (apply them in every transfer merge request):
 - Layout: `Step` is in `fenicsoft.integration` (`integration.Step`), the mesh cut and field transfer in the new
@@ -26,9 +26,10 @@ Reference branch: fenicsoft `main` (clean-up #93 merged; it carries `scale_facto
   (fixture `mean`); the Hill fixtures of issue 5 go into that file.
 - Floors, caps and positive/negative parts use `fenicsoft.ufl_functions` (#95), never an inline `dolfin.conditional`.
 
-**Status.** fenicsoft branch `95-transfert-hill-gardes-ufl-partagees-...` (not merged): issues 0 and 7 and the test
-standard. The playground copies are deleted and its imports point to fenicsoft; the devcontainer installs that branch
-(`.devcontainer/fenicsoft.env`).
+**Status.** #95 (issues 0 and 7, test standard) is merged into `main`. fenicsoft branch
+`96-transfert-hill-ecriture-xdmf-en-si-calendrier-d-activation-partage-et-diagnostics-d-orientation` (not merged):
+issues 3, 4 and 10, plus the first follow-up of §15 (`iso` uses `activation.py`). The playground copies are deleted and its
+imports point to fenicsoft; the devcontainer installs that branch (`.devcontainer/fenicsoft.env`).
 
 **`__init__.py` files** are never copied: merge their imports and `__all__` into the existing fenicsoft ones (they export more). fenicsoft has no `__init__.py` in `operators/cell/*/` sub-folders: export the new classes from `operators/cell/__init__.py` instead. New top-level sub-package (`scaling`): add it to `fenicsoft/__init__.py` and its `__all__`.
 
@@ -40,19 +41,19 @@ Legend: **new**: the file does not exist in fenicsoft. **change**: patch an exis
 | 0 | Shared UFL guards (package root) `piecewise`, `floored`, `capped`, `macaulay`, `macaulay_negative` — **done (#95)** | new | – |
 | 1 | Integration: select XDMF fields, write logs on rank 0 only | copy | – |
 | 2 | Scaling: promote `CharacteristicScales` to `fenicsoft.scaling` | new | 1 |
-| 3 | IO: write XDMF geometry and time back in SI | new | – |
-| 4 | Active laws: shared activation schedule | new | – |
+| 3 | IO: write XDMF geometry and time back in SI — **done (#96)** | new | – |
+| 4 | Active laws: shared activation schedule — **done (#96)** | new | – |
 | 5 | Hill chain law (self-contained) | new | 0, 4 |
 | 6 | Contractile element operator $R_a$ | new | 5 |
 | 7 | Saturated proliferation: clip the saturation — **done (#95)** | change | – |
 | 8 | Permeability laws $k(\phi_\ell)$ | new | 0 |
 | 9 | Volumetric energy with a compaction point | new | 0; 8 (`saturated_mixture`, demo only) |
-| 10 | Orientation diagnostics | new | – |
+| 10 | Orientation diagnostics — **done (#96)** | new | – |
 | 11 | Residual rows: quadrature degree, test scale and normalization per row | new | – |
 | 12 | Hill one-element integration test | new | 5, 6, 11 |
 | 13 | Terzaghi integration test, nondimensionalization methods | new | 2, 11 |
 | 14 | Hill box demo | new | 0–11 |
-| 15 | Follow-ups (iso activation, `ScaledKinematics`, tooling) | change | 4 |
+| 15 | Follow-ups (iso activation — **done (#96)**, `ScaledKinematics`, tooling) | change | 4 |
 | 16 | Subdomain indicators (gel/pillar data fields) | new | – |
 | 17 | Free-floating cylinder demo | new | 0–11 |
 | 18 | Microtissue between pillars demo (stage A, cut, stage B) | new | 0–11, 16 |
@@ -120,6 +121,10 @@ Left as is: sign/fold switches (`conditional(x < 0, -1, 1)`, `|cos θ|`, angle w
 
 **Tests.** `tests/unit/io/test_xdmf_units.py`, `tests/unit/io/test_xdmf_reading.py`.
 
+**Done in #96.** Modules as above, exported from `fenicsoft.io`; `h5py` in the `dependencies`; tests named
+`test_xdmf_{units,reading}_unit.py` (convention of `tests/unit/io/`). Playground `io/` and its tests deleted; demos and
+the integration test import `fenicsoft.io.xdmf_units` / `fenicsoft.io.read_time_stamps`.
+
 ## 4. Active laws: shared activation schedule
 
 **Changes.** New `src/fenicsoft/materials/cell/active/activation.py`:
@@ -133,6 +138,14 @@ It is not a constitutive law. Active laws use it by composition, so no law depen
 - `tests/unit/materials/cell/active/test_activation.py`.
 - `tests/unit/materials/cell/active/test_activation_equivalence.py`: 100 random config sets × 20 calls give the same α as `iso.Constitutive` (the aniso comparison was dropped with the archived law), or the same `IndexError` for a function config on a missing step. The sets cover constant, ramp and function configs, and missing, duplicated or out-of-range `k_step`.
 - fenicsoft demos: they only use `ActivePowerConfig.constant`, `.ramp` and `.function`, never the internals, so the change is transparent for them.
+
+**Done in #96, with the §15 follow-up.** `iso.law` composes `ActivationSchedule` (`schedule`; `p_cell` is an alias
+of `schedule.p_act`, `current_power` = `schedule.value`) and keeps `ActivePowerConfig` as a re-export
+(`iso.ActivePowerConfig`, used by the demos and the archives, still works). The equivalence test was run before the
+switch in the playground and is not transferred (iso now *is* the schedule). The `ActivePowerConfig` tests moved
+from `test_law_cell_iso.py` to `test_activation.py` (merged with the playground cases, error messages matched);
+the iso tests reading `_current_manager`/`_step_managers` are replaced by delegation tests (`p_cell is
+schedule.p_act`, ramp through `set_k_step`/`update_time`); the mocks target `activation.dolfin`/`activation.dmech`.
 
 ## 5. Hill chain law (self-contained)
 
@@ -183,6 +196,13 @@ It is not a constitutive law. Active laws use it by composition, so no law depen
 ## 10. Orientation diagnostics
 
 **Changes.** New `src/fenicsoft/materials/orientation/display.py`: `current_direction`, `tilt_degrees`, `axis_angle_degrees`, `order_parameter` (head/tail symmetric, `atan2`).
+
+**Done in #96.** `axis_angle_degrees` duplicated `generic.fiber_reorientation_angle` (unsigned, degrees): not
+transferred. Instead `fiber_reorientation_angle` is improved, θ = atan2(‖f − c a‖, |c|), c = f·a (any dimension, no
+clamp, accurate at 0 and 90°; `capped`/`acos` and the sign fold `conditional` gone), and `tilt_degrees` = 90° −
+`fiber_reorientation_angle(f, n, in_degrees=True)`. Demos: `angle_x_*` QOIs call
+`generic.fiber_reorientation_angle(f, e_x, in_degrees=True)`. Test of `test_generic.py` formerly named
+`..._clamps_projection_overshoot` renamed `..._non_unit_aligned_inputs`.
 
 **Tests.** `tests/unit/materials/orientation/test_display.py`.
 
@@ -263,7 +283,7 @@ equations.tex Table tab:sf omitted s_row, the scale of the row's test function: 
 
 ## 15. Follow-ups
 
-- `iso.law` imports `ActivePowerConfig` (and the `p_act` machinery) from `cell/active/activation.py` (issue 4), and removes its copy (`aniso.law` is archived since #93).
+- **Done (#96).** `iso.law` imports `ActivePowerConfig` (and the `p_act` machinery) from `cell/active/activation.py` (issue 4), and removes its copy (`aniso.law` is archived since #93).
   - `iso` keeps `p_cell` as an alias of `ActivationSchedule.p_act`, plus `current_power`.
   - Its unit test reads private attributes and must be adapted: `_current_manager` and `_step_managers` in `test_law_cell_iso.py`.
   - The equivalence test then becomes redundant.
@@ -273,7 +293,7 @@ equations.tex Table tab:sf omitted s_row, the scale of the row's test function: 
   - remove the transferred paths from `NEW_BRANCHES` in `tests/environment/test_env.py`;
   - delete the playground copies;
   - switch the playground imports to fenicsoft.
-  - Done for issues 0 and 7 (#95, before the merge). Also fixed: `materials/domain_fields.py` imported
+  - Done for issues 0 and 7 (#95) and 3, 4, 10 (#96, before the merge). Also fixed: `materials/domain_fields.py` imported
     `build_indicator_meshfunction` from `fenicsoft.io` (moved to `fenicsoft.mesh` in #93).
 - Devcontainer: the playground mounts the JIT cache `/home/fenics_user/.cache/dolfin` (`DIJITSO_CACHE_DIR` of the image) as the named volume `hill-dijitso-cache`; do the same in fenicsoft. The Hill forms take about 90 s of JIT compilation on a fresh container.
 - `set_dt` with a NumPy scalar: `dolfin_mech.core.TimeVaryingConstant.set_value_sca` only accepts `int`/`float`/`list`/`ndarray` (exact `type(val) in ...`), so a `numpy.float64` Δt is silently ignored and Δt stays 0 in every operator (`ChangeRate`, `OrientationChange`, `ContractileEvolution`, `Inertia`). The operators are left as in dolfin_mech/fenicsoft (`self.tv_dt.set_value(dt)`); the playground casts at the source instead (`scaling.time_steps` returns Python `float`, test `test_numpy_t0_gives_python_floats`). Root fix to raise in dolfin_mech: `isinstance(val, numbers.Real)` in `set_value_sca`.

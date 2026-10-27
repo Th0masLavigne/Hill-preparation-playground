@@ -16,13 +16,13 @@ cell orientation angles $\theta, \varphi$ (`remodelling`). Residuals: module doc
 
 | Item | Where |
 | --- | --- |
-| Hill law ($R_u$), activation $\alpha(t)$ | `materials.cell.active.hill`, `materials.cell.active.activation` |
+| Hill law ($R_u$), activation $\alpha(t)$ | `materials.cell.active.hill`, `fenicsoft.materials.cell.active.activation` |
 | CE evolution ($R_a$) | `operators.cell.hill.ContractileEvolution` |
 | Clipped proliferation | `operators.cell.SaturatedProliferation` |
 | Scales ($L_0, \mu_0, t_0$), conversions | `scaling.CharacteristicScales` |
 | $k(\phi_\ell)$, $\mathbf K_L = (k/\eta) J \mathbf C^{-1}$ | `materials.permeability` |
 | Compaction volumetric energy | `materials.volumetric.compaction` |
-| Orientation diagnostics | `materials.orientation.display` |
+| Orientation diagnostics | `fenicsoft.materials.orientation.display`, `generic.fiber_reorientation_angle` (angle to an axis) |
 | Uniqueness check of the CE equilibrium | `materials.cell.active.hill.check_uniqueness` |
 
 | Demo file | Content |
@@ -42,7 +42,7 @@ cell orientation angles $\theta, \varphi$ (`remodelling`). Residuals: module doc
 
 The solve is dimensionless (by the parameters): $\hat{\mathbf X} = \mathbf X/L_0$, $\hat p = p/\mu_0$,
 $\hat t = t/t_0$, coefficients from `hill_box_scaling.Coefficients`. Inputs and outputs stay SI; the XDMF
-geometry and time stamps are put back in m and s after the run (`io.xdmf_units`). Method explained on
+geometry and time stamps are put back in m and s after the run (`fenicsoft.io.xdmf_units`). Method explained on
 Terzaghi in `demos/analytical_consolidation_1D/`.
 
 ## Run

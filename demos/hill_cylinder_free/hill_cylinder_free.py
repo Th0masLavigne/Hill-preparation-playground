@@ -115,6 +115,8 @@ import numpy as np
 from dolfin_mech.core import PinpointSubDomain
 from fenicsoft import io
 from fenicsoft.integration import Step
+from fenicsoft.io import xdmf_units
+from fenicsoft.materials.cell.active.activation import ActivePowerConfig
 from fenicsoft.mesh_geometries.cylinder import CylinderGeometry, CylinderMarker, CylinderMeshGenerator
 from fenicsoft.mesh_geometries.mesh_geometries import GmshKeys, MeshOptions
 from fenicsoft.operators.cell.rotation.orientation_change import OrientationChange
@@ -123,10 +125,8 @@ from hill_cylinder_scaling import Coefficients
 from numpy.typing import NDArray
 
 from hill_playground import integration
-from hill_playground.io import xdmf_units
 from hill_playground.materials import permeability as perm
 from hill_playground.materials import saturated_mixture
-from hill_playground.materials.cell.active.activation import ActivePowerConfig
 from hill_playground.materials.cell.active.hill import law as hill_law
 from hill_playground.materials.cell.active.hill.functions import SeeVariant
 from hill_playground.materials.volumetric import compaction

@@ -12,9 +12,8 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from fenicsoft.io import read_time_stamps  # noqa: E402
 from integrator_case import run  # noqa: E402
-
-from hill_playground.io.xdmf_reading import read_time_stamps  # noqa: E402
 
 CASE = Path(__file__).resolve().parent / "integrator_case.py"
 

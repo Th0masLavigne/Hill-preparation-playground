@@ -1,5 +1,5 @@
-"""Active cell stress laws."""
+"""Active cell stress laws (the activation schedule is ``fenicsoft.materials.cell.active.activation``)."""
 
-from . import activation, hill
+from . import hill
 
-__all__ = ["activation", "hill"]
+__all__ = ["hill"]

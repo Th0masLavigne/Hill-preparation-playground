@@ -94,7 +94,7 @@ def test_activation_follows_steps(make_hill_setup: Any) -> None:
 	"""p_act: ramp 0 -> 1 on step 0 (value at t_step), constant 0.5 on step 1."""
 	from unittest.mock import MagicMock
 
-	from hill_playground.materials.cell.active.activation import ActivePowerConfig
+	from fenicsoft.materials.cell.active.activation import ActivePowerConfig
 
 	steps = [MagicMock(t_ini=0.0, t_fin=1.0), MagicMock(t_ini=1.0, t_fin=2.0)]
 	configs = [ActivePowerConfig.ramp(k_step=0, ini=0.0, fin=1.0), ActivePowerConfig.constant(k_step=1, value=0.5)]

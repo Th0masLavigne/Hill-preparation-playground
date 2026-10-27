@@ -31,10 +31,10 @@ from typing import TYPE_CHECKING, Any, Dict
 import dolfin
 import dolfin_mech
 import fenicsoft.materials.orientation.spherical as spherical_mod
+from fenicsoft.materials.orientation import display, generic
 
 from hill_playground.materials import saturated_mixture
 from hill_playground.materials.cell.active.hill import law as hill_law
-from hill_playground.materials.orientation import display
 from hill_playground.operators.cell import ContractileEvolution
 
 if TYPE_CHECKING:
@@ -106,8 +106,8 @@ def add_outputs(
 		"theta_wrapped_deg": spherical_mod.wrapped_theta_degrees(problem.theta_func),
 		"tilt_xy_deg": display.tilt_degrees(f0, _E_Z),
 		"tilt_xy_current_deg": display.tilt_degrees(fibre, _E_Z),
-		"angle_x_deg": display.axis_angle_degrees(f0, _E_X),
-		"angle_x_current_deg": display.axis_angle_degrees(fibre, _E_X),
+		"angle_x_deg": generic.fiber_reorientation_angle(f0, _E_X, in_degrees=True),
+		"angle_x_current_deg": generic.fiber_reorientation_angle(fibre, _E_X, in_degrees=True),
 		"lambda_fibre": dolfin.sqrt(hill_material.inv4),
 		"lambda_a": hill_material.lmbda_a,
 		"lambda_e": dolfin.sqrt(hill_material.inv4e),

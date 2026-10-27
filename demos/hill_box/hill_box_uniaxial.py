@@ -93,6 +93,8 @@ import fenicsoft.materials.orientation.spherical as spherical_mod
 import fenicsoft.operators.cell as cell_ops
 from fenicsoft import io
 from fenicsoft.integration import Step
+from fenicsoft.io import xdmf_units
+from fenicsoft.materials.cell.active.activation import ActivePowerConfig
 from fenicsoft.mesh_geometries.box import BoxGeometry, BoxMarker, BoxMeshGenerator
 from fenicsoft.mesh_geometries.mesh_geometries import GmshKeys, MeshOptions
 from fenicsoft.operators.cell.rotation.orientation_change import OrientationChange
@@ -100,10 +102,8 @@ from hill_box_outputs import add_outputs
 from hill_box_scaling import Coefficients
 
 from hill_playground import integration
-from hill_playground.io import xdmf_units
 from hill_playground.materials import permeability as perm
 from hill_playground.materials import saturated_mixture
-from hill_playground.materials.cell.active.activation import ActivePowerConfig
 from hill_playground.materials.cell.active.hill import law as hill_law
 from hill_playground.materials.cell.active.hill.functions import SeeVariant
 from hill_playground.materials.volumetric import compaction
