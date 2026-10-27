@@ -72,7 +72,8 @@ Residuals
 :math:`\mathbf{Q}_c` the diffusive + haptotactic cell flux,
 :math:`\mathrm{sat} = \langle 1 - \Phi_c/\Phi_{c,max}\rangle_+`,
 :math:`Q` the orientation potential, :math:`D_a = (\varepsilon_a - \varepsilon_a^n)/\Delta t` (Hill chain:
-SEE :math:`T_e` in series with the CE, itself in parallel with the PEE :math:`T_p`; ``materials.cell.active.hill``);
+SEE :math:`T_e` in series with the CE, itself in parallel with the PEE :math:`T_p`;
+``fenicsoft.materials.cell.active.hill``);
 in the pillars, :math:`\mathbf P_S^{pil}` Neo-Hooke + quadratic volumetric (``pillar_shear_modulus``,
 ``pillar_kappa``), :math:`\mathbf K_L^{pil} = r_k\,(k_0/\eta) J\mathbf C^{-1}` (``pillar_permeability_ratio``
 :math:`r_k`), and :math:`R_s` with the gel :math:`\Phi_{s,0}` (no jump of :math:`\tilde\phi_s` at the interface,
@@ -125,12 +126,15 @@ from fenicsoft import integration, io
 from fenicsoft.integration import Step
 from fenicsoft.io import xdmf_units
 from fenicsoft.materials.cell.active.activation import ActivePowerConfig
+from fenicsoft.materials.cell.active.hill import law as hill_law
+from fenicsoft.materials.cell.active.hill.functions import SeeVariant
 from fenicsoft.mesh_geometries.mesh_geometries import GmshKeys, MeshOptions, RefinementZone
 from fenicsoft.mesh_geometries.microtissue_pillars import (
 	MicrotissuePillarsGeometry,
 	MicrotissuePillarsMarker,
 	MicrotissuePillarsMeshGenerator,
 )
+from fenicsoft.operators.cell import ContractileEvolution
 from fenicsoft.operators.cell.rotation.orientation_change import OrientationChange
 from fenicsoft.scaling import CharacteristicScales
 from pillars_outputs import add_outputs
@@ -138,11 +142,8 @@ from pillars_scaling import Coefficients
 
 from hill_playground.materials import domain_fields, saturated_mixture
 from hill_playground.materials import permeability as perm
-from hill_playground.materials.cell.active.hill import law as hill_law
-from hill_playground.materials.cell.active.hill.functions import SeeVariant
 from hill_playground.materials.volumetric import compaction
 from hill_playground.operators import ResidualRows
-from hill_playground.operators.cell import ContractileEvolution
 
 comm = dolfin.MPI.comm_world
 rank = dolfin.MPI.rank(comm)
@@ -237,7 +238,7 @@ class UserInputs:
 	    hill_b: :math:`b` (1/s).
 	    f_ecc: :math:`f_{ecc}`.
 	    eta_0: :math:`\eta_0` (Pa.s).
-	    see_variant: SEE law (``hill.functions.SeeVariant``).
+	    see_variant: SEE law (``fenicsoft.materials.cell.active.hill.functions.SeeVariant``).
 	    k_2e: Exponent of the ``"exponential"`` SEE.
 	    orientation_random_seed: Seed of the isotropic :math:`(\theta, \varphi)` draw.
 	    remodel_tau: Remodelling time :math:`\tau` (s).

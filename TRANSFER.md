@@ -2,7 +2,7 @@
 
 Everything in `hill_playground/<path>` targets `fenicsoft/<path>` (same sub-package names).
 One issue = one merge request, in the order below: each one only needs the issues above it.
-Reference branch: fenicsoft `main` (clean-up #93, #95, #96 and #97 merged; it carries `scale_factor`, `OrientationChange`, `ufl_functions` and the selected-field integrator).
+Reference branch: fenicsoft `main` (clean-up #93, #95, #96, #97 and #98 merged; it carries `scale_factor`, `OrientationChange`, `ufl_functions`, the selected-field integrator and `fenicsoft.scaling`).
 
 **fenicsoft conventions since #93** (apply them in every transfer merge request):
 - Layout: `Step` is in `fenicsoft.integration` (`integration.Step`), the mesh cut and field transfer in the new
@@ -27,8 +27,8 @@ Reference branch: fenicsoft `main` (clean-up #93, #95, #96 and #97 merged; it ca
 - Floors, caps and positive/negative parts use `fenicsoft.ufl_functions` (#95), never an inline `dolfin.conditional`.
 
 **Status.** #95 (issues 0 and 7, test standard), #96 (issues 3, 4, 10 and the first follow-up of §15) and #97
-(issue 1) are merged into `main`. fenicsoft branch
-`98-transfert-hill-fenicsoft-scaling-echelles-caracteristiques-et-pas-de-temps-adimensionnes` (not merged): issue 2.
+(issue 1) and #98 (issue 2) are merged into `main`. fenicsoft branch
+`99-transfert-hill-fenicsoft-loi-de-chaine-de-hill-et-operateur-contractile-r_a` (not merged): issues 5 and 6.
 The playground copies are deleted and its imports point to fenicsoft; the devcontainer installs that branch
 (`.devcontainer/fenicsoft.env`).
 
@@ -44,8 +44,8 @@ Legend: **new**: the file does not exist in fenicsoft. **change**: patch an exis
 | 2 | Scaling: promote `CharacteristicScales` to `fenicsoft.scaling` — **done (#98)** | new | 1 |
 | 3 | IO: write XDMF geometry and time back in SI — **done (#96)** | new | – |
 | 4 | Active laws: shared activation schedule — **done (#96)** | new | – |
-| 5 | Hill chain law (self-contained) | new | 0, 4 |
-| 6 | Contractile element operator $R_a$ | new | 5 |
+| 5 | Hill chain law (self-contained) — **done (#99)** | new | 0, 4 |
+| 6 | Contractile element operator $R_a$ — **done (#99)** | new | 5 |
 | 7 | Saturated proliferation: clip the saturation — **done (#95)** | change | – |
 | 8 | Permeability laws $k(\phi_\ell)$ | new | 0 |
 | 9 | Volumetric energy with a compaction point | new | 0; 8 (`saturated_mixture`, demo only) |
@@ -174,11 +174,22 @@ schedule.p_act`, ramp through `set_k_step`/`update_time`); the mocks target `act
 
 **Tests.** `tests/unit/materials/cell/active/hill/test_{functions,law}_cell_hill.py` and the fixtures in `tests/conftest.py` (`HillSetup`, `make_setup`).
 
+**Done in #99.** Package as above, exported from `materials/cell/active/__init__.py`; relative imports, `simulation_steps`
+typed `fenicsoft.integration.Step` (was `dolfin_mech.core.Step`); figure `docs/src/_static/resources/hill_rheology.{tex,svg}`
+moved to fenicsoft. Fixtures merged into fenicsoft `tests/conftest.py` with lazy imports (`HillSetup`, `make_setup`,
+`hill_setup`, `make_hill_setup`; `dilate` stays in the playground for issue 8). Zero-target asserts rewritten as
+`pytest.approx(0.0, rel=0.0, abs=...)`. Playground `materials/cell/` and its tests deleted.
+
 ## 6. Contractile element operator $R_a$
 
 **Changes.** New `src/fenicsoft/operators/cell/hill/contractile_evolution.py` (no `__init__.py`, export from `operators/cell/__init__.py`): `ContractileEvolution`, with R_a = [f_max α f_FL h(D_a) + η₀D_a + T_p − T_e] δε and D_a = (ε_a − ε_aⁿ)/Δt, plus `scale_factor`. Register it per step (`k_step`): `set_dt` is only called on step operators.
 
 **Tests.** `tests/unit/operators/cell/hill/test_contractile_evolution.py`.
+
+**Done in #99.** `ContractileEvolution` exported from `operators/cell/__init__.py` (import `fenicsoft.operators.cell`).
+Playground `operators/cell/` and its test deleted; `NEW_BRANCHES` keeps `materials.permeability` only; demos,
+demo READMEs, `hill_box_all_modes` and `hill_one_element` import `fenicsoft.materials.cell.active.hill` and
+`fenicsoft.operators.cell.ContractileEvolution`.
 
 ## 7. Saturated proliferation: clip the saturation
 
@@ -308,7 +319,7 @@ equations.tex Table tab:sf omitted s_row, the scale of the row's test function: 
   - remove the transferred paths from `NEW_BRANCHES` in `tests/environment/test_env.py`;
   - delete the playground copies;
   - switch the playground imports to fenicsoft.
-  - Done for issues 0 and 7 (#95), 3, 4, 10 (#96), 1 (#97) and 2 (#98), before each merge. Also fixed: `materials/domain_fields.py` imported
+  - Done for issues 0 and 7 (#95), 3, 4, 10 (#96), 1 (#97), 2 (#98), 5 and 6 (#99), before each merge. Also fixed: `materials/domain_fields.py` imported
     `build_indicator_meshfunction` from `fenicsoft.io` (moved to `fenicsoft.mesh` in #93).
 - Devcontainer: the playground mounts the JIT cache `/home/fenics_user/.cache/dolfin` (`DIJITSO_CACHE_DIR` of the image) as the named volume `hill-dijitso-cache`; do the same in fenicsoft. The Hill forms take about 90 s of JIT compilation on a fresh container.
 - `set_dt` with a NumPy scalar: `dolfin_mech.core.TimeVaryingConstant.set_value_sca` only accepts `int`/`float`/`list`/`ndarray` (exact `type(val) in ...`), so a `numpy.float64` Δt is silently ignored and Δt stays 0 in every operator (`ChangeRate`, `OrientationChange`, `ContractileEvolution`, `Inertia`). The operators are left as in dolfin_mech/fenicsoft (`self.tv_dt.set_value(dt)`); the playground casts at the source instead (`fenicsoft.scaling.time_steps` returns Python `float`, test `test_numpy_t0_gives_python_floats`). Root fix to raise in dolfin_mech: `isinstance(val, numbers.Real)` in `set_value_sca`.

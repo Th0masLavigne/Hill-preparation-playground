@@ -36,7 +36,7 @@ The solve is dimensionless (by the parameters) with $L_0 = T$ (gel thickness): $
 | Library object | Use |
 | --- | --- |
 | `materials.domain_fields` | $\chi_{gel}$ (DG0) and $\chi^{int}_{pil}$ (CG1: initial $\Phi_c = 0$ strictly inside the pillars) |
-| `materials.permeability`, `materials.volumetric.compaction`, `materials.cell.active.hill` | gel laws |
+| `materials.permeability`, `materials.volumetric.compaction`, `fenicsoft.materials.cell.active.hill` | gel laws |
 | `fenicsoft.operators.ChangeRate` | frozen $\Phi_c$, $\varepsilon_a$ in the pillars |
 | `fenicsoft.io` (`extract_submesh_by_tags`, `project_facet_tags`, `transfer_*`, checkpoints) | cut and hand-over |
 

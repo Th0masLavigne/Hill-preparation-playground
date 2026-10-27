@@ -25,8 +25,8 @@ reactions vanish and the solution is the free one (displacements relative to $A$
 
 | Item | Where |
 | --- | --- |
-| Hill law ($R_u$), activation $\alpha(t)$ | `materials.cell.active.hill`, `fenicsoft.materials.cell.active.activation` |
-| CE evolution ($R_a$) | `operators.cell.hill.ContractileEvolution` |
+| Hill law ($R_u$), activation $\alpha(t)$ | `fenicsoft.materials.cell.active.hill`, `fenicsoft.materials.cell.active.activation` |
+| CE evolution ($R_a$) | `fenicsoft.operators.cell.ContractileEvolution` |
 | Clipped proliferation | `operators.cell.SaturatedProliferation` |
 | Scales ($L_0, \mu_0, t_0$), conversions | `fenicsoft.scaling.CharacteristicScales` |
 | $k(\phi_\ell)$, $\mathbf K_L = (k/\eta) J \mathbf C^{-1}$ | `materials.permeability` |

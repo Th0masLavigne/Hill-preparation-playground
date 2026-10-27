@@ -16,14 +16,14 @@ cell orientation angles $\theta, \varphi$ (`remodelling`). Residuals: module doc
 
 | Item | Where |
 | --- | --- |
-| Hill law ($R_u$), activation $\alpha(t)$ | `materials.cell.active.hill`, `fenicsoft.materials.cell.active.activation` |
-| CE evolution ($R_a$) | `operators.cell.hill.ContractileEvolution` |
+| Hill law ($R_u$), activation $\alpha(t)$ | `fenicsoft.materials.cell.active.hill`, `fenicsoft.materials.cell.active.activation` |
+| CE evolution ($R_a$) | `fenicsoft.operators.cell.ContractileEvolution` |
 | Clipped proliferation | `operators.cell.SaturatedProliferation` |
 | Scales ($L_0, \mu_0, t_0$), conversions | `fenicsoft.scaling.CharacteristicScales` |
 | $k(\phi_\ell)$, $\mathbf K_L = (k/\eta) J \mathbf C^{-1}$ | `materials.permeability` |
 | Compaction volumetric energy | `materials.volumetric.compaction` |
 | Orientation diagnostics | `fenicsoft.materials.orientation.display`, `generic.fiber_reorientation_angle` (angle to an axis) |
-| Uniqueness check of the CE equilibrium | `materials.cell.active.hill.check_uniqueness` |
+| Uniqueness check of the CE equilibrium | `fenicsoft.materials.cell.active.hill.check_uniqueness` |
 
 | Demo file | Content |
 | --- | --- |

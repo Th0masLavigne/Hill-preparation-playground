@@ -55,7 +55,7 @@ flux, :math:`\mathrm{sat} = \langle 1 - \Phi_c/\Phi_{c,max}\rangle_+` and :math:
 In :math:`R_a`, the cell is an elastic element (SEE, tension :math:`T_e`) in series with a contractile
 element (CE, stretch :math:`\lambda_a = e^{\varepsilon_a}`, rate :math:`D_a = \dot\varepsilon_a`) itself in
 parallel with a passive element (PEE, tension :math:`T_p`); :math:`f_{FL}` is the Gaussian force--length law
-and :math:`h` the Hill force--velocity law (``materials.cell.active.hill``).
+and :math:`h` the Hill force--velocity law (``fenicsoft.materials.cell.active.hill``).
 
 Nondimensionalisation (by the parameters)
 -----------------------------------------
@@ -95,8 +95,11 @@ from fenicsoft import integration, io
 from fenicsoft.integration import Step
 from fenicsoft.io import xdmf_units
 from fenicsoft.materials.cell.active.activation import ActivePowerConfig
+from fenicsoft.materials.cell.active.hill import law as hill_law
+from fenicsoft.materials.cell.active.hill.functions import SeeVariant
 from fenicsoft.mesh_geometries.box import BoxGeometry, BoxMarker, BoxMeshGenerator
 from fenicsoft.mesh_geometries.mesh_geometries import GmshKeys, MeshOptions
+from fenicsoft.operators.cell import ContractileEvolution
 from fenicsoft.operators.cell.rotation.orientation_change import OrientationChange
 from fenicsoft.scaling import CharacteristicScales
 from hill_box_outputs import add_outputs
@@ -104,11 +107,8 @@ from hill_box_scaling import Coefficients
 
 from hill_playground.materials import permeability as perm
 from hill_playground.materials import saturated_mixture
-from hill_playground.materials.cell.active.hill import law as hill_law
-from hill_playground.materials.cell.active.hill.functions import SeeVariant
 from hill_playground.materials.volumetric import compaction
 from hill_playground.operators import ResidualRows
-from hill_playground.operators.cell import ContractileEvolution
 
 comm = dolfin.MPI.comm_world
 rank = dolfin.MPI.rank(comm)
@@ -156,7 +156,7 @@ class UserInputs:
 	    hill_b: :math:`b` (1/s).
 	    f_ecc: :math:`f_{ecc}`.
 	    eta_0: :math:`\eta_0` (Pa.s).
-	    see_variant: SEE law (``hill.functions.SeeVariant``).
+	    see_variant: SEE law (``fenicsoft.materials.cell.active.hill.functions.SeeVariant``).
 	    k_2e: Exponent of the ``"exponential"`` SEE.
 	    orientation_random_seed: Seed of the isotropic :math:`(\theta, \varphi)` draw.
 	    remodel_tau: Remodelling time :math:`\tau` (s).

@@ -31,12 +31,12 @@ import fenicsoft
 import numpy as np
 import pandas as pd
 from fenicsoft.materials.cell.active.activation import ActivePowerConfig
+from fenicsoft.materials.cell.active.hill import law as hill_law
+from fenicsoft.operators.cell import ContractileEvolution
 from hill_0d_reference import HillChain0D
 from numpy.typing import NDArray
 
-from hill_playground.materials.cell.active.hill import law as hill_law
 from hill_playground.operators import ResidualRows
-from hill_playground.operators.cell import ContractileEvolution
 
 QOI_NAMES = ("alpha", "eps_a", "lambda", "lambda_t", "pk1_xx", "pk1_yy", "tension_see")
 
