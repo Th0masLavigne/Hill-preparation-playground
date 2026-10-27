@@ -77,6 +77,8 @@ import fenicsoft.operators.cell as cell_ops
 from fenicsoft import integration, io
 from fenicsoft.integration import Step
 from fenicsoft.io import xdmf_units
+from fenicsoft.materials import permeability as perm
+from fenicsoft.materials import saturated_mixture
 from fenicsoft.materials.cell.active.activation import ActivePowerConfig
 from fenicsoft.materials.cell.active.hill import law as hill_law
 from fenicsoft.materials.cell.active.hill.functions import SeeVariant
@@ -87,9 +89,6 @@ from fenicsoft.operators.cell import ContractileEvolution
 from fenicsoft.operators.cell.rotation.orientation_change import OrientationChange
 from fenicsoft.scaling import CharacteristicScales, nondimensionalize_step, nondimensionalize_write_period
 
-from hill_playground.materials import permeability as perm
-from hill_playground.materials import saturated_mixture
-from hill_playground.materials.volumetric import compaction
 from hill_playground.operators import ResidualRows
 
 comm = dolfin.MPI.comm_world
@@ -132,7 +131,7 @@ class UserInputs:
 	    remodelling: Solve :math:`\theta, \varphi` (:math:`R_{\theta,\varphi}`); else frozen at the draw.
 	    gel_shear_modulus: :math:`\mu_{gel}`, also :math:`\mu_0` (Pa).
 	    gel_kappa: :math:`\kappa_{gel}` (Pa).
-	    volumetric_law: ``"quadratic"`` or ``"compaction"`` (``hill_playground.materials.volumetric``).
+	    volumetric_law: ``"quadratic"`` or ``"compaction"`` (``fenicsoft.materials.volumetric``).
 	    f_max: :math:`f_{max}` (Pa).
 	    lmbda_opt: :math:`\lambda_{opt}`.
 	    width_fl: :math:`W`.
@@ -149,7 +148,7 @@ class UserInputs:
 	    remodel_tau: Remodelling time :math:`\tau` (s).
 	    permeability: :math:`k_0` (m^2).
 	    viscosity_pa_s: :math:`\eta` (Pa.s).
-	    permeability_law: :math:`k(\phi_\ell)` law (``hill_playground.materials.permeability``).
+	    permeability_law: :math:`k(\phi_\ell)` law (``fenicsoft.materials.permeability``).
 	    holmes_mow_exponent: :math:`\kappa_{HM}`.
 	    holmes_mow_stiffening: :math:`M`.
 	    compaction_exponent: :math:`n \ge 1` of ``"compaction_power"``.
@@ -650,7 +649,7 @@ def initialise_problem(
 def build_permeability(
 	problem: dolfin_mech.problems.Problem, user_inputs: UserInputs, coefficients: Coefficients
 ) -> Any:
-	r""":math:`k(\phi_\ell)/\eta` law of ``user_inputs.permeability_law`` (``hill_playground.materials.permeability``).
+	r""":math:`k(\phi_\ell)/\eta` law of ``user_inputs.permeability_law`` (``fenicsoft.materials.permeability``).
 
 	Args:
 	    problem: Problem with ``kinematics``, ``phi_s0``, ``phic_func``.
@@ -708,9 +707,9 @@ def build_materials(
 		name="gel_isochoric",
 	)
 	if user_inputs.volumetric_law == "compaction":
-		volumetric: Any = compaction.CompactionVolumetricPenalty(
+		volumetric: Any = fenicsoft.materials.volumetric.CompactionVolumetricPenalty(
 			kin,
-			compaction.Parameters(
+			fenicsoft.materials.volumetric.CompactionVolumetricPenaltyParameters(
 				kappa=coefficients.kappa,
 				solid_jacobian=saturated_mixture.compaction_jacobian(problem.phi_s0, problem.phic_func),
 			),

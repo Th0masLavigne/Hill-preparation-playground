@@ -17,11 +17,8 @@ holds what is new.
 │   ├── install_fenicsoft.sh
 │   ├── initialize.sh       # host-side: base image + bind-mount folders
 │   └── secrets.env.example # token for the remote mode
-├── src/hill_playground/    # -> fenicsoft/ (one issue per item: TRANSFER.md; issues 0, 7 in #95, 3, 4, 10 in #96, 1 in #97, 2 in #98, 5 and 6 in #99)
-│   ├── materials/permeability/       # k(phi_l) laws on a common base class                  [new]
-│   ├── materials/saturated_mixture.py # J_min, Phi_l, phi_l, phi_s (mixture kinematics)      [new]
+├── src/hill_playground/    # -> fenicsoft/ (one issue per item: TRANSFER.md; issues 0, 7 in #95, 3, 4, 10 in #96, 1 in #97, 2 in #98, 5 and 6 in #99, 8 and 9 in #100)
 │   ├── materials/domain_fields.py    # subdomain indicators (gel/pillar data fields)         [new]
-│   ├── materials/volumetric/         # volumetric energy with a compaction point             [new]
 │   └── operators/residual_rows.py    # quadrature degree, test scale, normalization per row   [new]
 ├── tests/{unit,integration,environment,conventions}/
 ├── demos/analytical_consolidation_1D/  # Terzaghi, nondimensionalised: start here

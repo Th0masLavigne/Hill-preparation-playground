@@ -35,7 +35,7 @@ def test_fenicsoft_origin() -> None:
 	print("\n" + STAMP.read_text())
 
 
-NEW_BRANCHES = ("materials.permeability",)
+NEW_BRANCHES: tuple[str, ...] = ()
 """Packages that do not exist yet in fenicsoft (transfer plan); everything else must already exist."""
 
 

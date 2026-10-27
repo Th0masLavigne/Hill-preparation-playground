@@ -31,11 +31,10 @@ from typing import TYPE_CHECKING, Any, Dict
 import dolfin
 import dolfin_mech
 import fenicsoft.materials.orientation.spherical as spherical_mod
+from fenicsoft.materials import saturated_mixture
 from fenicsoft.materials.cell.active.hill import law as hill_law
 from fenicsoft.materials.orientation import display, generic
 from fenicsoft.operators.cell import ContractileEvolution
-
-from hill_playground.materials import saturated_mixture
 
 if TYPE_CHECKING:
 	from pillars_biaxial import UserInputs

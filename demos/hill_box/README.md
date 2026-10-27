@@ -20,8 +20,8 @@ cell orientation angles $\theta, \varphi$ (`remodelling`). Residuals: module doc
 | CE evolution ($R_a$) | `fenicsoft.operators.cell.ContractileEvolution` |
 | Clipped proliferation | `operators.cell.SaturatedProliferation` |
 | Scales ($L_0, \mu_0, t_0$), conversions | `fenicsoft.scaling.CharacteristicScales` |
-| $k(\phi_\ell)$, $\mathbf K_L = (k/\eta) J \mathbf C^{-1}$ | `materials.permeability` |
-| Compaction volumetric energy | `materials.volumetric.compaction` |
+| $k(\phi_\ell)$, $\mathbf K_L = (k/\eta) J \mathbf C^{-1}$ | `fenicsoft.materials.permeability` |
+| Compaction volumetric energy | `fenicsoft.materials.volumetric.CompactionVolumetricPenalty` |
 | Orientation diagnostics | `fenicsoft.materials.orientation.display`, `generic.fiber_reorientation_angle` (angle to an axis) |
 | Uniqueness check of the CE equilibrium | `fenicsoft.materials.cell.active.hill.check_uniqueness` |
 

@@ -27,7 +27,7 @@ Equations (reference configuration, St Venant--Kirchhoff skeleton)
 	       + \mathbf K_L \nabla p \cdot \nabla \delta p \,\mathrm dV = 0
 
 with :math:`\mathbf K_L = k\, J\mathbf C^{-1}` the Darcy conductivity pulled back to the reference configuration
-(``materials.permeability.constant``) and :math:`k` the hydraulic conductivity :math:`k_{int}/\eta`.
+(``fenicsoft.materials.permeability.constant``) and :math:`k` the hydraulic conductivity :math:`k_{int}/\eta`.
 The exact solution (small strains) is Terzaghi's,
 see ``terzaghi_analytics.py``.
 
@@ -84,11 +84,11 @@ import dolfin_mech
 import numpy as np
 from fenicsoft import integration, io, materials, operators
 from fenicsoft.io import xdmf_units
+from fenicsoft.materials import permeability
 from fenicsoft.mesh_geometries import GmshKeys, MeshOptions, RectangleGeometry, RectangleMarker, RectangleMeshGenerator
 from fenicsoft.scaling import CharacteristicScales
 from numpy.typing import NDArray
 
-from hill_playground.materials import permeability
 from hill_playground.operators import ResidualRows
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # shared analytics and post-processing

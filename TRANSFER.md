@@ -2,7 +2,7 @@
 
 Everything in `hill_playground/<path>` targets `fenicsoft/<path>` (same sub-package names).
 One issue = one merge request, in the order below: each one only needs the issues above it.
-Reference branch: fenicsoft `main` (clean-up #93, #95, #96, #97 and #98 merged; it carries `scale_factor`, `OrientationChange`, `ufl_functions`, the selected-field integrator and `fenicsoft.scaling`).
+Reference branch: fenicsoft `main` (clean-up #93, #95, #96, #97, #98 and #99 merged; it carries `scale_factor`, `OrientationChange`, `ufl_functions`, the selected-field integrator, `fenicsoft.scaling` and the Hill law).
 
 **fenicsoft conventions since #93** (apply them in every transfer merge request):
 - Layout: `Step` is in `fenicsoft.integration` (`integration.Step`), the mesh cut and field transfer in the new
@@ -22,13 +22,14 @@ Reference branch: fenicsoft `main` (clean-up #93, #95, #96, #97 and #98 merged; 
   tests and archives) must pass.
 - Tests (since #95): every float comparison states its tolerance, guarded by
   `tests/conventions/test_explicit_tolerances.py` (fenicsoft README, "Contributing"). Exact arithmetic:
-  `rel=1e-12, abs=0.0`; zero target: `rel=0.0, abs=...`. Shared test helper: `tests/conftest.py::cube_mean`
-  (fixture `mean`); the Hill fixtures of issue 5 go into that file.
+  `rel=1e-12, abs=0.0`; zero target: `rel=0.0, abs=...`. Shared test helpers: fenicsoft `tests/conftest.py`
+  (`cube_mean`/`mean`, `dilated_kinematics`/`dilate`, Hill fixtures); the playground has no `tests/conftest.py` left.
 - Floors, caps and positive/negative parts use `fenicsoft.ufl_functions` (#95), never an inline `dolfin.conditional`.
 
 **Status.** #95 (issues 0 and 7, test standard), #96 (issues 3, 4, 10 and the first follow-up of §15) and #97
-(issue 1) and #98 (issue 2) are merged into `main`. fenicsoft branch
-`99-transfert-hill-fenicsoft-loi-de-chaine-de-hill-et-operateur-contractile-r_a` (not merged): issues 5 and 6.
+(issue 1), #98 (issue 2) and #99 (issues 5 and 6) are merged into `main`. fenicsoft branch
+`100-transfert-hill-fenicsoft-lois-de-permeabilite-k-_-et-energie-volumique-avec-point-de-compaction` (not merged):
+issues 8 and 9.
 The playground copies are deleted and its imports point to fenicsoft; the devcontainer installs that branch
 (`.devcontainer/fenicsoft.env`).
 
@@ -47,8 +48,8 @@ Legend: **new**: the file does not exist in fenicsoft. **change**: patch an exis
 | 5 | Hill chain law (self-contained) — **done (#99)** | new | 0, 4 |
 | 6 | Contractile element operator $R_a$ — **done (#99)** | new | 5 |
 | 7 | Saturated proliferation: clip the saturation — **done (#95)** | change | – |
-| 8 | Permeability laws $k(\phi_\ell)$ | new | 0 |
-| 9 | Volumetric energy with a compaction point | new | 0; 8 (`saturated_mixture`, demo only) |
+| 8 | Permeability laws $k(\phi_\ell)$ — **done (#100)** | new | 0 |
+| 9 | Volumetric energy with a compaction point — **done (#100)** | new | 0; 8 (`saturated_mixture`, demo only) |
 | 10 | Orientation diagnostics — **done (#96)** | new | – |
 | 11 | Residual rows: quadrature degree, test scale and normalization per row | new | – |
 | 12 | Hill one-element integration test | new | 5, 6, 11 |
@@ -213,11 +214,26 @@ demo READMEs, `hill_box_all_modes` and `hill_one_element` import `fenicsoft.mate
 
 **Tests.** `tests/unit/materials/test_saturated_mixture.py`, `tests/unit/materials/permeability/test_permeability_laws.py`.
 
+**Done in #100 (with issue 9).** Modules copied (relative imports; `base.py` types `Kinematics`), `permeability` and
+`saturated_mixture` exported from `materials/__init__.py`. Reuse sites switched to `saturated_mixture`:
+`haptotaxis/{constant,saturated}.py` (`grad(solid_fraction(J, φ_s0) ρ_s)`), `haptotaxis/internal_variable.py`
+(`SubstrateProjection` target), `phi_f_euler` of `cube_iso_contraction/main_internal_variable.py` and
+`cylinder_jellyfish_contraction/main{,_internal_variable,_internal_variable_smooth_bcs}.py` (`eulerian_porosity`).
+`test_constant_hapt.py`: the singularity mock now raises on φ_s0/J. Fixture `dilate` (`dilated_kinematics`, lazy
+imports) merged into fenicsoft `tests/conftest.py`; zero-target asserts as `pytest.approx(0.0, rel=0.0, abs=...)`.
+Playground `materials/{permeability,saturated_mixture.py}`, their tests and `tests/conftest.py` deleted;
+`NEW_BRANCHES = ()`.
+
 ## 9. Volumetric energy with a compaction point
 
 **Changes.** New `src/fenicsoft/materials/volumetric/compaction.py`: `CompactionVolumetricPenalty` (Ehlers), W = κ(1−J_min)²[x − ln x − 1], with its own `Parameters(kappa, solid_jacobian, x_floor)` (J_min < 1 checked when `solid_jacobian` is a number or a `dolfin.Constant`). Below x_floor, W is continued linearly in x, so S = 2∂W/∂C holds everywhere and S stays finite (checked by finite differences in the test).
 
 **Tests.** `tests/unit/materials/volumetric/test_compaction.py`.
+
+**Done in #100.** `volumetric/compaction.py` with `Parameters` renamed `CompactionVolumetricPenaltyParameters`
+(fenicsoft convention: classes exported from `volumetric/__init__.py`, as `VolumetricPenaltyParameters`). Playground
+`materials/volumetric/` and its test deleted; demos and `hill_box_all_modes` call
+`fenicsoft.materials.volumetric.CompactionVolumetricPenalty(Parameters)`.
 
 ## 10. Orientation diagnostics
 
@@ -319,7 +335,7 @@ equations.tex Table tab:sf omitted s_row, the scale of the row's test function: 
   - remove the transferred paths from `NEW_BRANCHES` in `tests/environment/test_env.py`;
   - delete the playground copies;
   - switch the playground imports to fenicsoft.
-  - Done for issues 0 and 7 (#95), 3, 4, 10 (#96), 1 (#97), 2 (#98), 5 and 6 (#99), before each merge. Also fixed: `materials/domain_fields.py` imported
+  - Done for issues 0 and 7 (#95), 3, 4, 10 (#96), 1 (#97), 2 (#98), 5 and 6 (#99), 8 and 9 (#100), before each merge. Also fixed: `materials/domain_fields.py` imported
     `build_indicator_meshfunction` from `fenicsoft.io` (moved to `fenicsoft.mesh` in #93).
 - Devcontainer: the playground mounts the JIT cache `/home/fenics_user/.cache/dolfin` (`DIJITSO_CACHE_DIR` of the image) as the named volume `hill-dijitso-cache`; do the same in fenicsoft. The Hill forms take about 90 s of JIT compilation on a fresh container.
 - `set_dt` with a NumPy scalar: `dolfin_mech.core.TimeVaryingConstant.set_value_sca` only accepts `int`/`float`/`list`/`ndarray` (exact `type(val) in ...`), so a `numpy.float64` Δt is silently ignored and Δt stays 0 in every operator (`ChangeRate`, `OrientationChange`, `ContractileEvolution`, `Inertia`). The operators are left as in dolfin_mech/fenicsoft (`self.tv_dt.set_value(dt)`); the playground casts at the source instead (`fenicsoft.scaling.time_steps` returns Python `float`, test `test_numpy_t0_gives_python_floats`). Root fix to raise in dolfin_mech: `isinstance(val, numbers.Real)` in `set_value_sca`.

@@ -68,9 +68,9 @@ the solver time is :math:`\hat t = t/t_0`. The weak form is written as in SI. Ou
 Options
 -------
 * ``permeability_law``: ``"constant"``, ``"kozeny_carman"``, ``"holmes_mow"``, ``"compaction_power"``
-  (``materials.permeability``);
+  (``fenicsoft.materials.permeability``);
 * ``volumetric_law``: ``"quadratic"`` :math:`\frac{\kappa}{2}(J-1)^2` or ``"compaction"``
-  (barrier at :math:`J_{\min} = \Phi_{s,0} + \Phi_c`, ``materials.volumetric.compaction``);
+  (barrier at :math:`J_{\min} = \Phi_{s,0} + \Phi_c`, ``fenicsoft.materials.volumetric.compaction``);
 * ``cell_transport``, ``remodelling``: solve :math:`(\Phi_c, \tilde\phi_s)` and :math:`(\theta, \varphi)`;
 * ``quadrature_degrees``: quadrature degree per residual row (row = subsol of the test function).
 
@@ -94,6 +94,8 @@ import fenicsoft.operators.cell as cell_ops
 from fenicsoft import integration, io
 from fenicsoft.integration import Step
 from fenicsoft.io import xdmf_units
+from fenicsoft.materials import permeability as perm
+from fenicsoft.materials import saturated_mixture
 from fenicsoft.materials.cell.active.activation import ActivePowerConfig
 from fenicsoft.materials.cell.active.hill import law as hill_law
 from fenicsoft.materials.cell.active.hill.functions import SeeVariant
@@ -105,9 +107,6 @@ from fenicsoft.scaling import CharacteristicScales
 from hill_box_outputs import add_outputs
 from hill_box_scaling import Coefficients
 
-from hill_playground.materials import permeability as perm
-from hill_playground.materials import saturated_mixture
-from hill_playground.materials.volumetric import compaction
 from hill_playground.operators import ResidualRows
 
 comm = dolfin.MPI.comm_world
@@ -563,9 +562,9 @@ def build_materials(
 		name="gel_isochoric",
 	)
 	if user_inputs.volumetric_law == "compaction":
-		volumetric: Any = compaction.CompactionVolumetricPenalty(
+		volumetric: Any = fenicsoft.materials.volumetric.CompactionVolumetricPenalty(
 			kin,
-			compaction.Parameters(
+			fenicsoft.materials.volumetric.CompactionVolumetricPenaltyParameters(
 				kappa=coefficients.kappa,
 				solid_jacobian=saturated_mixture.compaction_jacobian(problem.phi_s0, problem.phic_func),
 			),

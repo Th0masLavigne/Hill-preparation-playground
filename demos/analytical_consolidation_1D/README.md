@@ -4,7 +4,7 @@ Two ways of solving a poromechanics problem in dimensionless variables, on a cas
 Terzaghi's 1D consolidation (rectangle $100 \times 10\ \mu\text{m}$, St Venant–Kirchhoff skeleton $E = 5$ kPa,
 $\nu = 0.4$, $k = 1.8\cdot10^{-13}$ m²/(Pa·s), load $p_0 = 1$ Pa). Every line that differs from the SI
 Terzaghi demo is tagged `# NONDIM`. Darcy uses the pulled-back conductivity $\mathbf K_L = k\,J\mathbf C^{-1}$
-(`materials.permeability.constant`).
+(`fenicsoft.materials.permeability.constant`).
 
 <p align="center">
   <img src="../../docs/src/_static/resources/terzaghi_plane_strain.svg" alt="Plane-strain gel rectangle loaded by p0 at x = 0 (drained), u_x = 0 at x = L, rollers on y = 0 and y = W" width="90%">
