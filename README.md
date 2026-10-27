@@ -17,8 +17,7 @@ holds what is new.
 │   ├── install_fenicsoft.sh
 │   ├── initialize.sh       # host-side: base image + bind-mount folders
 │   └── secrets.env.example # token for the remote mode
-├── src/hill_playground/    # -> fenicsoft/ (one issue per item: TRANSFER.md; issues 0, 7 in #95, 3, 4, 10 in #96)
-│   ├── integration/                  # DecimatedTimeIntegrator, field selection + rank-0 logs [copy]
+├── src/hill_playground/    # -> fenicsoft/ (one issue per item: TRANSFER.md; issues 0, 7 in #95, 3, 4, 10 in #96, 1 in #97)
 │   ├── materials/cell/active/hill/   # Hill law (R_u)                                        [new]
 │   ├── materials/permeability/       # k(phi_l) laws on a common base class                  [new]
 │   ├── materials/saturated_mixture.py # J_min, Phi_l, phi_l, phi_s (mixture kinematics)      [new]
