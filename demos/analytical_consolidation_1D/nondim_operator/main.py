@@ -86,10 +86,9 @@ from fenicsoft import integration, io, materials, operators
 from fenicsoft.io import xdmf_units
 from fenicsoft.materials import permeability
 from fenicsoft.mesh_geometries import GmshKeys, MeshOptions, RectangleGeometry, RectangleMarker, RectangleMeshGenerator
+from fenicsoft.operators import ResidualRows
 from fenicsoft.scaling import CharacteristicScales
 from numpy.typing import NDArray
-
-from hill_playground.operators import ResidualRows
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # shared analytics and post-processing
 import post_process  # noqa: E402

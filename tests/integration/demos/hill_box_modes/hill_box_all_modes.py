@@ -85,11 +85,10 @@ from fenicsoft.materials.cell.active.hill.functions import SeeVariant
 from fenicsoft.materials.orientation import display, generic
 from fenicsoft.mesh_geometries.box import BoxGeometry, BoxMarker, BoxMeshGenerator
 from fenicsoft.mesh_geometries.mesh_geometries import GmshKeys, MeshOptions
+from fenicsoft.operators import ResidualRows
 from fenicsoft.operators.cell import ContractileEvolution
 from fenicsoft.operators.cell.rotation.orientation_change import OrientationChange
 from fenicsoft.scaling import CharacteristicScales, nondimensionalize_step, nondimensionalize_write_period
-
-from hill_playground.operators import ResidualRows
 
 comm = dolfin.MPI.comm_world
 rank = dolfin.MPI.rank(comm)

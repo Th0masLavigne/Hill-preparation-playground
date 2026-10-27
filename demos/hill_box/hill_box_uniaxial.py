@@ -101,13 +101,12 @@ from fenicsoft.materials.cell.active.hill import law as hill_law
 from fenicsoft.materials.cell.active.hill.functions import SeeVariant
 from fenicsoft.mesh_geometries.box import BoxGeometry, BoxMarker, BoxMeshGenerator
 from fenicsoft.mesh_geometries.mesh_geometries import GmshKeys, MeshOptions
+from fenicsoft.operators import ResidualRows
 from fenicsoft.operators.cell import ContractileEvolution
 from fenicsoft.operators.cell.rotation.orientation_change import OrientationChange
 from fenicsoft.scaling import CharacteristicScales
 from hill_box_outputs import add_outputs
 from hill_box_scaling import Coefficients
-
-from hill_playground.operators import ResidualRows
 
 comm = dolfin.MPI.comm_world
 rank = dolfin.MPI.rank(comm)

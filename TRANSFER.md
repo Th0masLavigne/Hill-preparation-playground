@@ -2,7 +2,7 @@
 
 Everything in `hill_playground/<path>` targets `fenicsoft/<path>` (same sub-package names).
 One issue = one merge request, in the order below: each one only needs the issues above it.
-Reference branch: fenicsoft `main` (clean-up #93, #95, #96, #97, #98 and #99 merged; it carries `scale_factor`, `OrientationChange`, `ufl_functions`, the selected-field integrator, `fenicsoft.scaling` and the Hill law).
+Reference branch: fenicsoft `main` (clean-up #93, #95, #96, #97, #98, #99 and #100 merged; it carries `scale_factor`, `OrientationChange`, `ufl_functions`, the selected-field integrator, `fenicsoft.scaling`, the Hill law, the permeability laws and the compaction energy).
 
 **fenicsoft conventions since #93** (apply them in every transfer merge request):
 - Layout: `Step` is in `fenicsoft.integration` (`integration.Step`), the mesh cut and field transfer in the new
@@ -27,9 +27,8 @@ Reference branch: fenicsoft `main` (clean-up #93, #95, #96, #97, #98 and #99 mer
 - Floors, caps and positive/negative parts use `fenicsoft.ufl_functions` (#95), never an inline `dolfin.conditional`.
 
 **Status.** #95 (issues 0 and 7, test standard), #96 (issues 3, 4, 10 and the first follow-up of §15) and #97
-(issue 1), #98 (issue 2) and #99 (issues 5 and 6) are merged into `main`. fenicsoft branch
-`100-transfert-hill-fenicsoft-lois-de-permeabilite-k-_-et-energie-volumique-avec-point-de-compaction` (not merged):
-issues 8 and 9.
+(issue 1), #98 (issue 2), #99 (issues 5 and 6) and #100 (issues 8 and 9) are merged into `main`. fenicsoft branch
+`101-transfert-hill-fenicsoft-lignes-de-residu-degre-de-quadrature-echelle-de-test-et-normalisation` (not merged): issue 11.
 The playground copies are deleted and its imports point to fenicsoft; the devcontainer installs that branch
 (`.devcontainer/fenicsoft.env`).
 
@@ -51,7 +50,7 @@ Legend: **new**: the file does not exist in fenicsoft. **change**: patch an exis
 | 8 | Permeability laws $k(\phi_\ell)$ — **done (#100)** | new | 0 |
 | 9 | Volumetric energy with a compaction point — **done (#100)** | new | 0; 8 (`saturated_mixture`, demo only) |
 | 10 | Orientation diagnostics — **done (#96)** | new | – |
-| 11 | Residual rows: quadrature degree, test scale and normalization per row | new | – |
+| 11 | Residual rows: quadrature degree, test scale and normalization per row — **done (#101)** | new | – |
 | 12 | Hill one-element integration test | new | 5, 6, 11 |
 | 13 | Terzaghi integration test, nondimensionalization methods | new | 2, 11 |
 | 14 | Hill box demo | new | 0–11 |
@@ -272,6 +271,15 @@ equations.tex Table tab:sf omitted s_row, the scale of the row's test function: 
   - Terzaghi: all 3 modes through `ResidualRows`, plus the `+rows` variants.
   - Hill box demo.
 
+**Done in #101.** `operators/residual_rows.py` copied (package Author/Fund/Date, docstring of `_check`) and
+`ResidualRows` exported from `operators/__init__.py`; unit test as `tests/unit/operators/test_residual_rows_unit.py`
+(suffix of its neighbours), `test_quadrature_degree_per_integral` appended to fenicsoft `tests/environment/test_env.py`;
+the `abs(...).max() < 1e-14` equalities became `pytest.approx(..., rel=0.0, abs=1e-14)` (the `> tol` checks that the
+degree acts stay). Playground `operators/`, its test and its environment test deleted; `operators` removed from
+`hill_playground/__init__.py`; demos (`hill_box`, `hill_cylinder_free`, `hill_microtissue_pillars`, Terzaghi
+`nondim_operator`) and integration tests (Hill one element, Terzaghi, `hill_box_all_modes`) import
+`fenicsoft.operators.ResidualRows`.
+
 **Follow-up.** The pillar case is recoded in the playground with `ResidualRows` (issue 18; multi-domain: `rows.measure(problem.dV(tags), row)` keeps the subdomain). Φ_c and ε_a are frozen in the pillars by their rate term (`ChangeRate`), not by the identities of equations.tex (see issue 18).
 
 ## 12. Hill one-element integration test
@@ -335,7 +343,7 @@ equations.tex Table tab:sf omitted s_row, the scale of the row's test function: 
   - remove the transferred paths from `NEW_BRANCHES` in `tests/environment/test_env.py`;
   - delete the playground copies;
   - switch the playground imports to fenicsoft.
-  - Done for issues 0 and 7 (#95), 3, 4, 10 (#96), 1 (#97), 2 (#98), 5 and 6 (#99), 8 and 9 (#100), before each merge. Also fixed: `materials/domain_fields.py` imported
+  - Done for issues 0 and 7 (#95), 3, 4, 10 (#96), 1 (#97), 2 (#98), 5 and 6 (#99), 8 and 9 (#100), 11 (#101), before each merge. Also fixed: `materials/domain_fields.py` imported
     `build_indicator_meshfunction` from `fenicsoft.io` (moved to `fenicsoft.mesh` in #93).
 - Devcontainer: the playground mounts the JIT cache `/home/fenics_user/.cache/dolfin` (`DIJITSO_CACHE_DIR` of the image) as the named volume `hill-dijitso-cache`; do the same in fenicsoft. The Hill forms take about 90 s of JIT compilation on a fresh container.
 - `set_dt` with a NumPy scalar: `dolfin_mech.core.TimeVaryingConstant.set_value_sca` only accepts `int`/`float`/`list`/`ndarray` (exact `type(val) in ...`), so a `numpy.float64` Δt is silently ignored and Δt stays 0 in every operator (`ChangeRate`, `OrientationChange`, `ContractileEvolution`, `Inertia`). The operators are left as in dolfin_mech/fenicsoft (`self.tv_dt.set_value(dt)`); the playground casts at the source instead (`fenicsoft.scaling.time_steps` returns Python `float`, test `test_numpy_t0_gives_python_floats`). Root fix to raise in dolfin_mech: `isinstance(val, numbers.Real)` in `set_value_sca`.

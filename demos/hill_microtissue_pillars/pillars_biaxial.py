@@ -136,6 +136,7 @@ from fenicsoft.mesh_geometries.microtissue_pillars import (
 	MicrotissuePillarsMarker,
 	MicrotissuePillarsMeshGenerator,
 )
+from fenicsoft.operators import ResidualRows
 from fenicsoft.operators.cell import ContractileEvolution
 from fenicsoft.operators.cell.rotation.orientation_change import OrientationChange
 from fenicsoft.scaling import CharacteristicScales
@@ -143,7 +144,6 @@ from pillars_outputs import add_outputs
 from pillars_scaling import Coefficients
 
 from hill_playground.materials import domain_fields
-from hill_playground.operators import ResidualRows
 
 comm = dolfin.MPI.comm_world
 rank = dolfin.MPI.rank(comm)

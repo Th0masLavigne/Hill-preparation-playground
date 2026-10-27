@@ -37,7 +37,7 @@ cell orientation angles $\theta, \varphi$ (`remodelling`). Residuals: module doc
 - `permeability_law`: `"constant"` | `"kozeny_carman"` | `"holmes_mow"` | `"compaction_power"`.
 - `volumetric_law`: `"quadratic"` | `"compaction"` ($J > J_{\min} = \Phi_{s,0} + \Phi_c$).
 - `cell_transport` ($\Phi_c$, $\tilde\phi_s$), `remodelling` ($\theta$, $\varphi$).
-- `quadrature_degrees`: degree per residual row (row = subsol of the test function, `operators.ResidualRows`),
+- `quadrature_degrees`: degree per residual row (row = subsol of the test function, `fenicsoft.operators.ResidualRows`),
   e.g. `{"displacement": 3, "liquid_pressure": 2}`; other rows keep `quadrature_degree` (4).
 
 The solve is dimensionless (by the parameters): $\hat{\mathbf X} = \mathbf X/L_0$, $\hat p = p/\mu_0$,

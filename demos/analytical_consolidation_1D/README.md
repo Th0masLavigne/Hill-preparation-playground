@@ -49,7 +49,7 @@ Terzaghi's time factor $T$.
 
 Both give the same dimensionless system, hence the same solution. Use the parameters when you own the whole
 model; use the operators when coefficients or time must stay in SI (shared laws, loads or activations given
-in seconds). The `scale_factor` of a term follows from three numbers per row (`operators.ResidualRows`): see
+in seconds). The `scale_factor` of a term follows from three numbers per row (`fenicsoft.operators.ResidualRows`): see
 the docstring of `nondim_operator/main.py`.
 
 ## Expected errors
