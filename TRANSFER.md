@@ -2,7 +2,8 @@
 
 Everything in `hill_playground/<path>` targets `fenicsoft/<path>` (same sub-package names).
 One issue = one merge request, in the order below: each one only needs the issues above it.
-Reference branch: fenicsoft `main` (clean-up #93, #95, #96, #97, #98, #99, #100, #101 and #102 merged; it carries `scale_factor`, `OrientationChange`, `ufl_functions`, the selected-field integrator, `fenicsoft.scaling`, the Hill law, the permeability laws, the compaction energy, `ResidualRows` and the Hill one-element test).
+Reference branch: fenicsoft `main` (clean-up #93, #95, #96, #97, #98, #99, #100, #101, #102 and #103 merged; it carries `scale_factor`, `OrientationChange`, `ufl_functions`, the selected-field integrator, `fenicsoft.scaling`, the Hill law, the permeability laws, the compaction energy, `ResidualRows`, the Hill one-element test and the
+Terzaghi nondimensionalization test and demos).
 
 **fenicsoft conventions since #93** (apply them in every transfer merge request):
 - Layout: `Step` is in `fenicsoft.integration` (`integration.Step`), the mesh cut and field transfer in the new
@@ -27,8 +28,9 @@ Reference branch: fenicsoft `main` (clean-up #93, #95, #96, #97, #98, #99, #100,
 - Floors, caps and positive/negative parts use `fenicsoft.ufl_functions` (#95), never an inline `dolfin.conditional`.
 
 **Status.** #95 (issues 0 and 7, test standard), #96 (issues 3, 4, 10 and the first follow-up of §15) and #97
-(issue 1), #98 (issue 2), #99 (issues 5 and 6), #100 (issues 8 and 9), #101 (issue 11) and #102 (issue 12) are merged into `main`. fenicsoft branch
-`103-transfert-hill-fenicsoft-test-d-integration-terzaghi-methodes-d-adimensionnement-si` (not merged): issue 13.
+(issue 1), #98 (issue 2), #99 (issues 5 and 6), #100 (issues 8 and 9), #101 (issue 11), #102 (issue 12) and #103 (issue 13)
+are merged into `main`. fenicsoft branch
+`104-transfert-hill-fenicsoft-demo-hill-box-adimensionnee-par-les-parametres-rows-residualrows` (not merged): issue 14.
 The playground copies are deleted and its imports point to fenicsoft; the devcontainer installs that branch
 (`.devcontainer/fenicsoft.env`).
 
@@ -53,7 +55,7 @@ Legend: **new**: the file does not exist in fenicsoft. **change**: patch an exis
 | 11 | Residual rows: quadrature degree, test scale and normalization per row — **done (#101)** | new | – |
 | 12 | Hill one-element integration test — **done (#102)** | new | 5, 6, 11 |
 | 13 | Terzaghi nondimensionalization methods: integration test and demos — **done (#103)** | new | 2, 11 |
-| 14 | Hill box demo | new | 0–11 |
+| 14 | Hill box demo — **done (#104)** | new | 0–11 |
 | 15 | Follow-ups (iso activation — **done (#96)**, `ScaledKinematics`, tooling) | change | 4 |
 | 16 | Subdomain indicators (gel/pillar data fields) | new | – |
 | 17 | Free-floating cylinder demo | new | 0–11 |
@@ -336,7 +338,7 @@ stale Hill one-element path of #102).
 - `demos/hill_box/{hill_box_uniaxial.py, hill_box_scaling.py, hill_box_outputs.py, post_processing.py, README.md}` → fenicsoft `demos/smooth_muscle_cells/porous_hydrogel/hill_box/` (elementary: simple geometry), figure `docs/src/_static/resources/hill_box_bcs.{tex,svg}`.
 - The Terzaghi demos (`nondim_parameters`, `nondim_operator`) went with issue 13 (#103).
 - The demo is nondimensionalised **by the parameters only** (`hill_box_scaling.Coefficients`, every `scale_factor` 1, solve in t̂). The three-mode version (`nondimensionalization` = `none`, `operator`, `parameters`) is the test reference `tests/integration/demos/hill_box_modes/hill_box_all_modes.py`, with `jacobian_scaling.py`.
-- `tests/integration/demos/{test_hill_box_scaling.py, test_hill_box_inputs.py, test_hill_box_post_processing.py, hill_box_modes/}` → `demos/.../hill_box/test/` with a `sys.path` conftest (fenicsoft has no `tests/integration/demos/`). `testpaths = ["tests"]` does not collect it: run it explicitly (`pytest demos/.../hill_box/test`), or decide another location before the merge request.
+- `tests/integration/demos/{test_hill_box_scaling.py, test_hill_box_inputs.py, test_hill_box_post_processing.py, hill_box_modes/}` → `demos/.../hill_box/test/` with a `sys.path` conftest (fenicsoft has no `tests/integration/demos/`). `testpaths = ["tests"]` does not collect it: run it explicitly (`pytest demos/.../hill_box/test`).
 - Replace the `hill_playground.*` imports by `fenicsoft.*`.
 - `UserInputs` options (demo): `permeability_law`, `volumetric_law`, `see_variant`, `cell_transport`, `remodelling`, `xdmf_si_only`, `quadrature_degrees`; `hill_box_all_modes.UserInputs` adds `nondimensionalization`.
 - Outputs:
@@ -355,6 +357,21 @@ stale Hill one-element path of #102).
 
 **Done when** the three `nondimensionalization` modes of `hill_box_all_modes.py` give identical QOIs (measured: 3e-15) and identical Jacobians (`operator` vs `parameters`), and an `mpirun` run gives a readable `.out`.
 
+**Done in #104.** Demo files copied to fenicsoft `demos/smooth_muscle_cells/porous_hydrogel/hill_box/`, figure
+`docs/src/_static/resources/hill_box_bcs.{tex,svg}` moved; imports already `fenicsoft.*` (ruff isort: `fenicsoft`
+first-party). Sibling imports of the demo as `demos.smooth_muscle_cells.porous_hydrogel.hill_box.*` with the project
+root on `sys.path` (as the Terzaghi and thermic demos). Tests in `hill_box/test/`, flat (no `hill_box_modes/`
+sub-folder: `jacobian_scaling.py` imports `hill_box_all_modes` from the same folder, as pytest puts it on `sys.path`);
+`test/conftest.py` only puts the project root on `sys.path`; the tests import the demo and its post-processing as
+`demos....hill_box.*` (no clash with other `post_processing` modules). Not collected by `make test`/`make cov`: run
+`pytest demos/smooth_muscle_cells/porous_hydrogel/hill_box/test`; the explicit-tolerance guard only scans `tests/`
+(the four comparisons here are explicit). Degree signs written `^\circ` / `deg` (ASCII source). Folder README
+(image as `/_static/...` markdown, `Tests` section), fenicsoft README demo table and a line on demo `test/` folders.
+Outputs (`outputs_hill_box_*`) ignored by `*[Oo]utput*/`. Playground copies deleted (the `outputs_hill_box_uniaxial*`
+result folders are kept in `demos/hill_box/`); devcontainer `extraPaths` cleaned.
+Docs: `"private-members"` added to fenicsoft `autoapi_options` (as the playground): documented `_names` are rendered
+(112 objects in src, tests, demos and archives), undocumented ones stay hidden.
+
 ## 15. Follow-ups
 
 - **Done (#96).** `iso.law` imports `ActivePowerConfig` (and the `p_act` machinery) from `cell/active/activation.py` (issue 4), and removes its copy (`aniso.law` is archived since #93).
@@ -372,7 +389,7 @@ stale Hill one-element path of #102).
   - remove the transferred paths from `NEW_BRANCHES` in `tests/environment/test_env.py`;
   - delete the playground copies;
   - switch the playground imports to fenicsoft.
-  - Done for issues 0 and 7 (#95), 3, 4, 10 (#96), 1 (#97), 2 (#98), 5 and 6 (#99), 8 and 9 (#100), 11 (#101), 12 (#102), 13 (#103), before each merge. Also fixed: `materials/domain_fields.py` imported
+  - Done for issues 0 and 7 (#95), 3, 4, 10 (#96), 1 (#97), 2 (#98), 5 and 6 (#99), 8 and 9 (#100), 11 (#101), 12 (#102), 13 (#103), 14 (#104), before each merge. Also fixed: `materials/domain_fields.py` imported
     `build_indicator_meshfunction` from `fenicsoft.io` (moved to `fenicsoft.mesh` in #93).
 - Devcontainer: the playground mounts the JIT cache `/home/fenics_user/.cache/dolfin` (`DIJITSO_CACHE_DIR` of the image) as the named volume `hill-dijitso-cache`; do the same in fenicsoft. The Hill forms take about 90 s of JIT compilation on a fresh container.
 - `set_dt` with a NumPy scalar: `dolfin_mech.core.TimeVaryingConstant.set_value_sca` only accepts `int`/`float`/`list`/`ndarray` (exact `type(val) in ...`), so a `numpy.float64` Δt is silently ignored and Δt stays 0 in every operator (`ChangeRate`, `OrientationChange`, `ContractileEvolution`, `Inertia`). The operators are left as in dolfin_mech/fenicsoft (`self.tv_dt.set_value(dt)`); the playground casts at the source instead (`fenicsoft.scaling.time_steps` returns Python `float`, test `test_numpy_t0_gives_python_floats`). Root fix to raise in dolfin_mech: `isinstance(val, numbers.Real)` in `set_value_sca`.
