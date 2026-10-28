@@ -54,16 +54,12 @@
 				"python.analysis.extraPaths": [
 					"/usr/lib/python3/dist-packages",
 					"/home/fenics_user/dolfin_mech",
-					"${containerWorkspaceFolder}/src",
-					"${containerWorkspaceFolder}/demos/hill_cylinder_free",
-					"${containerWorkspaceFolder}/demos/hill_microtissue_pillars"
+					"${containerWorkspaceFolder}/src"
 				],
 				"python.autoComplete.extraPaths": [
 					"/usr/lib/python3/dist-packages",
 					"/home/fenics_user/dolfin_mech",
-					"${containerWorkspaceFolder}/src",
-					"${containerWorkspaceFolder}/demos/hill_cylinder_free",
-					"${containerWorkspaceFolder}/demos/hill_microtissue_pillars"
+					"${containerWorkspaceFolder}/src"
 				],
 				"python.analysis.diagnosticSeverityOverrides": {
 					"reportUnknownParameterType": "none",

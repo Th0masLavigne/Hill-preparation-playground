@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build the Hill playground runtime image (asimov), used by demos/*/batch_*.sh.
+# Build the Hill playground runtime image (asimov), for demos/*/batch_*.sh (none left since #106).
 #
 #   docker/hill_playground/build.sh                                  # fenicsoft ref of .devcontainer/fenicsoft.env
 #   FENICSOFT_REF=<branch|tag|sha> docker/hill_playground/build.sh   # one-off override
@@ -71,16 +71,10 @@ DOCKER_BUILDKIT=1 docker build \
 	"${secret_args[@]}" \
 	-t "$IMAGE_NAME" -f "$HERE/Dockerfile" "$REPO_ROOT"
 
-# 4. What is inside + smoke tests: hill_playground from the image snapshot, then the demo modules with this
-#    clone mounted over the editable path (as the batches do).
+# 4. What is inside + smoke test: hill_playground from the image snapshot. The pillars demo and its batch moved to
+#    fenicsoft `demos/applications/hill_microtissue_pillars/` (#106, image `fenicsoft:latest`).
 log "installed:"
 docker run --rm "$IMAGE_NAME" cat /home/fenics_user/.fenicsoft_installed | sed 's/^/    /'
 docker run --rm -u "$(id -u):$(id -g)" "$IMAGE_NAME" python3 -c "import hill_playground" \
 	|| die "smoke test failed: hill_playground not importable from the image."
-docker run --rm -u "$(id -u):$(id -g)" \
-	--mount type=bind,src="$REPO_ROOT",dst=/home/fenics_user/hill_playground,readonly \
-	--mount type=bind,src="$REPO_ROOT/demos/hill_microtissue_pillars",dst=/app,readonly -w /app \
-	"$IMAGE_NAME" \
-	python3 -c "import pillars_biaxial, pillars_cut_to_core, pillars_uniaxial_release, pillars_post_processing" \
-	|| die "smoke test failed: the image does not run demos/hill_microtissue_pillars (fenicsoft ref?)."
 log "done: $IMAGE_NAME"

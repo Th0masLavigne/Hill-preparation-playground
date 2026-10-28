@@ -2,8 +2,8 @@
 
 Everything in `hill_playground/<path>` targets `fenicsoft/<path>` (same sub-package names).
 One issue = one merge request, in the order below: each one only needs the issues above it.
-Reference branch: fenicsoft `main` (clean-up #93, #95, #96, #97, #98, #99, #100, #101, #102 and #103 merged; it carries `scale_factor`, `OrientationChange`, `ufl_functions`, the selected-field integrator, `fenicsoft.scaling`, the Hill law, the permeability laws, the compaction energy, `ResidualRows`, the Hill one-element test and the
-Terzaghi nondimensionalization test and demos).
+Reference branch: fenicsoft `main` (clean-up #93, #95, #96, #97, #98, #99, #100, #101, #102, #103, #104 and #105 merged; it carries `scale_factor`, `OrientationChange`, `ufl_functions`, the selected-field integrator, `fenicsoft.scaling`, the Hill law, the permeability laws, the compaction energy, `ResidualRows`, the Hill one-element test, the
+Terzaghi nondimensionalization test and demos, the Hill box demo and the free-floating cylinder demo).
 
 **fenicsoft conventions since #93** (apply them in every transfer merge request):
 - Layout: `Step` is in `fenicsoft.integration` (`integration.Step`), the mesh cut and field transfer in the new
@@ -28,9 +28,10 @@ Terzaghi nondimensionalization test and demos).
 - Floors, caps and positive/negative parts use `fenicsoft.ufl_functions` (#95), never an inline `dolfin.conditional`.
 
 **Status.** #95 (issues 0 and 7, test standard), #96 (issues 3, 4, 10 and the first follow-up of §15) and #97
-(issue 1), #98 (issue 2), #99 (issues 5 and 6), #100 (issues 8 and 9), #101 (issue 11), #102 (issue 12) and #103 (issue 13)
+(issue 1), #98 (issue 2), #99 (issues 5 and 6), #100 (issues 8 and 9), #101 (issue 11), #102 (issue 12), #103 (issue 13), #104 (issue 14) and #105 (issue 17)
 are merged into `main`. fenicsoft branch
-`104-transfert-hill-fenicsoft-demo-hill-box-adimensionnee-par-les-parametres-rows-residualrows` (not merged): issue 14.
+`106-transfert-hill-fenicsoft-indicateurs-de-sous-domaines-gel-piliers-et-demo-microtissu-entre` (not merged): issues 16
+and 18. Every issue of the plan is transferred: the playground `src` and `demos` are empty (result folders kept).
 The playground copies are deleted and its imports point to fenicsoft; the devcontainer installs that branch
 (`.devcontainer/fenicsoft.env`).
 
@@ -57,9 +58,9 @@ Legend: **new**: the file does not exist in fenicsoft. **change**: patch an exis
 | 13 | Terzaghi nondimensionalization methods: integration test and demos — **done (#103)** | new | 2, 11 |
 | 14 | Hill box demo — **done (#104)** | new | 0–11 |
 | 15 | Follow-ups (iso activation — **done (#96)**, `ScaledKinematics`, tooling) | change | 4 |
-| 16 | Subdomain indicators (gel/pillar data fields) | new | – |
-| 17 | Free-floating cylinder demo | new | 0–11 |
-| 18 | Microtissue between pillars demo (stage A, cut, stage B) | new | 0–11, 16 |
+| 16 | Subdomain indicators (gel/pillar data fields) — **done (#106)** | new | – |
+| 17 | Free-floating cylinder demo — **done (#105)** | new | 0–11 |
+| 18 | Microtissue between pillars demo (stage A, cut, stage B) — **done (#106)** | new | 0–11, 16 |
 
 ---
 
@@ -389,7 +390,7 @@ Docs: `"private-members"` added to fenicsoft `autoapi_options` (as the playgroun
   - remove the transferred paths from `NEW_BRANCHES` in `tests/environment/test_env.py`;
   - delete the playground copies;
   - switch the playground imports to fenicsoft.
-  - Done for issues 0 and 7 (#95), 3, 4, 10 (#96), 1 (#97), 2 (#98), 5 and 6 (#99), 8 and 9 (#100), 11 (#101), 12 (#102), 13 (#103), 14 (#104), before each merge. Also fixed: `materials/domain_fields.py` imported
+  - Done for issues 0 and 7 (#95), 3, 4, 10 (#96), 1 (#97), 2 (#98), 5 and 6 (#99), 8 and 9 (#100), 11 (#101), 12 (#102), 13 (#103), 14 (#104), 17 (#105), 16 and 18 (#106), before each merge. Also fixed: `materials/domain_fields.py` imported
     `build_indicator_meshfunction` from `fenicsoft.io` (moved to `fenicsoft.mesh` in #93).
 - Devcontainer: the playground mounts the JIT cache `/home/fenics_user/.cache/dolfin` (`DIJITSO_CACHE_DIR` of the image) as the named volume `hill-dijitso-cache`; do the same in fenicsoft. The Hill forms take about 90 s of JIT compilation on a fresh container.
 - `set_dt` with a NumPy scalar: `dolfin_mech.core.TimeVaryingConstant.set_value_sca` only accepts `int`/`float`/`list`/`ndarray` (exact `type(val) in ...`), so a `numpy.float64` Δt is silently ignored and Δt stays 0 in every operator (`ChangeRate`, `OrientationChange`, `ContractileEvolution`, `Inertia`). The operators are left as in dolfin_mech/fenicsoft (`self.tv_dt.set_value(dt)`); the playground casts at the source instead (`fenicsoft.scaling.time_steps` returns Python `float`, test `test_numpy_t0_gives_python_floats`). Root fix to raise in dolfin_mech: `isinstance(val, numbers.Real)` in `set_value_sca`.
@@ -405,6 +406,11 @@ Docs: `"private-members"` added to fenicsoft `autoapi_options` (as the playgroun
 
 **Tests.** `tests/unit/materials/test_domain_fields.py`.
 
+**Done in #106.** `src/fenicsoft/materials/domain_fields.py` (relative import `from ..mesh import
+build_indicator_meshfunction`, as the other `src` modules), exported from `fenicsoft/materials/__init__.py` (module
+list of the docstring, import and `__all__`); test `tests/unit/materials/test_domain_fields.py` (import switched to
+`fenicsoft.materials`). Playground `materials` sub-package deleted (`hill_playground/__init__.py` exports nothing).
+
 ## 17. Free-floating cylinder demo
 
 **Changes.** `demos/hill_cylinder_free/{hill_cylinder_free.py, hill_cylinder_scaling.py, hill_cylinder_outputs.py, cylinder_post_processing.py, README.md}` → fenicsoft `demos/smooth_muscle_cells/porous_hydrogel/hill_cylinder_free/` (elementary: simple geometry), figure `docs/src/_static/resources/hill_cylinder_free_bcs.{tex,svg}`.
@@ -413,6 +419,18 @@ Docs: `"private-members"` added to fenicsoft `autoapi_options` (as the playgroun
 - QOIs `top_center_disp_z` (height change), `wall_disp_y` (−ΔR at mid-height, probe inset by h_max²/(4R)), `mean_jacobian` (V/V₀).
 
 **Done when** a local run reaches the plateau; checked here: one step (α 0 → 0.1, 1 s) on a 0.6 × 0.3 mm cylinder converges, serial = `mpirun -n 2` to 1e-15, and the post-processing reads the results.
+
+**Done in #105.** Demo files copied to fenicsoft `demos/smooth_muscle_cells/porous_hydrogel/hill_cylinder_free/`, figure
+`docs/src/_static/resources/hill_cylinder_free_bcs.{tex,svg}` moved; imports already `fenicsoft.*` (ruff isort:
+`fenicsoft` first-party). Sibling imports as `demos.smooth_muscle_cells.porous_hydrogel.hill_cylinder_free.*` with
+the project root on `sys.path` (as #104), `TYPE_CHECKING` imports of `UserInputs` by the same package path. Degree
+signs written `^\circ` / `deg` (ASCII source). Folder README (image as `/_static/...` markdown, file table with the
+main objects, run path), fenicsoft README demo table row. Kept as a self-contained copy of the Hill box model (user
+decision): `hill_cylinder_scaling.py`, `hill_cylinder_outputs.py`, `cylinder_post_processing.py` differ from their
+`hill_box` counterparts by docstrings, one probe name and default paths, and `initialise_problem`,
+`build_permeability`, `build_materials`, `build_step_operators`, `solve_problem` are the same as in
+`hill_box_uniaxial.py`. No tests (none in the playground). Playground copies deleted (the
+`outputs_hill_cylinder_free` result folder is kept in `demos/hill_cylinder_free/`); devcontainer `extraPaths` cleaned.
 
 ## 18. Microtissue between pillars demo
 
@@ -427,3 +445,19 @@ Docs: `"private-members"` added to fenicsoft `autoapi_options` (as the playgroun
 - Batch for asimov kept (`batch_hill_microtissue_pillars.sh`): same docker pipeline, the whole playground mounted (`PYTHONPATH=/app/src`).
 
 **Done when** stage A, cut, stage B and the post-processing run locally; checked here: one step of each stage on a half-size geometry (T = 25 µm), stage B starting exactly from the stage A state (same probe values), serial = `mpirun -n 2` (stage A) to 1e-15, post-processing on both stages.
+
+**Done in #106.** Demo files copied to fenicsoft `demos/applications/hill_microtissue_pillars/`, figure
+`docs/src/_static/resources/hill_microtissue_pillars_bcs.{tex,svg}` moved. `hill_playground.materials.domain_fields`
+→ `fenicsoft.materials.domain_fields`; sibling imports as `demos.applications.hill_microtissue_pillars.*` with the
+project root on `sys.path` (`parents[3]`; `# noqa: E402`), stage B and the cut import stage A as
+`demos....pillars_biaxial as stage_a`, `TYPE_CHECKING` imports of `UserInputs` by the same path. Degree signs written
+`^\circ` / `deg`, `≈` as `:math:`\approx``, µm as `\mu m` (ASCII source). Batch rewritten for fenicsoft: image
+`fenicsoft:latest` (`docker/fenicsoft/Dockerfile`), the fenicsoft clone mounted on `/app` with `PYTHONPATH=/app/src`
+(checked-out sources, sibling imports), work dir the demo folder, JIT cache volume
+`fenicsoft-dijitso-cache-<user>` on `/home/fenicsoft_user/.cache/dolfin`, provenance (commit, dirty flag,
+`dolfin_mech` version) in `logs/pipeline_pillars/image.txt`. Folder README (image as `/_static/...` markdown, file
+table with the main objects, library table corrected: cut in `fenicsoft.mesh`, checkpoints in `fenicsoft.io`, run
+path, batch section), fenicsoft README application table row. The archived `microtissue_pillar_spherical` stays in
+`archives/` (superseded). No tests (none in the playground). Playground copies deleted (the `outputs_pillars_biaxial`
+result folder is kept in `demos/hill_microtissue_pillars/`); devcontainer `extraPaths` cleaned; the
+`docker/hill_playground/build.sh` smoke test of the pillars demo removed (no batch left in the playground).

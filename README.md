@@ -17,11 +17,9 @@ holds what is new.
 │   ├── install_fenicsoft.sh
 │   ├── initialize.sh       # host-side: base image + bind-mount folders
 │   └── secrets.env.example # token for the remote mode
-├── src/hill_playground/    # -> fenicsoft/ (one issue per item: TRANSFER.md; issues 0, 7 in #95, 3, 4, 10 in #96, 1 in #97, 2 in #98, 5 and 6 in #99, 8 and 9 in #100, 11 in #101, 12 in #102, 13 in #103, 14 in #104)
-│   └── materials/domain_fields.py    # subdomain indicators (gel/pillar data fields)         [new]
+├── src/hill_playground/    # -> fenicsoft/ (one issue per item: TRANSFER.md; issues 0, 7 in #95, 3, 4, 10 in #96, 1 in #97, 2 in #98, 5 and 6 in #99, 8 and 9 in #100, 11 in #101, 12 in #102, 13 in #103, 14 in #104, 17 in #105, 16 and 18 in #106): empty
 ├── tests/{unit,integration,environment,conventions}/
-├── demos/hill_cylinder_free/           # free-floating cylinder
-├── demos/hill_microtissue_pillars/     # microtissue between pillars (stage A, cut, stage B, batch)
+├── demos/                  # result folders of the transferred demos only
 ├── docs/src/
 └── TRANSFER.md             # transfer plan to fenicsoft, one merge request per issue
 ```
@@ -74,6 +72,8 @@ with your uid, `install_fenicsoft.sh` at the ref of `fenicsoft.env`, `FENICSOFT_
 package installed editable. The batches (`demos/*/batch_*.sh`) mount their own folder only, and the clone given by
 `HILL_PLAYGROUND_DIR` over the editable install. Needs `../fenicsoft` (or `FENICSOFT_SOURCE=remote` + token) and
 BuildKit (Docker ≥ 23).
+No batch is left here since #106: the pillars pipeline runs from fenicsoft
+`demos/applications/hill_microtissue_pillars/batch_hill_microtissue_pillars.sh` on the `fenicsoft:latest` image.
 
 ## Daily commands
 
@@ -86,12 +86,13 @@ BuildKit (Docker ≥ 23).
 
 ## Demos
 
-The nondimensionalised Terzaghi demos (method used below, start there) are in fenicsoft
+The nondimensionalised Terzaghi demos (method used by the Hill demos, start there) are in fenicsoft
 `demos/analytical_consolidation_1D/` (`nondim_parameters/`, `nondim_operator/`, #103). The Hill box demo (gel slab
 clamped on its two $x$-faces), its tests and the three-mode reference `hill_box_all_modes.py` are in fenicsoft
-`demos/smooth_muscle_cells/porous_hydrogel/hill_box/` (#104); the demos below carry their own copy of its model.
-
-| Demo | Content |
-| --- | --- |
-| `demos/hill_cylinder_free/` | Free-floating cylinder, drained and traction-free on its whole boundary, isostatic 3-2-1 support |
-| `demos/hill_microtissue_pillars/` | Microtissue between twelve pillars: stage A (biaxial), cut to the core, stage B (uniaxial release), ROI post-processing, batch script |
+`demos/smooth_muscle_cells/porous_hydrogel/hill_box/` (#104); the free-floating cylinder (same model, drained and
+traction-free on its whole boundary, isostatic 3-2-1 support) in fenicsoft
+`demos/smooth_muscle_cells/porous_hydrogel/hill_cylinder_free/` (#105; its results `demos/hill_cylinder_free/outputs_hill_cylinder_free/`
+are kept here); the microtissue between pillars (stage A biaxial, cut to the core, stage B uniaxial release, ROI
+post-processing, Docker batch on the `fenicsoft:latest` image) in fenicsoft `demos/applications/hill_microtissue_pillars/`
+(#106, with `fenicsoft.materials.domain_fields`; its results `demos/hill_microtissue_pillars/outputs_pillars_biaxial/`
+are kept here). No demo is left in the playground.

@@ -15,6 +15,4 @@ try:
 except importlib.metadata.PackageNotFoundError:
 	__version__ = "0.0.0"
 
-from . import materials
-
-__all__ = ["materials"]
+__all__: list[str] = []
