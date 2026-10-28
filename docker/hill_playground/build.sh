@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build the Hill playground runtime image (asimov), for demos/*/batch_*.sh (none left since #106).
+# Build the Hill playground runtime image (asimov), for demos/*/batch_*.sh.
 #
 #   docker/hill_playground/build.sh                                  # fenicsoft ref of .devcontainer/fenicsoft.env
 #   FENICSOFT_REF=<branch|tag|sha> docker/hill_playground/build.sh   # one-off override
@@ -71,8 +71,7 @@ DOCKER_BUILDKIT=1 docker build \
 	"${secret_args[@]}" \
 	-t "$IMAGE_NAME" -f "$HERE/Dockerfile" "$REPO_ROOT"
 
-# 4. What is inside + smoke test: hill_playground from the image snapshot. The pillars demo and its batch moved to
-#    fenicsoft `demos/applications/hill_microtissue_pillars/` (#106, image `fenicsoft:latest`).
+# 4. What is inside + smoke test: hill_playground from the image snapshot.
 log "installed:"
 docker run --rm "$IMAGE_NAME" cat /home/fenics_user/.fenicsoft_installed | sed 's/^/    /'
 docker run --rm -u "$(id -u):$(id -g)" "$IMAGE_NAME" python3 -c "import hill_playground" \

@@ -1,8 +1,11 @@
 # Hill-preparation-playground
 
-Workspace to go **from equations to simulation** for the Hill-chain smooth muscle cell model,
-before transfer into
+Workspace to go **from equations to simulation** before transfer into
 [`fenicsoft`](https://src.koda.cnrs.fr/lms1/jean-marc-allain/fenicsoft).
+
+Branch `devel-base`: empty template for new developments (structure, devcontainer, Docker image, tests and docs
+tooling). The Hill-chain smooth muscle cell work developed here is now in fenicsoft (merge requests #95 to #106);
+its pre-transfer state is the `main` branch.
 
 The package `hill_playground` mirrors the `fenicsoft` tree one-to-one:
 `src/hill_playground/<path>` → `src/fenicsoft/<path>` (same coding standards: ruff, tabs,
@@ -17,16 +20,28 @@ holds what is new.
 │   ├── install_fenicsoft.sh
 │   ├── initialize.sh       # host-side: base image + bind-mount folders
 │   └── secrets.env.example # token for the remote mode
-├── src/hill_playground/    # -> fenicsoft/ (one issue per item: TRANSFER.md; issues 0, 7 in #95, 3, 4, 10 in #96, 1 in #97, 2 in #98, 5 and 6 in #99, 8 and 9 in #100, 11 in #101, 12 in #102, 13 in #103, 14 in #104, 17 in #105, 16 and 18 in #106): empty
+├── docker/hill_playground/ # batch image (asimov): same stack + this package
+├── src/hill_playground/    # -> src/fenicsoft/ (same sub-package names)
 ├── tests/{unit,integration,environment,conventions}/
-├── demos/                  # result folders of the transferred demos only
+├── demos/                  # one folder per demo -> fenicsoft demos/ or demos/applications/
 ├── docs/src/
 └── TRANSFER.md             # transfer plan to fenicsoft, one merge request per issue
 ```
 
+## Workflow
+
+1. Write the equations (LaTeX), then the code in `src/hill_playground/<path>`, its unit tests in
+   `tests/unit/<path>` and, if needed, a demo in `demos/<name>/`.
+2. Before writing anything, check that fenicsoft does not already provide it (or can be extended).
+3. List each transferable item as one issue in `TRANSFER.md` (target path, kind, dependencies).
+4. One fenicsoft merge request per issue; once merged, delete the playground copy and import from fenicsoft.
+
+`tests/environment/test_env.py` checks that every playground sub-package exists in fenicsoft, unless declared in
+`NEW_BRANCHES`.
+
 ## Setup (VS Code + Dev Containers)
 
-Expected layout on the host (same as today):
+Expected layout on the host:
 
 ```text
 ~/Documents/git/
@@ -69,11 +84,9 @@ for the `local` mode, or use `FENICSOFT_SOURCE=remote`.
 
 `docker/hill_playground/build.sh` builds `hill_playground:<user>` from the same pieces (base `dolfin:v2019.2.0.dev0`
 with your uid, `install_fenicsoft.sh` at the ref of `fenicsoft.env`, `FENICSOFT_REF=...` to override) plus this
-package installed editable. The batches (`demos/*/batch_*.sh`) mount their own folder only, and the clone given by
-`HILL_PLAYGROUND_DIR` over the editable install. Needs `../fenicsoft` (or `FENICSOFT_SOURCE=remote` + token) and
-BuildKit (Docker ≥ 23).
-No batch is left here since #106: the pillars pipeline runs from fenicsoft
-`demos/applications/hill_microtissue_pillars/batch_hill_microtissue_pillars.sh` on the `fenicsoft:latest` image.
+package installed editable. A batch script (`demos/<name>/batch_*.sh`) mounts its own demo folder, and the clone
+given by `HILL_PLAYGROUND_DIR` over the editable install. Needs `../fenicsoft` (or `FENICSOFT_SOURCE=remote` +
+token) and BuildKit (Docker ≥ 23).
 
 ## Daily commands
 
@@ -83,16 +96,3 @@ No batch is left here since #106: the pillars pipeline runs from fenicsoft
 | `make linter` / `make format` | ruff check / format |
 | `make docs` | Sphinx → `~/Documents/local/build_docs_hill` |
 | `make clean` | remove caches and outputs |
-
-## Demos
-
-The nondimensionalised Terzaghi demos (method used by the Hill demos, start there) are in fenicsoft
-`demos/analytical_consolidation_1D/` (`nondim_parameters/`, `nondim_operator/`, #103). The Hill box demo (gel slab
-clamped on its two $x$-faces), its tests and the three-mode reference `hill_box_all_modes.py` are in fenicsoft
-`demos/smooth_muscle_cells/porous_hydrogel/hill_box/` (#104); the free-floating cylinder (same model, drained and
-traction-free on its whole boundary, isostatic 3-2-1 support) in fenicsoft
-`demos/smooth_muscle_cells/porous_hydrogel/hill_cylinder_free/` (#105; its results `demos/hill_cylinder_free/outputs_hill_cylinder_free/`
-are kept here); the microtissue between pillars (stage A biaxial, cut to the core, stage B uniaxial release, ROI
-post-processing, Docker batch on the `fenicsoft:latest` image) in fenicsoft `demos/applications/hill_microtissue_pillars/`
-(#106, with `fenicsoft.materials.domain_fields`; its results `demos/hill_microtissue_pillars/outputs_pillars_biaxial/`
-are kept here). No demo is left in the playground.
