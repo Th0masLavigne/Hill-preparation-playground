@@ -54,12 +54,28 @@
 				"python.analysis.extraPaths": [
 					"/usr/lib/python3/dist-packages",
 					"/home/fenics_user/dolfin_mech",
-					"${containerWorkspaceFolder}/src"
+					"${containerWorkspaceFolder}/src",
+					"${containerWorkspaceFolder}/demos/analytical_consolidation_1D",
+					"${containerWorkspaceFolder}/demos/hill_box",
+					"${containerWorkspaceFolder}/demos/hill_cylinder_free",
+					"${containerWorkspaceFolder}/demos/hill_microtissue_pillars",
+					"${containerWorkspaceFolder}/tests/unit/integration",
+					"${containerWorkspaceFolder}/tests/integration/demos/hill_box_modes",
+					"${containerWorkspaceFolder}/tests/integration/analytical_consolidation_1D",
+					"${containerWorkspaceFolder}/tests/integration/materials/cell/active/hill"
 				],
 				"python.autoComplete.extraPaths": [
 					"/usr/lib/python3/dist-packages",
 					"/home/fenics_user/dolfin_mech",
-					"${containerWorkspaceFolder}/src"
+					"${containerWorkspaceFolder}/src",
+					"${containerWorkspaceFolder}/demos/analytical_consolidation_1D",
+					"${containerWorkspaceFolder}/demos/hill_box",
+					"${containerWorkspaceFolder}/demos/hill_cylinder_free",
+					"${containerWorkspaceFolder}/demos/hill_microtissue_pillars",
+					"${containerWorkspaceFolder}/tests/unit/integration",
+					"${containerWorkspaceFolder}/tests/integration/demos/hill_box_modes",
+					"${containerWorkspaceFolder}/tests/integration/analytical_consolidation_1D",
+					"${containerWorkspaceFolder}/tests/integration/materials/cell/active/hill"
 				],
 				"python.analysis.diagnosticSeverityOverrides": {
 					"reportUnknownParameterType": "none",

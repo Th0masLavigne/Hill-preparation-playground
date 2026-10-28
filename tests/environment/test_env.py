@@ -35,7 +35,7 @@ def test_fenicsoft_origin() -> None:
 	print("\n" + STAMP.read_text())
 
 
-NEW_BRANCHES: tuple[str, ...] = ()
+NEW_BRANCHES = ("materials.cell.active.hill", "materials.permeability", "operators.cell.hill", "scaling")
 """Packages that do not exist yet in fenicsoft (transfer plan); everything else must already exist."""
 
 
@@ -60,3 +60,26 @@ def test_layout_mirrors_fenicsoft() -> None:
 		if any(path == b or path.startswith(b + ".") for b in NEW_BRANCHES):
 			continue
 		importlib.import_module(f"fenicsoft.{path}")
+
+
+def test_quadrature_degree_per_integral() -> None:
+	r"""FFC honours ``dx(degree=q)`` per integral in residuals and Jacobians (``ResidualRows``).
+
+	A summed residual and its Jacobian, with one term at degree 8 and one at degree 2, equal the sums of
+	the separately assembled terms. Not true for a scalar functional (rank 0), see ``ResidualRows``.
+	"""
+	import dolfin
+
+	mesh = dolfin.UnitCubeMesh(2, 2, 2)
+	x = dolfin.SpatialCoordinate(mesh)[0]  # type:ignore
+	space = dolfin.FunctionSpace(mesh, "CG", 2)
+	u, test = dolfin.Function(space), dolfin.TestFunction(space)
+	u.interpolate(dolfin.Expression("1.0 + x[0]*x[1]", degree=2))
+	high = x**4 * u**3 * test * dolfin.dx(domain=mesh, degree=8)
+	low = x**6 * u * test * dolfin.dx(domain=mesh, degree=2)
+	split = dolfin.assemble(high).get_local() + dolfin.assemble(low).get_local()
+	exact_low = x**6 * u * test * dolfin.dx(domain=mesh, degree=8)
+	assert abs(dolfin.assemble(low).get_local() - dolfin.assemble(exact_low).get_local()).max() > 1e-8  # degree acts
+	assert abs(dolfin.assemble(high + low).get_local() - split).max() < 1e-14
+	jac = dolfin.assemble(dolfin.derivative(high, u)).array() + dolfin.assemble(dolfin.derivative(low, u)).array()
+	assert abs(dolfin.assemble(dolfin.derivative(high + low, u)).array() - jac).max() < 1e-14

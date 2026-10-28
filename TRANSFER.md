@@ -2,8 +2,7 @@
 
 Everything in `hill_playground/<path>` targets `fenicsoft/<path>` (same sub-package names).
 One issue = one merge request, in the order below: each one only needs the issues above it.
-Reference branch: fenicsoft `main` (clean-up #93, #95, #96, #97, #98, #99, #100, #101, #102, #103, #104 and #105 merged; it carries `scale_factor`, `OrientationChange`, `ufl_functions`, the selected-field integrator, `fenicsoft.scaling`, the Hill law, the permeability laws, the compaction energy, `ResidualRows`, the Hill one-element test, the
-Terzaghi nondimensionalization test and demos, the Hill box demo and the free-floating cylinder demo).
+Reference branch: fenicsoft `main` (clean-up #93 merged; it carries `scale_factor` and `OrientationChange`).
 
 **fenicsoft conventions since #93** (apply them in every transfer merge request):
 - Layout: `Step` is in `fenicsoft.integration` (`integration.Step`), the mesh cut and field transfer in the new
@@ -21,19 +20,6 @@ Terzaghi nondimensionalization test and demos, the Hill box demo and the free-fl
 - `make linter` (ruff 0.3.0 of the pre-commit hook, D rules included: one-line summary, blank line after it),
   `make cov` (100 % of the transferred modules) and `make docs` (`sphinx -W`, docs include demos, applications,
   tests and archives) must pass.
-- Tests (since #95): every float comparison states its tolerance, guarded by
-  `tests/conventions/test_explicit_tolerances.py` (fenicsoft README, "Contributing"). Exact arithmetic:
-  `rel=1e-12, abs=0.0`; zero target: `rel=0.0, abs=...`. Shared test helpers: fenicsoft `tests/conftest.py`
-  (`cube_mean`/`mean`, `dilated_kinematics`/`dilate`, Hill fixtures); the playground has no `tests/conftest.py` left.
-- Floors, caps and positive/negative parts use `fenicsoft.ufl_functions` (#95), never an inline `dolfin.conditional`.
-
-**Status.** #95 (issues 0 and 7, test standard), #96 (issues 3, 4, 10 and the first follow-up of §15) and #97
-(issue 1), #98 (issue 2), #99 (issues 5 and 6), #100 (issues 8 and 9), #101 (issue 11), #102 (issue 12), #103 (issue 13), #104 (issue 14) and #105 (issue 17)
-are merged into `main`. fenicsoft branch
-`106-transfert-hill-fenicsoft-indicateurs-de-sous-domaines-gel-piliers-et-demo-microtissu-entre` (not merged): issues 16
-and 18. Every issue of the plan is transferred: the playground `src` and `demos` are empty (result folders kept).
-The playground copies are deleted and its imports point to fenicsoft; the devcontainer installs that branch
-(`.devcontainer/fenicsoft.env`).
 
 **`__init__.py` files** are never copied: merge their imports and `__all__` into the existing fenicsoft ones (they export more). fenicsoft has no `__init__.py` in `operators/cell/*/` sub-folders: export the new classes from `operators/cell/__init__.py` instead. New top-level sub-package (`scaling`): add it to `fenicsoft/__init__.py` and its `__all__`.
 
@@ -42,25 +28,25 @@ Legend: **new**: the file does not exist in fenicsoft. **change**: patch an exis
 
 | # | Issue | Kind | Depends on |
 |---|---|---|---|
-| 0 | Shared UFL guards (package root) `piecewise`, `floored`, `capped`, `macaulay`, `macaulay_negative` — **done (#95)** | new | – |
-| 1 | Integration: select XDMF fields, write logs on rank 0 only — **done (#97)** | copy | – |
-| 2 | Scaling: promote `CharacteristicScales` to `fenicsoft.scaling` — **done (#98)** | new | 1 |
-| 3 | IO: write XDMF geometry and time back in SI — **done (#96)** | new | – |
-| 4 | Active laws: shared activation schedule — **done (#96)** | new | – |
-| 5 | Hill chain law (self-contained) — **done (#99)** | new | 0, 4 |
-| 6 | Contractile element operator $R_a$ — **done (#99)** | new | 5 |
-| 7 | Saturated proliferation: clip the saturation — **done (#95)** | change | – |
-| 8 | Permeability laws $k(\phi_\ell)$ — **done (#100)** | new | 0 |
-| 9 | Volumetric energy with a compaction point — **done (#100)** | new | 0; 8 (`saturated_mixture`, demo only) |
-| 10 | Orientation diagnostics — **done (#96)** | new | – |
-| 11 | Residual rows: quadrature degree, test scale and normalization per row — **done (#101)** | new | – |
-| 12 | Hill one-element integration test — **done (#102)** | new | 5, 6, 11 |
-| 13 | Terzaghi nondimensionalization methods: integration test and demos — **done (#103)** | new | 2, 11 |
-| 14 | Hill box demo — **done (#104)** | new | 0–11 |
-| 15 | Follow-ups (iso activation — **done (#96)**, `ScaledKinematics`, tooling) | change | 4 |
-| 16 | Subdomain indicators (gel/pillar data fields) — **done (#106)** | new | – |
-| 17 | Free-floating cylinder demo — **done (#105)** | new | 0–11 |
-| 18 | Microtissue between pillars demo (stage A, cut, stage B) — **done (#106)** | new | 0–11, 16 |
+| 0 | Shared UFL guards (package root) `piecewise`, `floored`, `capped`, `macaulay`, `macaulay_negative` | new | – |
+| 1 | Integration: select XDMF fields, write logs on rank 0 only | copy | – |
+| 2 | Scaling: promote `CharacteristicScales` to `fenicsoft.scaling` | new | 1 |
+| 3 | IO: write XDMF geometry and time back in SI | new | – |
+| 4 | Active laws: shared activation schedule | new | – |
+| 5 | Hill chain law (self-contained) | new | 0, 4 |
+| 6 | Contractile element operator $R_a$ | new | 5 |
+| 7 | Saturated proliferation: clip the saturation | change | – |
+| 8 | Permeability laws $k(\phi_\ell)$ | new | 0 |
+| 9 | Volumetric energy with a compaction point | new | 0; 8 (`saturated_mixture`, demo only) |
+| 10 | Orientation diagnostics | new | – |
+| 11 | Residual rows: quadrature degree, test scale and normalization per row | new | – |
+| 12 | Hill one-element integration test | new | 5, 6, 11 |
+| 13 | Terzaghi integration test, nondimensionalization methods | new | 2, 11 |
+| 14 | Hill box demo | new | 0–11 |
+| 15 | Follow-ups (iso activation, `ScaledKinematics`, tooling) | change | 4 |
+| 16 | Subdomain indicators (gel/pillar data fields) | new | – |
+| 17 | Free-floating cylinder demo | new | 0–11 |
+| 18 | Microtissue between pillars demo (stage A, cut, stage B) | new | 0–11, 16 |
 
 ---
 
@@ -69,12 +55,6 @@ Legend: **new**: the file does not exist in fenicsoft. **change**: patch an exis
 **Changes.** New `src/fenicsoft/ufl_functions.py`: `piecewise(x, x0, f_le, f_gt)` (the tie x = x0 and its UFL tangent go to the lower branch), and with it `floored(x, x_f)` = max(x, x_f), `capped(x, x_c)` = min(x, x_c), `macaulay(x)` = max(x, 0) (tangent 0 at 0) and `macaulay_negative(x)` = min(x, 0) (tangent 1 at 0), the Newton safeguards of the Hill, permeability and compaction laws and of `SaturatedProliferation` (written once; they were three copies). Package root, not `materials/`: operators use them too. Import it first in `fenicsoft/__init__.py`. Reuse candidates in fenicsoft: the clamped `sqrt` in `materials/orientation/generic.py` (`macaulay`), the saturation `conditional(phi_c > phi_c_max, 0, 1 - phi_c/phi_c_max)` in `operators/cell/haptotaxis/saturated.py` (`macaulay`).
 
 **Tests.** `tests/unit/test_ufl_functions.py`.
-
-**Done in #95.** `fenicsoft/ufl_functions.py` (exported from `fenicsoft/__init__.py`, alphabetical: nothing depends on
-the import order) and its test (with `tests/conftest.py::cube_mean`). Reuse sites switched:
-`orientation_change.py` (`floored`), `orientation/generic.py` (`macaulay` under the sqrt, `capped` before acos),
-`haptotaxis/saturated.py` ×2 (`macaulay`; same values, tangent at Φ_c = Φ_c,max exactly now 0 instead of −1/Φ_c,max).
-Left as is: sign/fold switches (`conditional(x < 0, -1, 1)`, `|cos θ|`, angle wrapping), not guards.
 
 ## 1. Integration: select XDMF fields, write logs on rank 0 only
 
@@ -106,13 +86,6 @@ Left as is: sign/fold switches (`conditional(x < 0, -1, 1)`, `|cos θ|`, angle w
 
 **Done when** the 61 integration unit test cases (59 functions, 2 of them parametrized) pass with 100 % coverage of the module, and an `mpirun -n 2` run of a demo gives a `.out` with the same line count as the serial run.
 
-**Done in #97.** The code changes were patched into fenicsoft's file (code identical to the playground copy once
-docstrings are stripped); fenicsoft's docstrings are kept (Args without types, `-- new --` markers of the `integrate`
-copy) and extended (solve units, selected fields and rank-0 logs, the duplicate guard across steps). Tests:
-`test_decimated_time_integrator.py` and `integrator_case.py` copied (imports `fenicsoft.integration`), the unit-test
-changes ported into `test_decimated_time_integrator_unit.py`. Playground: `integration/` and its tests deleted; demos,
-`hill_box_all_modes`, `scaling/time_steps.py` and its test import `fenicsoft.integration`.
-
 ## 2. Scaling: promote `CharacteristicScales` to `fenicsoft.scaling`
 
 **Changes.**
@@ -126,22 +99,11 @@ changes ported into `test_decimated_time_integrator_unit.py`. Playground: `integ
 
 **Tests.** `tests/unit/scaling/test_characteristic_scales.py` (100 % coverage), `tests/unit/scaling/test_time_steps.py`.
 
-**Done in #98.** `src/fenicsoft/scaling/` as above, exported from `fenicsoft/__init__.py`; docstrings to the fenicsoft
-standard (`Args` without types, one equation per conversion $\hat x = x/X_0$), the float/NumPy/UFL scope stated once
-through the documented alias `Quantity`. Tests copied (imports `fenicsoft.scaling`) plus `identity()` and a UFL case
-(`dolfin.Constant` assembled on a unit interval). fenicsoft README: `scaling` row. Playground: `scaling/` and its tests
-deleted, `scaling` removed from `hill_playground/__init__.py` and `NEW_BRANCHES`; demos, demo READMEs,
-`hill_box_all_modes` and `terzaghi_nondim` import `fenicsoft.scaling`.
-
 ## 3. IO: write XDMF geometry and time back in SI
 
 **Changes.** New `src/fenicsoft/io/xdmf_units.py`. `redimensionalize_results(xdmf, length, time)` multiplies `Mesh/*/mesh/geometry` by L₀ and `<Time Value>` by t₀. It is idempotent stage by stage through the HDF5 attributes `geometry_scale` and `time_scale`, each written right after its stage (the XDMF is replaced atomically): a second call skips the stamped stages and resumes an interrupted one; only an interruption inside a stage, before its stamp, makes the next call apply that stage again. Both attributes are recorded even when the scale is 1; `is_redimensionalized(h5)` is True once both are set. With L₀ = t₀ = 1 the call is a no-op and writes no stamp: it logs a warning (`logging`, as `fenicsoft.io.mesh`), since `is_redimensionalized` then stays False, as for a run in progress; the demo's main must handle that case. New `src/fenicsoft/io/xdmf_reading.py`: `read_time_stamps(xdmf)` returns the `<Time Value>` entries as floats (use it in tests rather than matching the formatted text), and `TIME_VALUE` is the pattern shared with `xdmf_units`. Call it on rank 0 after `integrate()` whenever the mesh was scaled. Export `redimensionalize_results`, `is_redimensionalized` and `read_time_stamps` from `fenicsoft.io`. New direct dependency of `src`: `h5py` (already in the image; add it to the `dependencies` of `pyproject.toml`).
 
 **Tests.** `tests/unit/io/test_xdmf_units.py`, `tests/unit/io/test_xdmf_reading.py`.
-
-**Done in #96.** Modules as above, exported from `fenicsoft.io`; `h5py` in the `dependencies`; tests named
-`test_xdmf_{units,reading}_unit.py` (convention of `tests/unit/io/`). Playground `io/` and its tests deleted; demos and
-the integration test import `fenicsoft.io.xdmf_units` / `fenicsoft.io.read_time_stamps`.
 
 ## 4. Active laws: shared activation schedule
 
@@ -157,14 +119,6 @@ It is not a constitutive law. Active laws use it by composition, so no law depen
 - `tests/unit/materials/cell/active/test_activation_equivalence.py`: 100 random config sets × 20 calls give the same α as `iso.Constitutive` (the aniso comparison was dropped with the archived law), or the same `IndexError` for a function config on a missing step. The sets cover constant, ramp and function configs, and missing, duplicated or out-of-range `k_step`.
 - fenicsoft demos: they only use `ActivePowerConfig.constant`, `.ramp` and `.function`, never the internals, so the change is transparent for them.
 
-**Done in #96, with the §15 follow-up.** `iso.law` composes `ActivationSchedule` (`schedule`; `p_cell` is an alias
-of `schedule.p_act`, `current_power` = `schedule.value`) and keeps `ActivePowerConfig` as a re-export
-(`iso.ActivePowerConfig`, used by the demos and the archives, still works). The equivalence test was run before the
-switch in the playground and is not transferred (iso now *is* the schedule). The `ActivePowerConfig` tests moved
-from `test_law_cell_iso.py` to `test_activation.py` (merged with the playground cases, error messages matched);
-the iso tests reading `_current_manager`/`_step_managers` are replaced by delegation tests (`p_cell is
-schedule.p_act`, ramp through `set_k_step`/`update_time`); the mocks target `activation.dolfin`/`activation.dmech`.
-
 ## 5. Hill chain law (self-contained)
 
 **Changes.** New `src/fenicsoft/materials/cell/active/hill/{__init__.py, functions.py, law.py}`:
@@ -177,22 +131,11 @@ schedule.p_act`, ramp through `set_k_step`/`update_time`); the mocks target `act
 
 **Tests.** `tests/unit/materials/cell/active/hill/test_{functions,law}_cell_hill.py` and the fixtures in `tests/conftest.py` (`HillSetup`, `make_setup`).
 
-**Done in #99.** Package as above, exported from `materials/cell/active/__init__.py`; relative imports, `simulation_steps`
-typed `fenicsoft.integration.Step` (was `dolfin_mech.core.Step`); figure `docs/src/_static/resources/hill_rheology.{tex,svg}`
-moved to fenicsoft. Fixtures merged into fenicsoft `tests/conftest.py` with lazy imports (`HillSetup`, `make_setup`,
-`hill_setup`, `make_hill_setup`; `dilate` stays in the playground for issue 8). Zero-target asserts rewritten as
-`pytest.approx(0.0, rel=0.0, abs=...)`. Playground `materials/cell/` and its tests deleted.
-
 ## 6. Contractile element operator $R_a$
 
 **Changes.** New `src/fenicsoft/operators/cell/hill/contractile_evolution.py` (no `__init__.py`, export from `operators/cell/__init__.py`): `ContractileEvolution`, with R_a = [f_max α f_FL h(D_a) + η₀D_a + T_p − T_e] δε and D_a = (ε_a − ε_aⁿ)/Δt, plus `scale_factor`. Register it per step (`k_step`): `set_dt` is only called on step operators.
 
 **Tests.** `tests/unit/operators/cell/hill/test_contractile_evolution.py`.
-
-**Done in #99.** `ContractileEvolution` exported from `operators/cell/__init__.py` (import `fenicsoft.operators.cell`).
-Playground `operators/cell/` and its test deleted; `NEW_BRANCHES` keeps `materials.permeability` only; demos,
-demo READMEs, `hill_box_all_modes` and `hill_one_element` import `fenicsoft.materials.cell.active.hill` and
-`fenicsoft.operators.cell.ContractileEvolution`.
 
 ## 7. Saturated proliferation: clip the saturation
 
@@ -204,8 +147,6 @@ demo READMEs, `hill_box_all_modes` and `hill_one_element` import `fenicsoft.mate
 - Add the playground cases (identical below Φ_c,max, zero source above), comparing with the analytical value r Φ_c (1 − Φ_c/Φ_c,max) instead of the old fenicsoft class (after the merge it is the same class).
 - `test_saturated_proliferation_construction` builds the operator with a `MagicMock` `phi_c`: UFL `conditional` (`macaulay` → `floored` → `piecewise`, `dolfin.le`) rejects it once the clip is in. Replace the mock by a `dolfin.Function` or remove that test (the assembly tests cover it).
 
-**Done in #95.** Clip in fenicsoft; MagicMock test removed; analytical cases added (Φ_c ∈ {0, 0.05, 0.099}: −rΦ_c(1 − Φ_c/Φ_c,max); Φ_c ∈ {0.1, 0.15}: 0). Playground `operators/cell/proliferation/` and its test deleted; the demos call `cell_ops.SaturatedProliferation` (fenicsoft).
-
 ## 8. Permeability laws $k(\phi_\ell)$
 
 **Changes.**
@@ -216,37 +157,15 @@ demo READMEs, `hill_box_all_modes` and `hill_one_element` import `fenicsoft.mate
 
 **Tests.** `tests/unit/materials/test_saturated_mixture.py`, `tests/unit/materials/permeability/test_permeability_laws.py`.
 
-**Done in #100 (with issue 9).** Modules copied (relative imports; `base.py` types `Kinematics`), `permeability` and
-`saturated_mixture` exported from `materials/__init__.py`. Reuse sites switched to `saturated_mixture`:
-`haptotaxis/{constant,saturated}.py` (`grad(solid_fraction(J, φ_s0) ρ_s)`), `haptotaxis/internal_variable.py`
-(`SubstrateProjection` target), `phi_f_euler` of `cube_iso_contraction/main_internal_variable.py` and
-`cylinder_jellyfish_contraction/main{,_internal_variable,_internal_variable_smooth_bcs}.py` (`eulerian_porosity`).
-`test_constant_hapt.py`: the singularity mock now raises on φ_s0/J. Fixture `dilate` (`dilated_kinematics`, lazy
-imports) merged into fenicsoft `tests/conftest.py`; zero-target asserts as `pytest.approx(0.0, rel=0.0, abs=...)`.
-Playground `materials/{permeability,saturated_mixture.py}`, their tests and `tests/conftest.py` deleted;
-`NEW_BRANCHES = ()`.
-
 ## 9. Volumetric energy with a compaction point
 
 **Changes.** New `src/fenicsoft/materials/volumetric/compaction.py`: `CompactionVolumetricPenalty` (Ehlers), W = κ(1−J_min)²[x − ln x − 1], with its own `Parameters(kappa, solid_jacobian, x_floor)` (J_min < 1 checked when `solid_jacobian` is a number or a `dolfin.Constant`). Below x_floor, W is continued linearly in x, so S = 2∂W/∂C holds everywhere and S stays finite (checked by finite differences in the test).
 
 **Tests.** `tests/unit/materials/volumetric/test_compaction.py`.
 
-**Done in #100.** `volumetric/compaction.py` with `Parameters` renamed `CompactionVolumetricPenaltyParameters`
-(fenicsoft convention: classes exported from `volumetric/__init__.py`, as `VolumetricPenaltyParameters`). Playground
-`materials/volumetric/` and its test deleted; demos and `hill_box_all_modes` call
-`fenicsoft.materials.volumetric.CompactionVolumetricPenalty(Parameters)`.
-
 ## 10. Orientation diagnostics
 
 **Changes.** New `src/fenicsoft/materials/orientation/display.py`: `current_direction`, `tilt_degrees`, `axis_angle_degrees`, `order_parameter` (head/tail symmetric, `atan2`).
-
-**Done in #96.** `axis_angle_degrees` duplicated `generic.fiber_reorientation_angle` (unsigned, degrees): not
-transferred. Instead `fiber_reorientation_angle` is improved, θ = atan2(‖f − c a‖, |c|), c = f·a (any dimension, no
-clamp, accurate at 0 and 90°; `capped`/`acos` and the sign fold `conditional` gone), and `tilt_degrees` = 90° −
-`fiber_reorientation_angle(f, n, in_degrees=True)`. Demos: `angle_x_*` QOIs call
-`generic.fiber_reorientation_angle(f, e_x, in_degrees=True)`. Test of `test_generic.py` formerly named
-`..._clamps_projection_overshoot` renamed `..._non_unit_aligned_inputs`.
 
 **Tests.** `tests/unit/materials/orientation/test_display.py`.
 
@@ -274,15 +193,6 @@ equations.tex Table tab:sf omitted s_row, the scale of the row's test function: 
   - Terzaghi: all 3 modes through `ResidualRows`, plus the `+rows` variants.
   - Hill box demo.
 
-**Done in #101.** `operators/residual_rows.py` copied (package Author/Fund/Date, docstring of `_check`) and
-`ResidualRows` exported from `operators/__init__.py`; unit test as `tests/unit/operators/test_residual_rows_unit.py`
-(suffix of its neighbours), `test_quadrature_degree_per_integral` appended to fenicsoft `tests/environment/test_env.py`;
-the `abs(...).max() < 1e-14` equalities became `pytest.approx(..., rel=0.0, abs=1e-14)` (the `> tol` checks that the
-degree acts stay). Playground `operators/`, its test and its environment test deleted; `operators` removed from
-`hill_playground/__init__.py`; demos (`hill_box`, `hill_cylinder_free`, `hill_microtissue_pillars`, Terzaghi
-`nondim_operator`) and integration tests (Hill one element, Terzaghi, `hill_box_all_modes`) import
-`fenicsoft.operators.ResidualRows`.
-
 **Follow-up.** The pillar case is recoded in the playground with `ResidualRows` (issue 18; multi-domain: `rows.measure(problem.dV(tags), row)` keeps the subdomain). Φ_c and ε_a are frozen in the pillars by their rate term (`ChangeRate`), not by the identities of equations.tex (see issue 18).
 
 ## 12. Hill one-element integration test
@@ -296,15 +206,7 @@ degree acts stay). Playground `operators/`, its test and its environment test de
 
 **Done when** ε_a, P_xx and (λ, λ_t) match the 0D reference to 1e-12–1e-10.
 
-**Done in #102.** The four files copied to fenicsoft `tests/integration/materials/cell/active/hill/` (first nested
-`conftest.py` of fenicsoft: it only adds the terminal summary), figure `docs/src/_static/resources/hill_one_element_bcs.{tex,svg}`
-moved to fenicsoft; imports already `fenicsoft.*` (unchanged). Tolerances made explicit on both sides
-(`approx(..., rel=0.0, abs=1e-8)` for the equilibrium, `rel=1e-15, abs=0.0` for the wiring factors). Outputs
-(`outputs_hill_one_element/`) ignored by fenicsoft's `*[Oo]utput*/`. The run keeps `dolfin_mech.core.TimeIntegrator`
-(no decimation nor plateau exit wanted: the hold must reach the isometric equilibrium). fenicsoft README tree updated.
-Playground `tests/integration/materials/` and the figure deleted.
-
-## 13. Terzaghi nondimensionalization methods: integration test and demos
+## 13. Terzaghi integration test, nondimensionalization methods
 
 **Changes.**
 - `tests/integration/analytical_consolidation_1D/{terzaghi_nondim.py, test_terzaghi_nondim.py, conftest.py}` → fenicsoft `tests/integration/analytical_consolidation_1D/nondimensional/`.
@@ -312,34 +214,18 @@ Playground `tests/integration/materials/` and the figure deleted.
 - The operators take their measure and `scale_factor` from `ResidualRows` (rows `displacement` and `liquid_pressure`), with term value factors v (gel and load L₀², fluid μ₀L₀², rate L₀³, Darcy μ₀L₀), test scales (L₀, μ₀, operator mode) and row normalizations (μ₀L₀³, μ₀L₀³/t₀).
 - `+rows` variants of the 3 modes: `{"displacement": 3, "liquid_pressure": 2}`. They stay within 1 % of the analytics, agree with each other to round-off, and differ from the default degree by 1e-12 < Δp/p₀ < 1e-3, which shows the degrees are applied. Runtime: about 3.8 min for the 6 runs. The figure and `errors.csv` go to `outputs_terzaghi_nondim/`; the error table is printed in the pytest summary.
 - Merge the Terzaghi series with fenicsoft's `terzaghi_analytics.py` if wanted.
-- Demos `demos/analytical_consolidation_1D/{nondim_parameters, nondim_operator}` (from issue 14) → fenicsoft `demos/analytical_consolidation_1D/`, shared `terzaghi_analytics.py` and `post_process.py` merged into fenicsoft's.
 
 **Done when** the pressure and settlement errors are below 1 % for T ≥ 0.05 for all 6 cases (measured: 8.6e-3 and 3.9e-3), and the scaled modes are identical to SI with the same rows.
-
-**Done in #103.** The three files copied to fenicsoft `tests/integration/analytical_consolidation_1D/nondimensional/`
-(second nested `conftest.py`: terminal summary only), figure `docs/src/_static/resources/terzaghi_column.{tex,svg}`
-moved to fenicsoft; imports already `fenicsoft.*` (ruff isort: `fenicsoft` now first-party, after the third-party block).
-Reuse: the Darcy tensor is now `materials.permeability.constant.Permeability(...).tensor` (#100, same
-$(k/\eta)J\mathbf C^{-1}$ as the inline product, as in the `nondim_*` demos). Tolerances already explicit. Axis label `µm` written `$\mu$m` (ASCII source).
-Demos (moved here from issue 14, they only need #96, #98, #100, #101): `demos/analytical_consolidation_1D/{nondim_parameters,
-nondim_operator}/main.py` copied; name clash solved by **merging** into fenicsoft's shared files, whose names the SI
-demos import: `terzaghi_analytics.py` gains `TerzaghiCase` (numpy, sine form) next to `TerzaghiExpression`,
-`post_process.py` gains `COLORS`, `T_PLOTTED`, `read_qois`, `Errors`, `compute_errors`, `plot_results` (written with
-fenicsoft's `numpy`/`pandas`/`pyplot` names); the demos import them as `demos.analytical_consolidation_1D.*` (project
-root on `sys.path`, as `single_step/`). New folder README (SI and nondimensionalised demos, included by the docs);
-fenicsoft README demo table updated. Playground `demos/analytical_consolidation_1D/` deleted. Outputs (`outputs_terzaghi_nondim/`)
-ignored by fenicsoft's `*[Oo]utput*/`. The test keeps its own series (`analytical_pressure`, `analytical_settlement`):
-tests do not import demos, follow-up in §15. fenicsoft README tree updated. Playground `tests/integration/analytical_consolidation_1D/` and the
-figure deleted; `hill_box_all_modes.py` points to the fenicsoft test; devcontainer `extraPaths` cleaned (also the
-stale Hill one-element path of #102).
 
 ## 14. Hill box demo
 
 **Changes.**
 - `demos/hill_box/{hill_box_uniaxial.py, hill_box_scaling.py, hill_box_outputs.py, post_processing.py, README.md}` → fenicsoft `demos/smooth_muscle_cells/porous_hydrogel/hill_box/` (elementary: simple geometry), figure `docs/src/_static/resources/hill_box_bcs.{tex,svg}`.
-- The Terzaghi demos (`nondim_parameters`, `nondim_operator`) went with issue 13 (#103).
+- fenicsoft's `terzaghi_analytics.py` and the SI Terzaghi demos now carry condensed docstrings and the figure `terzaghi_plane_strain.{tex,svg}` (copied from the playground in #93).
+- `demos/analytical_consolidation_1D/{nondim_parameters, nondim_operator, terzaghi_analytics.py, post_process.py, README.md}` → fenicsoft `demos/analytical_consolidation_1D/` (next to `single_step/`, `initialising_step/`).
+  - **Name clash**: fenicsoft already has `terzaghi_analytics.py` and `post_process.py` there, with a different content and API (`single_step/` and `initialising_step/` import `post_process`). Either merge (keep fenicsoft's names used by the SI demos, add `TerzaghiCase`, `read_qois`, `compute_errors`, `plot_results`), or rename the playground ones (e.g. `terzaghi_case.py`, `post_process_nondim.py`) before the copy.
 - The demo is nondimensionalised **by the parameters only** (`hill_box_scaling.Coefficients`, every `scale_factor` 1, solve in t̂). The three-mode version (`nondimensionalization` = `none`, `operator`, `parameters`) is the test reference `tests/integration/demos/hill_box_modes/hill_box_all_modes.py`, with `jacobian_scaling.py`.
-- `tests/integration/demos/{test_hill_box_scaling.py, test_hill_box_inputs.py, test_hill_box_post_processing.py, hill_box_modes/}` → `demos/.../hill_box/test/` with a `sys.path` conftest (fenicsoft has no `tests/integration/demos/`). `testpaths = ["tests"]` does not collect it: run it explicitly (`pytest demos/.../hill_box/test`).
+- `tests/integration/demos/{test_hill_box_scaling.py, test_hill_box_inputs.py, test_hill_box_post_processing.py, hill_box_modes/}` → `demos/.../hill_box/test/` with a `sys.path` conftest (fenicsoft has no `tests/integration/demos/`). `testpaths = ["tests"]` does not collect it: run it explicitly (`pytest demos/.../hill_box/test`), or decide another location before the merge request.
 - Replace the `hill_playground.*` imports by `fenicsoft.*`.
 - `UserInputs` options (demo): `permeability_law`, `volumetric_law`, `see_variant`, `cell_transport`, `remodelling`, `xdmf_si_only`, `quadrature_degrees`; `hill_box_all_modes.UserInputs` adds `nondimensionalization`.
 - Outputs:
@@ -358,42 +244,20 @@ stale Hill one-element path of #102).
 
 **Done when** the three `nondimensionalization` modes of `hill_box_all_modes.py` give identical QOIs (measured: 3e-15) and identical Jacobians (`operator` vs `parameters`), and an `mpirun` run gives a readable `.out`.
 
-**Done in #104.** Demo files copied to fenicsoft `demos/smooth_muscle_cells/porous_hydrogel/hill_box/`, figure
-`docs/src/_static/resources/hill_box_bcs.{tex,svg}` moved; imports already `fenicsoft.*` (ruff isort: `fenicsoft`
-first-party). Sibling imports of the demo as `demos.smooth_muscle_cells.porous_hydrogel.hill_box.*` with the project
-root on `sys.path` (as the Terzaghi and thermic demos). Tests in `hill_box/test/`, flat (no `hill_box_modes/`
-sub-folder: `jacobian_scaling.py` imports `hill_box_all_modes` from the same folder, as pytest puts it on `sys.path`);
-`test/conftest.py` only puts the project root on `sys.path`; the tests import the demo and its post-processing as
-`demos....hill_box.*` (no clash with other `post_processing` modules). Not collected by `make test`/`make cov`: run
-`pytest demos/smooth_muscle_cells/porous_hydrogel/hill_box/test`; the explicit-tolerance guard only scans `tests/`
-(the four comparisons here are explicit). Degree signs written `^\circ` / `deg` (ASCII source). Folder README
-(image as `/_static/...` markdown, `Tests` section), fenicsoft README demo table and a line on demo `test/` folders.
-Outputs (`outputs_hill_box_*`) ignored by `*[Oo]utput*/`. Playground copies deleted (the `outputs_hill_box_uniaxial*`
-result folders are kept in `demos/hill_box/`); devcontainer `extraPaths` cleaned.
-Docs: `"private-members"` added to fenicsoft `autoapi_options` (as the playground): documented `_names` are rendered
-(112 objects in src, tests, demos and archives), undocumented ones stay hidden.
-
 ## 15. Follow-ups
 
-- **Done (#96).** `iso.law` imports `ActivePowerConfig` (and the `p_act` machinery) from `cell/active/activation.py` (issue 4), and removes its copy (`aniso.law` is archived since #93).
+- `iso.law` imports `ActivePowerConfig` (and the `p_act` machinery) from `cell/active/activation.py` (issue 4), and removes its copy (`aniso.law` is archived since #93).
   - `iso` keeps `p_cell` as an alias of `ActivationSchedule.p_act`, plus `current_power`.
   - Its unit test reads private attributes and must be adapted: `_current_manager` and `_step_managers` in `test_law_cell_iso.py`.
   - The equivalence test then becomes redundant.
   - The archived demos import `ActivePowerConfig` from `fenicsoft.materials.cell.active.iso.law`: point them to `activation.py` too (or leave them, they are not maintained).
-- Terzaghi analytics (after #103): one series, three places. Demos: `terzaghi_analytics.TerzaghiCase` (numpy) and
-  `TerzaghiExpression` (UserExpression; could evaluate `TerzaghiCase.pressure`). Tests:
-  `tests/integration/analytical_consolidation_1D/terzaghi_analytics.py` (copy of the demo file) and
-  `nondimensional/terzaghi_nondim.analytical_pressure`/`analytical_settlement`. Tests do not import demos, so a shared
-  version would belong in `src` (e.g. `fenicsoft.analytics`), to decide.
 - `ScaledKinematics` (pillar demo `src/`) went with the deleted scaled pillar demo (#93): the mesh is scaled, so `Kinematics` is exact.
 - After each merge:
   - remove the transferred paths from `NEW_BRANCHES` in `tests/environment/test_env.py`;
   - delete the playground copies;
   - switch the playground imports to fenicsoft.
-  - Done for issues 0 and 7 (#95), 3, 4, 10 (#96), 1 (#97), 2 (#98), 5 and 6 (#99), 8 and 9 (#100), 11 (#101), 12 (#102), 13 (#103), 14 (#104), 17 (#105), 16 and 18 (#106), before each merge. Also fixed: `materials/domain_fields.py` imported
-    `build_indicator_meshfunction` from `fenicsoft.io` (moved to `fenicsoft.mesh` in #93).
 - Devcontainer: the playground mounts the JIT cache `/home/fenics_user/.cache/dolfin` (`DIJITSO_CACHE_DIR` of the image) as the named volume `hill-dijitso-cache`; do the same in fenicsoft. The Hill forms take about 90 s of JIT compilation on a fresh container.
-- `set_dt` with a NumPy scalar: `dolfin_mech.core.TimeVaryingConstant.set_value_sca` only accepts `int`/`float`/`list`/`ndarray` (exact `type(val) in ...`), so a `numpy.float64` Δt is silently ignored and Δt stays 0 in every operator (`ChangeRate`, `OrientationChange`, `ContractileEvolution`, `Inertia`). The operators are left as in dolfin_mech/fenicsoft (`self.tv_dt.set_value(dt)`); the playground casts at the source instead (`fenicsoft.scaling.time_steps` returns Python `float`, test `test_numpy_t0_gives_python_floats`). Root fix to raise in dolfin_mech: `isinstance(val, numbers.Real)` in `set_value_sca`.
+- `set_dt` with a NumPy scalar: `dolfin_mech.core.TimeVaryingConstant.set_value_sca` only accepts `int`/`float`/`list`/`ndarray` (exact `type(val) in ...`), so a `numpy.float64` Δt is silently ignored and Δt stays 0 in every operator (`ChangeRate`, `OrientationChange`, `ContractileEvolution`, `Inertia`). The operators are left as in dolfin_mech/fenicsoft (`self.tv_dt.set_value(dt)`); the playground casts at the source instead (`scaling.time_steps` returns Python `float`, test `test_numpy_t0_gives_python_floats`). Root fix to raise in dolfin_mech: `isinstance(val, numbers.Real)` in `set_value_sca`.
 - Docs: `skip_globals` in `docs/src/conf.py` now skips only undocumented module data (documented constants and their `:data:` cross-references are rendered); same change in fenicsoft.
 - Tooling: autoapi documents the tests too, so docstrings there must be valid reST. Write `|x|` inside `:math:`, never bare (`make docs` fails on "Undefined substitution").
 
@@ -406,11 +270,6 @@ Docs: `"private-members"` added to fenicsoft `autoapi_options` (as the playgroun
 
 **Tests.** `tests/unit/materials/test_domain_fields.py`.
 
-**Done in #106.** `src/fenicsoft/materials/domain_fields.py` (relative import `from ..mesh import
-build_indicator_meshfunction`, as the other `src` modules), exported from `fenicsoft/materials/__init__.py` (module
-list of the docstring, import and `__all__`); test `tests/unit/materials/test_domain_fields.py` (import switched to
-`fenicsoft.materials`). Playground `materials` sub-package deleted (`hill_playground/__init__.py` exports nothing).
-
 ## 17. Free-floating cylinder demo
 
 **Changes.** `demos/hill_cylinder_free/{hill_cylinder_free.py, hill_cylinder_scaling.py, hill_cylinder_outputs.py, cylinder_post_processing.py, README.md}` → fenicsoft `demos/smooth_muscle_cells/porous_hydrogel/hill_cylinder_free/` (elementary: simple geometry), figure `docs/src/_static/resources/hill_cylinder_free_bcs.{tex,svg}`.
@@ -419,18 +278,6 @@ list of the docstring, import and `__all__`); test `tests/unit/materials/test_do
 - QOIs `top_center_disp_z` (height change), `wall_disp_y` (−ΔR at mid-height, probe inset by h_max²/(4R)), `mean_jacobian` (V/V₀).
 
 **Done when** a local run reaches the plateau; checked here: one step (α 0 → 0.1, 1 s) on a 0.6 × 0.3 mm cylinder converges, serial = `mpirun -n 2` to 1e-15, and the post-processing reads the results.
-
-**Done in #105.** Demo files copied to fenicsoft `demos/smooth_muscle_cells/porous_hydrogel/hill_cylinder_free/`, figure
-`docs/src/_static/resources/hill_cylinder_free_bcs.{tex,svg}` moved; imports already `fenicsoft.*` (ruff isort:
-`fenicsoft` first-party). Sibling imports as `demos.smooth_muscle_cells.porous_hydrogel.hill_cylinder_free.*` with
-the project root on `sys.path` (as #104), `TYPE_CHECKING` imports of `UserInputs` by the same package path. Degree
-signs written `^\circ` / `deg` (ASCII source). Folder README (image as `/_static/...` markdown, file table with the
-main objects, run path), fenicsoft README demo table row. Kept as a self-contained copy of the Hill box model (user
-decision): `hill_cylinder_scaling.py`, `hill_cylinder_outputs.py`, `cylinder_post_processing.py` differ from their
-`hill_box` counterparts by docstrings, one probe name and default paths, and `initialise_problem`,
-`build_permeability`, `build_materials`, `build_step_operators`, `solve_problem` are the same as in
-`hill_box_uniaxial.py`. No tests (none in the playground). Playground copies deleted (the
-`outputs_hill_cylinder_free` result folder is kept in `demos/hill_cylinder_free/`); devcontainer `extraPaths` cleaned.
 
 ## 18. Microtissue between pillars demo
 
@@ -445,19 +292,3 @@ decision): `hill_cylinder_scaling.py`, `hill_cylinder_outputs.py`, `cylinder_pos
 - Batch for asimov kept (`batch_hill_microtissue_pillars.sh`): same docker pipeline, the whole playground mounted (`PYTHONPATH=/app/src`).
 
 **Done when** stage A, cut, stage B and the post-processing run locally; checked here: one step of each stage on a half-size geometry (T = 25 µm), stage B starting exactly from the stage A state (same probe values), serial = `mpirun -n 2` (stage A) to 1e-15, post-processing on both stages.
-
-**Done in #106.** Demo files copied to fenicsoft `demos/applications/hill_microtissue_pillars/`, figure
-`docs/src/_static/resources/hill_microtissue_pillars_bcs.{tex,svg}` moved. `hill_playground.materials.domain_fields`
-→ `fenicsoft.materials.domain_fields`; sibling imports as `demos.applications.hill_microtissue_pillars.*` with the
-project root on `sys.path` (`parents[3]`; `# noqa: E402`), stage B and the cut import stage A as
-`demos....pillars_biaxial as stage_a`, `TYPE_CHECKING` imports of `UserInputs` by the same path. Degree signs written
-`^\circ` / `deg`, `≈` as `:math:`\approx``, µm as `\mu m` (ASCII source). Batch rewritten for fenicsoft: image
-`fenicsoft:latest` (`docker/fenicsoft/Dockerfile`), the fenicsoft clone mounted on `/app` with `PYTHONPATH=/app/src`
-(checked-out sources, sibling imports), work dir the demo folder, JIT cache volume
-`fenicsoft-dijitso-cache-<user>` on `/home/fenicsoft_user/.cache/dolfin`, provenance (commit, dirty flag,
-`dolfin_mech` version) in `logs/pipeline_pillars/image.txt`. Folder README (image as `/_static/...` markdown, file
-table with the main objects, library table corrected: cut in `fenicsoft.mesh`, checkpoints in `fenicsoft.io`, run
-path, batch section), fenicsoft README application table row. The archived `microtissue_pillar_spherical` stays in
-`archives/` (superseded). No tests (none in the playground). Playground copies deleted (the `outputs_pillars_biaxial`
-result folder is kept in `demos/hill_microtissue_pillars/`); devcontainer `extraPaths` cleaned; the
-`docker/hill_playground/build.sh` smoke test of the pillars demo removed (no batch left in the playground).
