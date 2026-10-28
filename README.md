@@ -1,5 +1,12 @@
 # Hill-preparation-playground
 
+> **Showcase.** This branch is a snapshot (27/10/2026) of the playground where the Hill-chain smooth muscle cell
+> model was developed from its equations, before its transfer into
+> [`fenicsoft`](https://src.koda.cnrs.fr/lms1/jean-marc-allain/fenicsoft), the FEniCS-based modelling package of the
+> LMS (École polytechnique). That code now lives in fenicsoft (merge requests #95 to #106); this snapshot is kept
+> as it was, with its fenicsoft and dolfin_mech versions pinned in `.devcontainer/fenicsoft.env` so it still
+> installs and runs. New developments start from the `devel-base` branch.
+
 Workspace to go **from equations to simulation** for the Hill-chain smooth muscle cell model,
 before transfer into
 [`fenicsoft`](https://src.koda.cnrs.fr/lms1/jean-marc-allain/fenicsoft).
@@ -56,7 +63,7 @@ Expected layout on the host (same as today):
 
    | `FENICSOFT_SOURCE` | Installs | `FENICSOFT_REF` |
    | --- | --- | --- |
-   | `local` (default) | a throw-away copy of `../fenicsoft` at the ref; your checkout is untouched | local branch, `origin/<branch>`, tag or sha (default `main`) |
+   | `local` (default) | a throw-away copy of `../fenicsoft` at the ref; your checkout is untouched | local branch, `origin/<branch>`, tag or sha (pinned, see above) |
    | `editable` | `pip install -e ../fenicsoft` as currently checked out (edit both repos live) | ignored |
    | `remote` | from the GitLab, needs `FENICSOFT_TOKEN` (`secrets.env` or host env) | branch, tag or sha |
 
@@ -74,7 +81,7 @@ Expected layout on the host (same as today):
 Inside the container, no rebuild needed:
 
 ```bash
-make fenicsoft FENICSOFT_REF=main
+make fenicsoft FENICSOFT_REF=<branch|tag|sha>
 make fenicsoft FENICSOFT_SOURCE=editable
 make fenicsoft            # back to what fenicsoft.env says
 ```
