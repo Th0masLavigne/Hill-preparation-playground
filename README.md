@@ -44,8 +44,7 @@ holds what is new.
 ├── demos/hill_box/                     # gel slab clamped on two faces
 ├── demos/hill_cylinder_free/           # free-floating cylinder
 ├── demos/hill_microtissue_pillars/     # microtissue between pillars (stage A, cut, stage B, batch)
-├── docs/src/
-└── TRANSFER.md             # transfer plan to fenicsoft, one merge request per issue
+└── docs/src/
 ```
 
 ## Setup (VS Code + Dev Containers)
